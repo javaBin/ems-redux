@@ -43,7 +43,7 @@ object converters {
     }
   }
 
-  def toProperty: PartialFunction[(String, AnyRef), Property] = {
+  def toProperty: PartialFunction[(String, Any), Property] = {
     case (a, b) => new Property(a, ValueFactory.createValue(b), a)
   }
 
