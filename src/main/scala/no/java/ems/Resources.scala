@@ -2,59 +2,75 @@ package no.java.ems
 
 import unfiltered.request._
 import unfiltered.response._
+import unfiltered.request.Accepts
 import unfiltered.filter.Plan
 import org.joda.time.DateTime
-import java.net.URI
-import net.hamnaberg.json.generator.JsonCollectionGenerator
-import net.hamnaberg.json._
+import net.hamnaberg.json.collection._
 import no.java.ems.converters._
+import no.java.unfiltered.{BaseURIBuilder, RequestURIBuilder}
+import javax.servlet.http.HttpServletRequest
 
 class Resources(storage: Storage) extends Plan {
-  private val collgen = new JsonCollectionGenerator()
 
-  implicit def coll2json(collection: JsonCollection): String = collgen.toNode(collection).toString
-
-  def handleEventsList() = {
-    implicit val base = URI.create("http://localhost:8080/")
-    val output = storage.getEvents().map(eventToItem)
-    val curried = list2Collection(base.resolve("/events"), _: List[Item])
-    ContentType("text/plain") ~> ResponseString(curried.apply(output))
+  def handleEventsList(request: HttpRequest[HttpServletRequest]) = {
+    val baseUriBuilder = BaseURIBuilder.unapply(request).get
+    val output = storage.getEvents().map(eventToItem(baseUriBuilder))
+    val href = baseUriBuilder.segments("events").build()
+    CollectionJsonResponse(JsonCollection(href, Nil, output))
   }
 
-  def handleEvent(id: String, request: HttpRequest[Any]) = {
-    implicit val base = URI.create("http://localhost:8080/")
+  def handleEvent(id: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
-      case GET(_) => storage.getEvent(id).map(eventToItem).map(singleCollection).map(x => {
-        ContentType("application/vnd.collection+json") ~> ResponseString(x)
-      }).getOrElse(NotFound)
+      case GET(req) => {
+        val baseUriBuilder = BaseURIBuilder.unapply(req).get
+        storage.getEvent(id).map(eventToItem(baseUriBuilder)).map(singleCollection).map(CollectionJsonResponse(_)).getOrElse(NotFound)
+      }
       case _ => NotImplemented
     }
   }
 
 
-  def handleSessions(eventId: String) = {
-    implicit val base = URI.create("http://localhost:8080/")
-    val href = base.resolve("/events/%s/sessions".format(eventId))
-    ContentType("application/vnd.collection+json") ~> ResponseString(list2Collection(href, storage.getSessions(eventId).map(sessionToItem)))
+  def handleSessions(eventId: String, request: HttpRequest[HttpServletRequest]) = {
+    val baseUriBuilder = BaseURIBuilder.unapply(request).get
+    val href = baseUriBuilder.segments("events", eventId, "sessions").build()
+    val items = storage.getSessions(eventId).map(sessionToItem(baseUriBuilder))
+    CollectionJsonResponse(JsonCollection(href, Nil, items))
   }
 
-  def handleSession(eventId: String, sessionId: String, request: HttpRequest[Any]) = {
+  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+    val baseUriBuilder = BaseURIBuilder.unapply(request).get
     request match {
       case GET(_) => {
-        implicit val base = URI.create("http://localhost:8080/")
-        val session = storage.getSession(eventId, sessionId).map(sessionToItem).map(x => list2Collection(x.getHref, List(x)))
-        session.map(x => ContentType("application/vnd.collection+json") ~> ResponseString(x)).getOrElse(NotFound ~> ResponseString("Session was not found"))
+        storage.getSession(eventId, sessionId).map(sessionToItem(baseUriBuilder)).map(singleCollection) match {
+          case Some(x) => CollectionJsonResponse(x)
+          case None => NotFound ~> ResponseString("Session was not found")
+        }
       }
       case _ => NotImplemented
     }
   }
 
   def intent = {
-    case GET(Path(Seg("events" :: Nil))) => handleEventsList();
+    case req@GET(Path(Seg("events" :: Nil))) => handleEventsList(req);
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req);
-    case GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessions(eventId);
+    case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessions(eventId, req);
     case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req);
   }
+}
+
+object CollectionJsonResponse {
+  import net.liftweb.json._
+  def apply(coll: JsonCollection) = {
+    println(coll.toJson)
+    new ComposeResponse[Any](ContentType("application/vnd.collection+json") ~> ResponseString(compact(render(coll.toJson))))
+  }
+}
+
+object AcceptCollectionJson extends Accepts.Accepting {
+  val contentType = "application/vnd.collection+json"
+  val ext = "json"
+
+  override def unapply[T](r: HttpRequest[T]) = Accepts.Json.unapply(r) orElse super.unapply(r)
 }
 
 object Main extends App {

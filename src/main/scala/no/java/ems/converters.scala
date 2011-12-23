@@ -2,8 +2,8 @@ package no.java.ems
 
 import java.net.URI
 import org.joda.time.format.ISODateTimeFormat
-import net.hamnaberg.json._
-import scala.collection.JavaConversions._
+import net.hamnaberg.json.collection._
+import no.java.http.URIBuilder
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,8 +14,8 @@ import scala.collection.JavaConversions._
  */
 
 object converters {
-  
-  def eventToItem(implicit base: URI): (Event) => Item = {
+
+  def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
       val dateFormat = ISODateTimeFormat.basicDateTimeNoMillis()
       val properties = Map(
@@ -23,11 +23,11 @@ object converters {
         "start" -> dateFormat.print(e.start),
         "end" -> dateFormat.print(e.end)
       ).map(toProperty).toList
-      new Item(base.resolve("/events/" + e.id.get), properties, new Link(base.resolve("/events/%s/sessions".format(e.id.get)), "sessions", "Sessions") :: Nil)
+      Item(baseBuilder.segments("events", e.id.get).build(), properties, new Link(baseBuilder.segments("events", e.id.get, "sessions").build(), "sessions", Some("Sessions")) :: Nil)
     }
   }
 
-  def sessionToItem(implicit base: URI): (Session) => Item = {
+  def sessionToItem(baseBuilder: URIBuilder): (Session) => Item = {
     s => {
       val properties = Map(
         "title" -> s.sessionAbstract.title,
@@ -39,29 +39,19 @@ object converters {
         "tags" -> s.tags.map(_.name).mkString(","),
         "keywords" -> s.keywords.map(_.name).mkString(",")
       ).map(toProperty).toList
-      new Item(base.resolve("/events/%s/sessions/%s".format(s.eventId, s.id.get)), properties, Nil)
+      Item(baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build(), properties, Nil)
     }
   }
 
   def toProperty: PartialFunction[(String, Any), Property] = {
-    case (a, b) => new Property(a, ValueFactory.createValue(b), a)
+    case (a, b) => new Property(a, Some(a.capitalize), Some(Value(b)))
   }
 
   def singleCollection: (Item) => JsonCollection = {
-    item => new DefaultJsonCollection(item.getHref, item.getLinks, List(item), Nil, null)
+    item => JsonCollection(item.href, item.links, item)
   }
 
   def errorCollection(href: URI, message: ErrorMessage): JsonCollection = {
-    new ErrorJsonCollection(href, message)
-  }
-
-  def list2Collection(uri: URI, items: List[Item], links: List[Link] = Nil, template: Option[Template] = None): JsonCollection = {
-    new DefaultJsonCollection(
-      uri,
-      links,
-      items,
-      Nil,
-      template.getOrElse(null)
-    )
+    JsonCollection(href, message)
   }
 }
