@@ -46,15 +46,26 @@ class Resources(storage: Storage) extends Plan {
           case None => NotFound ~> ResponseString("Session was not found")
         }
       }
+      case PUT(req) => {
+        val template = LiftJsonCollectionParser.parseTemplate(req.inputStream)
+        template match {
+          case Left(e) => BadRequest ~> ResponseString(e.getMessage)
+          case Right(t) => {
+            val session = toSession(eventId, t)
+            storage.saveSession(session)
+            NoContent
+          }
+        }
+      }
       case _ => NotImplemented
     }
   }
 
   def intent = {
-    case req@GET(Path(Seg("events" :: Nil))) => handleEventsList(req);
-    case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req);
-    case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessions(eventId, req);
-    case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req);
+    case req@GET(Path(Seg("events" :: Nil))) => handleEventsList(req)
+    case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
+    case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessions(eventId, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
   }
 }
 

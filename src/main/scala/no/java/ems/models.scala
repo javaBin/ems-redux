@@ -60,6 +60,8 @@ case class Session(id: Option[String],
 
   def withLead(input: String) = withAbstract(sessionAbstract.withLead(input))
 
+  def publish = if (published) this else copy(published = true)
+
   def withFormat(format: Format) = {
     val duration = format match {
       case Format.LightningTalk => Duration.standardMinutes(10)
@@ -84,6 +86,14 @@ object Session {
     Session(None, eventId, duration, sessionAbstract, State.Pending, false, Nil, Set(), Set())
   }
 
+  def apply(eventId: String, sessionAbstract: SessionAbstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
+    val duration = sessionAbstract.format match {
+      case Format.LightningTalk => Duration.standardMinutes(10)
+      case x => Duration.standardMinutes(60)
+    }
+    Session(None, eventId, duration, sessionAbstract, state, false, Nil, tags, keywords)
+  }
+
   def apply(eventId: String, title: String, format: Format = Format.Presentation, speakers: Vector[Speaker] = Vector()): Session = {
     val duration = format match {
       case Format.LightningTalk => Duration.standardMinutes(10)
@@ -98,13 +108,13 @@ case class Speaker(contactId: String, name: String, bio: String, image: Attachme
 
 case class Contact(id: Option[String], name: String, foreign: Boolean, bio: String, image: Attachment, emails: List[Email])
 
-sealed abstract class Level(val name : String) {
+sealed abstract class Level(val name: String) {
   override def toString = name
 }
 
 object Level {
 
-  def apply(name: String) : Level = name match {
+  def apply(name: String): Level = name match {
     case Level(level) => level
     case _ => Beginner
   }
@@ -120,7 +130,7 @@ object Level {
     case _ => None
   }
 
-  
+
   object Beginner extends Level("beginner")
 
   case object Beginner_Intermediate extends Level("beginner-intermediate")
@@ -139,7 +149,7 @@ sealed abstract class Format(val name: String) {
 
 object Format {
 
-  def apply(name: String) : Format = name match {
+  def apply(name: String): Format = name match {
     case Format(n) => n
     case _ => Presentation
   }
@@ -165,13 +175,13 @@ object Format {
 
 }
 
-sealed abstract class State(val name : String) {
+sealed abstract class State(val name: String) {
   override def toString = name
 }
 
 object State {
 
-  def apply(name: String) : State = name match {
+  def apply(name: String): State = name match {
     case State(n) => n
     case _ => Pending
   }
