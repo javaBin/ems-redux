@@ -41,7 +41,7 @@ object RequestContentDisposition {
   }
 
   def unapply[T](req: HttpRequest[T]) = {
-    val value = new StringHeader("Content-Disposition").unapply(req)
+    val value = new StringHeader(ContentDisposition.headerName).unapply(req)
     value.map(tokenize).map(m => ContentDisposition(m))
   }
 }

@@ -11,10 +11,12 @@ case class ContentDisposition(name: String) {
     "name=%s".format(name)
   }
 
-  def toResponseHeader = ResponseHeader("Content-Disposition", List(toString))
+  def toResponseHeader = ResponseHeader(ContentDisposition.headerName, List(toString))
 }
 
 object ContentDisposition {
+  val headerName = "Content-Disposition"
+
   def apply(map: Map[String, Option[String]]): ContentDisposition = {
     ContentDisposition(map.get("name").flatMap(identity).get)
   }
