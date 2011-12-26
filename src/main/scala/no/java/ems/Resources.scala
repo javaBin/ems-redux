@@ -226,7 +226,7 @@ object AttachmentStreamer {
         val length = attachment.data.read(buf)
         os.write(buf, 0, length)
       }
-    } ~> ResponseHeader("Content-Disposition", List(ContentDisposition(attachment.name).toString))
+    } ~> ContentDisposition(attachment.name).toResponseHeader
   }
 }
 

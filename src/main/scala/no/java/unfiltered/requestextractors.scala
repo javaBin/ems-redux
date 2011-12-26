@@ -34,7 +34,7 @@ object RequestContentDisposition {
     while(scanner.hasNext) {
       val token = scanner.next().trim()
       val namevalue = token.split("=", 2)
-      val value = if (namevalue.length == 2) (namevalue(0), Some(namevalue(1))) else (namevalue(0), None)
+      val value = if (namevalue.length == 2) (namevalue(0).trim(), Some(namevalue(1).trim())) else (namevalue(0).trim(), None)
       map += value
     }
     map
