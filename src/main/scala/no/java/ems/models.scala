@@ -4,8 +4,7 @@ import javax.activation.MimeType
 import java.net.URI
 import java.util.{Locale}
 import org.joda.time.{DateTime, Duration}
-import java.io.{Closeable, ByteArrayOutputStream, ByteArrayInputStream, InputStream}
-import no.java.http.URIBuilder
+import java.io._
 
 /**
  * Created by IntelliJ IDEA.
@@ -238,49 +237,26 @@ object MIMEType {
 }
 
 
-abstract class Attachment(name: String, size: Option[Long], mediaType: Option[MIMEType]) {
+sealed trait Attachment {
+  def name: String
+  def size: Option[Long]
+  def mediaType: Option[MIMEType]
   def data: InputStream
-
-  private def toBytes(stream: InputStream): Array[Byte] = {
-    if (stream != null) {
-      val out = new ByteArrayOutputStream()
-      try {
-        var read = 0
-        val buffer = new Array[Byte](1024 * 4)
-        do {
-          read = stream.read(buffer)
-          out.write(buffer, 0, read)
-        } while (read != -1)
-      }
-      finally {
-        stream.close()
-      }
-      out.toByteArray
-    }
-    throw new IllegalArgumentException("stream was null; go away!!")
-  }
-
-  private[ems] def toByteArrayAttachment(id: Option[String] = None) = ByteArrayAttachment(id, name, size, mediaType, toBytes(data))
 }
 
-case class ByteArrayAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], bytes: Array[Byte], lastModified: DateTime = new DateTime()) extends Attachment(name, size, mediaType) with Entity {
+case class ByteArrayAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], bytes: Array[Byte], lastModified: DateTime = new DateTime()) extends Attachment with Entity {
   val data = new ByteArrayInputStream(bytes)
-
-  override private[ems] def toByteArrayAttachment(id: Option[String]) = this
-
-  def toURIAttachment(base: URIBuilder) = {
-    if (!id.isDefined) {
-      throw new IllegalStateException("Tried to convert an unsaved ByteArrayAttachment; Failure")
-    }
-    URIAttachment(base.segments(id.get).build(), name, size, mediaType)
-  }
 }
 
-case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment(name, size, mediaType) {
+case class FileAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], file: File, lastModified: DateTime = new DateTime()) extends Attachment with Entity {
+  val data = new FileInputStream(file)
+}
+
+case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment {
   def data = href.toURL.openStream()
 }
 
-case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment(name, size, mediaType)
+case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment
 
 case class Email(address: String)
 
