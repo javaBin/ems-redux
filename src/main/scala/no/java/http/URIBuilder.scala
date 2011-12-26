@@ -20,13 +20,15 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
   def segments(segments: String*) = copy(path = path ::: segments.map(Segment(_)).toList)
 
   def path(path: String): URIBuilder = {
-    val segments = path.split("/").map(Segment.decoded(_)).toList
-    copy(path = this.path ::: segments, pathEndsWithSlash = path.endsWith("/"))
+    val p = if(path.startsWith("/")) path.substring(1) else path
+    val segments = p.split("/").map(Segment.decoded(_)).toList
+    copy(path = this.path ::: segments, pathEndsWithSlash = p.endsWith("/"))
   }
 
   def replacePath(path: String): URIBuilder = {
-    val segments = path.split("/").map(Segment.decoded(_)).toList
-    copy(path = segments, pathEndsWithSlash = path.endsWith("/"))
+    val p = if(path.startsWith("/")) path.substring(1) else path
+    val segments = p.split("/").map(Segment.decoded(_)).toList
+    copy(path = segments, pathEndsWithSlash = p.endsWith("/"))
   }
   
   def emptyPath() = copy(path = Nil)
@@ -57,7 +59,7 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
 object URIBuilder {
   def apply(uri: URI): URIBuilder = {
     val endsWithSlash = Option(uri.getPath).map(_.endsWith("/")).getOrElse(false)
-    val path = Option(uri.getPath).map(p => if(p.startsWith("/")) p.substring(1) else p) .map(_.split("/").map(Segment.decoded(_)).toList).getOrElse(Nil)
+    val path = Option(uri.getPath).map(p => if(p.startsWith("/")) p.substring(1) else p).map(_.split("/").map(Segment.decoded(_)).toList).getOrElse(Nil)
     new URIBuilder(Option(uri.getScheme), Option(uri.getHost), Option(uri.getPort).filterNot(_ == -1), path, Map(), endsWithSlash)
   }
   
