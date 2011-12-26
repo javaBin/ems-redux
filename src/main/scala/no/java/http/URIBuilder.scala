@@ -57,7 +57,7 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
 object URIBuilder {
   def apply(uri: URI): URIBuilder = {
     val endsWithSlash = Option(uri.getPath).map(_.endsWith("/")).getOrElse(false)
-    val path = Option(uri.getPath).map(_.split("/").map(Segment.decoded(_)).toList).getOrElse(Nil)
+    val path = Option(uri.getPath).map(p => if(p.startsWith("/")) p.substring(1) else p) .map(_.split("/").map(Segment.decoded(_)).toList).getOrElse(Nil)
     new URIBuilder(Option(uri.getScheme), Option(uri.getHost), Option(uri.getPort).filterNot(_ == -1), path, Map(), endsWithSlash)
   }
   
