@@ -1,10 +1,11 @@
 package no.java.ems
 
 import javax.activation.MimeType
-import java.io.{ByteArrayInputStream, InputStream}
 import java.net.URI
 import java.util.{Locale}
 import org.joda.time.{DateTime, Duration}
+import java.io.{Closeable, ByteArrayOutputStream, ByteArrayInputStream, InputStream}
+import no.java.http.URIBuilder
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,7 +15,12 @@ import org.joda.time.{DateTime, Duration}
  * To change this template use File | Settings | File Templates.
  */
 
-case class Event(id: Option[String], title: String, start: DateTime, end: DateTime) {
+trait Entity {
+  def id: Option[String]
+  def lastModified: DateTime
+}
+
+case class Event(id: Option[String], title: String, start: DateTime, end: DateTime, lastModified: DateTime = new DateTime()) extends Entity {
   require(start.isBefore(end), "Start must be before End")
 }
 
@@ -48,7 +54,11 @@ case class Session(id: Option[String],
                    published: Boolean,
                    attachments: List[URIAttachment],
                    tags: Set[Tag],
-                   keywords: Set[Keyword]) {
+                   keywords: Set[Keyword],
+                   lastModified: DateTime = new DateTime()) extends Entity {
+
+
+  def addAttachment(attachment: URIAttachment) = copy(attachments = attachments ::: List(attachment))
 
   def addKeyword(word: String) = copy(keywords = keywords + Keyword(word))
 
@@ -74,7 +84,7 @@ case class Session(id: Option[String],
 
   def addSpeaker(speaker: Speaker) = withAbstract(sessionAbstract.addSpeaker(speaker))
 
-  def withAbstract(sessionAbstract: SessionAbstract) = copy(sessionAbstract = sessionAbstract)
+  private def withAbstract(sessionAbstract: SessionAbstract) = copy(sessionAbstract = sessionAbstract)
 }
 
 object Session {
@@ -94,7 +104,7 @@ object Session {
     Session(None, eventId, duration, sessionAbstract, state, false, Nil, tags, keywords)
   }
 
-  def apply(eventId: String, title: String, format: Format = Format.Presentation, speakers: Vector[Speaker] = Vector()): Session = {
+  def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
     val duration = format match {
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
@@ -106,7 +116,7 @@ object Session {
 
 case class Speaker(contactId: String, name: String, bio: String, image: Attachment)
 
-case class Contact(id: Option[String], name: String, foreign: Boolean, bio: String, image: Attachment, emails: List[Email])
+case class Contact(id: Option[String], name: String, foreign: Boolean, bio: String, image: Attachment, emails: List[Email], lastModified: DateTime = new DateTime()) extends Entity
 
 sealed abstract class Level(val name: String) {
   override def toString = name
@@ -203,7 +213,12 @@ object State {
 
 }
 
-case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty)
+case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty) {
+  override def toString = {
+    val params = if (parameters.isEmpty) "" else parameters.mkString(";", ";", "")
+    "%s/%s".format(major, minor) + params
+  }
+}
 
 object MIMEType {
   val ALL = apply("*/*")
@@ -223,17 +238,49 @@ object MIMEType {
 }
 
 
-abstract class Attachment(name: String, size: Long, mediaType: MIMEType) {
+abstract class Attachment(name: String, size: Option[Long], mediaType: Option[MIMEType]) {
   def data: InputStream
+
+  private def toBytes(stream: InputStream): Array[Byte] = {
+    if (stream != null) {
+      val out = new ByteArrayOutputStream()
+      try {
+        var read = 0
+        val buffer = new Array[Byte](1024 * 4)
+        do {
+          read = stream.read(buffer)
+          out.write(buffer, 0, read)
+        } while (read != -1)
+      }
+      finally {
+        stream.close()
+      }
+      out.toByteArray
+    }
+    throw new IllegalArgumentException("stream was null; go away!!")
+  }
+
+  private[ems] def toByteArrayAttachment(id: Option[String] = None) = ByteArrayAttachment(id, name, size, mediaType, toBytes(data))
 }
 
-case class ByteArrayAttachment(name: String, size: Long, mediaType: MIMEType, bytes: Array[Byte]) extends Attachment(name, size, mediaType) {
+case class ByteArrayAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], bytes: Array[Byte], lastModified: DateTime = new DateTime()) extends Attachment(name, size, mediaType) with Entity {
   val data = new ByteArrayInputStream(bytes)
+
+  override private[ems] def toByteArrayAttachment(id: Option[String]) = this
+
+  def toURIAttachment(base: URIBuilder) = {
+    if (!id.isDefined) {
+      throw new IllegalStateException("Tried to convert an unsaved ByteArrayAttachment; Failure")
+    }
+    URIAttachment(base.segments(id.get).build(), name, size, mediaType)
+  }
 }
 
-case class URIAttachment(name: String, size: Long, mediaType: MIMEType, uri: URI) extends Attachment(name, size, mediaType) {
-  def data = uri.toURL.openStream()
+case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment(name, size, mediaType) {
+  def data = href.toURL.openStream()
 }
+
+case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment(name, size, mediaType)
 
 case class Email(address: String)
 

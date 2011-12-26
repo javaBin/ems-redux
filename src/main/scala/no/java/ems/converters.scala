@@ -15,10 +15,10 @@ import java.util.Locale
  */
 
 object converters {
+  val dateFormat = ISODateTimeFormat.basicDateTimeNoMillis()
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
-      val dateFormat = ISODateTimeFormat.basicDateTimeNoMillis()
       val properties = Map(
         "name" -> Some(e.title),
         "start" -> Some(dateFormat.print(e.start)),
@@ -26,6 +26,13 @@ object converters {
       ).map(toProperty).toList
       Item(baseBuilder.segments("events", e.id.get).build(), properties, new Link(baseBuilder.segments("events", e.id.get, "sessions").build(), "sessions", Some("Sessions")) :: Nil)
     }
+  }
+
+  def toEvent(id: Option[String], template: Template): Event = {
+    val name = template.getPropertyValue("name").map(_.value.toString).get
+    val start = template.getPropertyValue("start").map(x => dateFormat.parseDateTime(x.value.toString)).get
+    val end = template.getPropertyValue("end").map(x => dateFormat.parseDateTime(x.value.toString)).get
+    Event(id, name, start, end)
   }
 
   def sessionToItem(baseBuilder: URIBuilder): (Session) => Item = {
@@ -43,11 +50,16 @@ object converters {
         "tags" -> tags,
         "keywords" -> keywords
       ).map(toProperty).toList
-      Item(baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build(), properties, Nil)
+      val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
+      val links = List(
+        Link(href, "session", Some(s.sessionAbstract.title)),
+        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some(s.sessionAbstract.title))
+      ) ::: s.attachments.map(a => Link(a.href, "enclosure", Some(a.name)))
+      Item(href, properties, links)
     }
   }
 
-  def toSession(eventId: String, template: Template) : Session = {
+  def toSession(eventId: String, id: Option[String], template: Template) : Session = {
     val title = template.getPropertyValue("title").get.value.toString
     val body = template.getPropertyValue("body").map(_.value.toString)
     val lead = template.getPropertyValue("lead").map(_.value.toString)
@@ -59,14 +71,37 @@ object converters {
     val keywords = template.getPropertyValue("tags").toList.flatMap(x=> x.value.toString.split(",").map(Keyword(_)).toList)
     val abs = SessionAbstract(title, lead, body, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
-    sess
+    sess.copy(id = id)
+  }
+
+
+  val attachmentToItem: (URIAttachment) => (Item) = {
+    a => {
+      Item(
+        a.href,
+        List(
+          Property("href", Some("Href"), Some(Value(a.href))),
+          Property("name", Some("Name"), Some(Value(a.name))),
+          Property("size", Some("Size"), a.size.map((Value(_)))),
+          Property("type", Some("Type"), Some(Value(a.mediaType.toString)))
+        ),
+        Nil
+      )
+    }
+  }
+
+  def toAttachment(template: Template) : URIAttachment = {
+    val href = template.getPropertyValue("href").map(x => URI.create(x.value.toString)).get
+    val name = template.getPropertyValue("name").get.value.toString
+    val sizeFilter: PartialFunction[Value, Long] = {
+      case NumericValue(x) => x.toLong
+    }
+    val size = template.getPropertyValue("size").map(sizeFilter)
+    val mediaType = template.getPropertyValue("type").map(x => MIMEType(x.value.toString))
+    URIAttachment(href, name, size, mediaType)
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
     case (a, b) => new Property(a, Some(a.capitalize), b.map(Value(_)))
-  }
-
-  private[ems] def singleCollection: (Item) => JsonCollection = {
-    item => JsonCollection(item.href, item.links, item)
   }
 }

@@ -14,8 +14,6 @@ import java.io.{ByteArrayOutputStream, InputStream}
 trait Storage {
   def getEvents(): List[Event]
 
-  def getAttachment(uri: URI): Option[Attachment]
-
   def getEvent(id: String): Option[Event]
 
   def saveEvent(event: Event) : Event
@@ -26,13 +24,15 @@ trait Storage {
 
   def saveSession(session: Session) : Session
 
-  def saveAttachment(uri: URI, attachment: Attachment)
-
   def getContact(id: String): Option[Contact]
 
   def getContacts(): List[Contact]
 
   def saveContact(contact: Contact) : Contact
+
+  def getAttachment(id: String): Option[ByteArrayAttachment]
+
+  def saveAttachment(att: Attachment): ByteArrayAttachment
 }
 
 class MemoryStorage extends Storage {
@@ -42,8 +42,8 @@ class MemoryStorage extends Storage {
   private val events = HashMap[String, Event]()
   private val sessions = HashMap[String, Session]()
   private val contacts = HashMap[String, Contact]()
-  private val attachments = HashMap[URI, Attachment]()
-
+  private val attachments = HashMap[String, ByteArrayAttachment]()
+ 
   def getEvents() = events.values.toList
 
   def getEvent(id: String) = events.get(id)
@@ -55,6 +55,8 @@ class MemoryStorage extends Storage {
   def getContact(id: String) = contacts.get(id)
 
   def getContacts() = contacts.values.toList
+  
+  def getAttachment(id: String) = attachments.get(id)
 
   def saveEvent(event: Event) = {
     val id = event.id.getOrElse(UUID.randomUUID().toString)
@@ -76,30 +78,14 @@ class MemoryStorage extends Storage {
     contacts.put(id, saved)
     saved
   }
-
-  def getAttachment(uri: URI) = attachments.get(uri)
-
-  def toBytes(inputStream: InputStream): Array[Byte] = {
-    val out = new ByteArrayOutputStream()
-    try {
-      var read = 0
-      val buffer = new Array[Byte](1024 * 4)
-      do {
-        read = inputStream.read(buffer)
-        out.write(buffer, 0, read)
-      } while (read != -1)
+  
+  def saveAttachment(att: Attachment) = {
+    val bytes = att match {
+      case a: ByteArrayAttachment => a
+      case a => a.toByteArrayAttachment(Some(UUID.randomUUID().toString))
     }
-    finally {
-      inputStream.close()
-    }
-    out.toByteArray
-  }
-
-  def saveAttachment(uri: URI, attachment: Attachment) = {
-    attachment match {
-      case a @ URIAttachment(name, size, mt, _) => attachments.put(uri, new ByteArrayAttachment(name, size, mt, toBytes(a.data)))
-      case a : ByteArrayAttachment => attachments.put(uri, a)
-    }
+    attachments.put(bytes.id.get, bytes)
+    bytes
   }
 }
 

@@ -7,25 +7,49 @@ import unfiltered.filter.Plan
 import org.joda.time.DateTime
 import net.hamnaberg.json.collection._
 import no.java.ems.converters._
-import no.java.unfiltered.{BaseURIBuilder, RequestURIBuilder}
 import javax.servlet.http.HttpServletRequest
+import Resources._
+import no.java.unfiltered.{BaseURIBuilder, RequestURIBuilder}
 
 class Resources(storage: Storage) extends Plan {
 
   def handleEventsList(request: HttpRequest[HttpServletRequest]) = {
     val baseUriBuilder = BaseURIBuilder.unapply(request).get
-    val output = storage.getEvents().map(eventToItem(baseUriBuilder))
-    val href = baseUriBuilder.segments("events").build()
-    CollectionJsonResponse(JsonCollection(href, Nil, output))
+    request match {
+      case GET(_) => {
+        val output = storage.getEvents().map(eventToItem(baseUriBuilder))
+        val href = baseUriBuilder.segments("events").build()
+        CollectionJsonResponse(JsonCollection(href, Nil, output))
+      }
+      case req@POST(_) => {
+        withTemplate(req) {
+          t => {
+            val e = toEvent(None, t)
+            storage.saveEvent(e)
+            NoContent
+          }
+        }
+      }
+      case _ => MethodNotAllowed
+    }
   }
 
   def handleEvent(id: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(req) => {
         val baseUriBuilder = BaseURIBuilder.unapply(req).get
-        storage.getEvent(id).map(eventToItem(baseUriBuilder)).map(singleCollection).map(CollectionJsonResponse(_)).getOrElse(NotFound)
+        storage.getEvent(id).map(eventToItem(baseUriBuilder)).map(JsonCollection(_)).map(CollectionJsonResponse(_)).getOrElse(NotFound)
       }
-      case _ => NotImplemented
+      case req@PUT(RequestContentType(Resources.contentType)) => {
+        withTemplate(req) {
+          t => {
+            val e = toEvent(Some(id), t)
+            storage.saveEvent(e)
+            NoContent
+          }
+        }
+      }
+      case _ => MethodNotAllowed
     }
   }
 
@@ -33,31 +57,104 @@ class Resources(storage: Storage) extends Plan {
   def handleSessions(eventId: String, request: HttpRequest[HttpServletRequest]) = {
     val baseUriBuilder = BaseURIBuilder.unapply(request).get
     val href = baseUriBuilder.segments("events", eventId, "sessions").build()
-    val items = storage.getSessions(eventId).map(sessionToItem(baseUriBuilder))
-    CollectionJsonResponse(JsonCollection(href, Nil, items))
-  }
-
-  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
-    val baseUriBuilder = BaseURIBuilder.unapply(request).get
     request match {
       case GET(_) => {
-        storage.getSession(eventId, sessionId).map(sessionToItem(baseUriBuilder)).map(singleCollection) match {
-          case Some(x) => CollectionJsonResponse(x)
-          case None => NotFound ~> ResponseString("Session was not found")
-        }
+        val items = storage.getSessions(eventId).map(sessionToItem(baseUriBuilder))
+        CollectionJsonResponse(JsonCollection(href, Nil, items))
       }
-      case PUT(req) => {
-        val template = LiftJsonCollectionParser.parseTemplate(req.inputStream)
-        template match {
-          case Left(e) => BadRequest ~> ResponseString(e.getMessage)
-          case Right(t) => {
-            val session = toSession(eventId, t)
+      case req@POST(RequestContentType(Resources.contentType)) => {
+        withTemplate(req) {
+          t => {
+            val session = toSession(eventId, None, t)
             storage.saveSession(session)
             NoContent
           }
         }
       }
-      case _ => NotImplemented
+      case _ => MethodNotAllowed
+    }
+  }
+
+  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(RequestURIBuilder(r)) => {
+        val baseURIBuilder = BaseURIBuilder.unapply(request).get
+        storage.getSession(eventId, sessionId).map(sessionToItem(baseURIBuilder)).map(JsonCollection(_)) match {
+          case Some(x) => CollectionJsonResponse(x)
+          case None => NotFound ~> CollectionJsonResponse(
+            JsonCollection(r.build(), ErrorMessage("Session was not found", None, None))
+          )
+        }
+      }
+      case req@PUT(_) => {
+        withTemplate(req) {
+          t => {
+            val session = toSession(eventId, Some(sessionId), t)
+            storage.saveSession(session)
+            NoContent
+          }
+        }
+      }
+      case _ => MethodNotAllowed
+    }
+  }
+
+  def handleAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(RequestURIBuilder(requestURIBuilder)) => {
+        val items = storage.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem)).getOrElse(Nil)
+        CollectionJsonResponse(JsonCollection(requestURIBuilder.segments("attachments").build(), Nil, items))
+      }
+
+      case req@POST(RequestContentType(Resources.contentType)) => {
+        val sess = storage.getSession(eventId, sessionId)
+        sess match {
+          case Some(s) => {
+            withTemplate(req) {
+              t => {
+                val attachment = toAttachment(t)
+                val updated = s.addAttachment(attachment)
+                storage.saveSession(updated)
+                NoContent
+              }
+            }
+          }
+          case None => NotFound
+        }
+      }
+      case req@POST(RequestContentType(ct)) => {
+        val sess = storage.getSession(eventId, sessionId)
+        sess match {
+          case Some(s) => {
+            NoContent
+          }
+          case None => NotFound
+        }
+      }
+      case _ => MethodNotAllowed
+    }
+  }
+
+
+  private def withTemplate[A](req: HttpRequest[HttpServletRequest])(f: (Template) => ResponseFunction[A]) = {
+    val requestUriBuilder = RequestURIBuilder.unapply(req).get
+    val template = LiftJsonCollectionParser.parseTemplate(req.inputStream)
+    req match {
+      case RequestContentType(Resources.contentType) => {
+        template match {
+          case Left(e) => BadRequest ~>
+            CollectionJsonResponse(
+              JsonCollection(
+                requestUriBuilder.build(),
+                ErrorMessage("Error with request", None, Option(e.getMessage))
+              )
+            )
+          case Right(t) => {
+            f(t)
+          }
+        }
+      }
+      case _ => UnsupportedMediaType
     }
   }
 
@@ -66,19 +163,23 @@ class Resources(storage: Storage) extends Plan {
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
     case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessions(eventId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: id :: "attachments" ::  Nil)) => handleAttachments(eventId, id, req)
   }
+}
+
+object Resources {
+  val contentType = "application/vnd.collection+json"
 }
 
 object CollectionJsonResponse {
   import net.liftweb.json._
   def apply(coll: JsonCollection) = {
-    println(coll.toJson)
-    new ComposeResponse[Any](ContentType("application/vnd.collection+json") ~> ResponseString(compact(render(coll.toJson))))
+    new ComposeResponse[Any](ContentType(contentType) ~> ResponseString(compact(render(coll.toJson))))
   }
 }
 
 object AcceptCollectionJson extends Accepts.Accepting {
-  val contentType = "application/vnd.collection+json"
+  val contentType = Resources.contentType
   val ext = "json"
 
   override def unapply[T](r: HttpRequest[T]) = Accepts.Json.unapply(r) orElse super.unapply(r)
@@ -90,7 +191,7 @@ object Main extends App {
 
   def populate(storage: Storage) {
     val event = storage.saveEvent(Event(Some("1"), "JavaZone 2011", new DateTime(), new DateTime()))
-    val sessions = List(Session(event.id.get, "Session 1"), Session(event.id.get, "Session 2"))
+    val sessions = List(Session(event.id.get, "Session 1", Format.Presentation, Vector()), Session(event.id.get, "Session 2", Format.Presentation, Vector()))
     for (s <- sessions) storage.saveSession(s)
     println(event)
   }
