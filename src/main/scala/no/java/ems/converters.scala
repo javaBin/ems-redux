@@ -24,7 +24,12 @@ object converters {
         "start" -> Some(dateFormat.print(e.start)),
         "end" -> Some(dateFormat.print(e.end))
       ).map(toProperty).toList
-      Item(baseBuilder.segments("events", e.id.get).build(), properties, new Link(baseBuilder.segments("events", e.id.get, "sessions").build(), "sessions", Some("Sessions")) :: Nil)
+      val href = baseBuilder.segments("events", e.id.get).build()
+      val sessions = baseBuilder.segments("events", e.id.get, "sessions").build()
+      Item(
+        href,
+        properties,
+        new Link(sessions, "sessions", Some("Sessions")) :: Link(href, "event", Some(e.title)) :: Nil)
     }
   }
 
@@ -53,8 +58,8 @@ object converters {
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
       val links = List(
         Link(href, "session", Some(s.sessionAbstract.title)),
-        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some(s.sessionAbstract.title))
-      ) ::: s.attachments.map(a => Link(a.href, "enclosure", Some(a.name)))
+        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some("Attachments for %s".format(s.sessionAbstract.title)))
+      )
       Item(href, properties, links)
     }
   }
