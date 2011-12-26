@@ -9,7 +9,9 @@ import net.hamnaberg.json.collection._
 import no.java.ems.converters._
 import javax.servlet.http.HttpServletRequest
 import Resources._
-import no.java.unfiltered.{BaseURIBuilder, RequestURIBuilder}
+import java.io.OutputStream
+import no.java.http.URIBuilder
+import no.java.unfiltered.{ContentDisposition, RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
 
 class Resources(storage: Storage) extends Plan {
 
@@ -100,10 +102,12 @@ class Resources(storage: Storage) extends Plan {
   }
 
   def handleAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+    val requestURIBuilder = RequestURIBuilder.unapply(request).get
+    val baseURIBuilder = BaseURIBuilder.unapply(request).get
     request match {
-      case GET(RequestURIBuilder(requestURIBuilder)) => {
+      case GET(_) => {
         val items = storage.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem)).getOrElse(Nil)
-        CollectionJsonResponse(JsonCollection(requestURIBuilder.segments("attachments").build(), Nil, items))
+        CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items))
       }
 
       case req@POST(RequestContentType(Resources.contentType)) => {
@@ -126,7 +130,18 @@ class Resources(storage: Storage) extends Plan {
         val sess = storage.getSession(eventId, sessionId)
         sess match {
           case Some(s) => {
-            NoContent
+            req match {
+              case RequestContentDisposition(cd) => {
+                val att = storage.saveAttachment(StreamingAttachment(cd.name, None, Some(MIMEType(ct)), req.inputStream))
+                val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
+                storage.saveSession(attached)
+                NoContent
+              }
+              case _ => {
+                val href = requestURIBuilder.build()
+                BadRequest ~> CollectionJsonResponse(JsonCollection(href, ErrorMessage("Wrong response", None, Some("Missing Content-Disposition header for binary data"))))
+              }
+            }
           }
           case None => NotFound
         }
@@ -136,11 +151,35 @@ class Resources(storage: Storage) extends Plan {
   }
 
 
+  private def toURIAttachment(base: URIBuilder, attachment: Attachment with Entity) = {
+    if (!attachment.id.isDefined) {
+      throw new IllegalStateException("Tried to convert an unsaved Attachment; Failure")
+    }
+    URIAttachment(base.segments(attachment.id.get).build(), attachment.name, attachment.size, attachment.mediaType)
+  }
+
+  def handleAttachment(id: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(_) => {
+        storage.getAttachment(id) match {
+          case Some(a) => AttachmentStreamer(a)
+          case None => NotFound
+        }
+      }
+      case DELETE(_) => {
+        storage.removeAttachment(id)
+        NoContent
+      }
+      case _ => MethodNotAllowed
+    }
+  }
+
+
   private def withTemplate[A](req: HttpRequest[HttpServletRequest])(f: (Template) => ResponseFunction[A]) = {
     val requestUriBuilder = RequestURIBuilder.unapply(req).get
-    val template = LiftJsonCollectionParser.parseTemplate(req.inputStream)
     req match {
       case RequestContentType(Resources.contentType) => {
+        val template = LiftJsonCollectionParser.parseTemplate(req.inputStream)
         template match {
           case Left(e) => BadRequest ~>
             CollectionJsonResponse(
@@ -163,7 +202,8 @@ class Resources(storage: Storage) extends Plan {
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
     case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessions(eventId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
-    case req@Path(Seg("events" :: eventId :: "sessions" :: id :: "attachments" ::  Nil)) => handleAttachments(eventId, id, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" ::  Nil)) => handleAttachments(eventId, sessionId, req)
+    case req@Path(Seg("binary" :: id ::  Nil)) => handleAttachment(id, req)
   }
 }
 
@@ -175,6 +215,18 @@ object CollectionJsonResponse {
   import net.liftweb.json._
   def apply(coll: JsonCollection) = {
     new ComposeResponse[Any](ContentType(contentType) ~> ResponseString(compact(render(coll.toJson))))
+  }
+}
+
+object AttachmentStreamer {
+  def apply(attachment: Attachment) = {
+    new ResponseStreamer {
+      val buf = new Array[Byte](1024 * 8)
+      def stream(os: OutputStream) {
+        val length = attachment.data.read(buf)
+        os.write(buf, 0, length)
+      }
+    } ~> ResponseHeader("Content-Disposition", List(ContentDisposition(attachment.name).toString))
   }
 }
 

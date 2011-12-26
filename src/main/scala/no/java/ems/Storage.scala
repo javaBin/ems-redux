@@ -30,9 +30,11 @@ trait Storage {
 
   def saveContact(contact: Contact) : Contact
 
-  def getAttachment(id: String): Option[ByteArrayAttachment]
+  def getAttachment(id: String): Option[Attachment with Entity]
 
-  def saveAttachment(att: Attachment): ByteArrayAttachment
+  def saveAttachment(att: Attachment): Attachment with Entity
+
+  def removeAttachment(id: String): Option[Attachment with Entity]
 }
 
 class MemoryStorage extends Storage {
@@ -80,12 +82,35 @@ class MemoryStorage extends Storage {
   }
   
   def saveAttachment(att: Attachment) = {
-    val bytes = att match {
-      case a: ByteArrayAttachment => a
-      case a => a.toByteArrayAttachment(Some(UUID.randomUUID().toString))
-    }
+    val bytes = toByteArrayAttachment(att)
     attachments.put(bytes.id.get, bytes)
     bytes
+  }
+
+  def removeAttachment(id: String) = attachments.remove(id)
+
+  private[ems] def toByteArrayAttachment(a: Attachment) = a match {
+    case b: ByteArrayAttachment => if (b.id.isDefined) b else b.copy(Some(UUID.randomUUID().toString))
+    case att => ByteArrayAttachment(Some(UUID.randomUUID().toString), att.name, att.size, att.mediaType, toBytes(att.data))
+  }
+
+  private def toBytes(stream: InputStream): Array[Byte] = {
+    if (stream != null) {
+      val out = new ByteArrayOutputStream()
+      try {
+        var read = 0
+        val buffer = new Array[Byte](1024 * 4)
+        do {
+          read = stream.read(buffer)
+          out.write(buffer, 0, read)
+        } while (read != -1)
+      }
+      finally {
+        stream.close()
+      }
+      out.toByteArray
+    }
+    throw new IllegalArgumentException("stream was null; go away!!")
   }
 }
 
