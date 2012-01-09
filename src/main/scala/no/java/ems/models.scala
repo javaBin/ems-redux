@@ -47,7 +47,7 @@ case class SessionAbstract(title: String,
 
 case class Session(id: Option[String],
                    eventId: String,
-                   duration: Duration,
+                   duration: Option[Duration],
                    sessionAbstract: SessionAbstract,
                    state: State,
                    published: Boolean,
@@ -76,7 +76,7 @@ case class Session(id: Option[String],
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    copy(sessionAbstract = sessionAbstract.withFormat(format), duration = duration)
+    copy(sessionAbstract = sessionAbstract.withFormat(format), duration = Some(duration))
   }
 
   def withLevel(level: Level) = withAbstract(sessionAbstract.withLevel(level))
@@ -92,7 +92,7 @@ object Session {
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    Session(None, eventId, duration, sessionAbstract, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, Some(duration), sessionAbstract, State.Pending, false, Nil, Set(), Set())
   }
 
   def apply(eventId: String, sessionAbstract: SessionAbstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
@@ -100,7 +100,7 @@ object Session {
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    Session(None, eventId, duration, sessionAbstract, state, false, Nil, tags, keywords)
+    Session(None, eventId, Some(duration), sessionAbstract, state, false, Nil, tags, keywords)
   }
 
   def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
@@ -109,11 +109,11 @@ object Session {
       case x => Duration.standardMinutes(60)
     }
     val ab = SessionAbstract(title, format = format, speakers = speakers)
-    Session(None, eventId, duration, ab, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, Some(duration), ab, State.Pending, false, Nil, Set(), Set())
   }
 }
 
-case class Speaker(contactId: String, name: String, bio: String, image: Attachment)
+case class Speaker(contactId: String, name: String, bio: Option[String] = None, image: Option[URIAttachment] = None)
 
 case class Contact(id: Option[String], name: String, foreign: Boolean, bio: String, image: Attachment, emails: List[Email], lastModified: DateTime = new DateTime()) extends Entity
 

@@ -5,6 +5,7 @@ import org.joda.time.format.ISODateTimeFormat
 import net.hamnaberg.json.collection._
 import no.java.http.URIBuilder
 import java.util.Locale
+import net.liftweb.json.JsonAST._
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,9 +35,9 @@ object converters {
   }
 
   def toEvent(id: Option[String], template: Template): Event = {
-    val name = template.getPropertyValue("name").map(_.value.toString).get
-    val start = template.getPropertyValue("start").map(x => dateFormat.parseDateTime(x.value.toString)).get
-    val end = template.getPropertyValue("end").map(x => dateFormat.parseDateTime(x.value.toString)).get
+    val name = template.getPropertyValue("name").map(_.values.toString).get
+    val start = template.getPropertyValue("start").map(x => dateFormat.parseDateTime(x.values.toString)).get
+    val end = template.getPropertyValue("end").map(x => dateFormat.parseDateTime(x.values.toString)).get
     Event(id, name, start, end)
   }
 
@@ -65,15 +66,15 @@ object converters {
   }
 
   def toSession(eventId: String, id: Option[String], template: Template) : Session = {
-    val title = template.getPropertyValue("title").get.value.toString
-    val body = template.getPropertyValue("body").map(_.value.toString)
-    val lead = template.getPropertyValue("lead").map(_.value.toString)
-    val format = template.getPropertyValue("format").map(x => Format(x.value.toString))
-    val level = template.getPropertyValue("level").map(x => Level(x.value.toString))
-    val language = template.getPropertyValue("lang").map(x => new Locale(x.value.toString))
-    val state = template.getPropertyValue("state").map(x => State(x.value.toString))
-    val tags = template.getPropertyValue("tags").toList.flatMap(x=> x.value.toString.split(",").map(Tag(_)).toList)
-    val keywords = template.getPropertyValue("tags").toList.flatMap(x=> x.value.toString.split(",").map(Keyword(_)).toList)
+    val title = template.getPropertyValue("title").get.values.toString
+    val body = template.getPropertyValue("body").map(_.values.toString)
+    val lead = template.getPropertyValue("lead").map(_.values.toString)
+    val format = template.getPropertyValue("format").map(x => Format(x.values.toString))
+    val level = template.getPropertyValue("level").map(x => Level(x.values.toString))
+    val language = template.getPropertyValue("lang").map(x => new Locale(x.values.toString))
+    val state = template.getPropertyValue("state").map(x => State(x.values.toString))
+    val tags = template.getPropertyValue("tags").toList.flatMap(x=> x.values.toString.split(",").map(Tag(_)).toList)
+    val keywords = template.getPropertyValue("tags").toList.flatMap(x=> x.values.toString.split(",").map(Keyword(_)).toList)
     val abs = SessionAbstract(title, lead, body, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
@@ -85,10 +86,10 @@ object converters {
       Item(
         a.href,
         List(
-          Property("href", Some("Href"), Some(Value(a.href))),
-          Property("name", Some("Name"), Some(Value(a.name))),
-          Property("size", Some("Size"), a.size.map((Value(_)))),
-          Property("type", Some("Type"), Some(Value(a.mediaType.toString)))
+          Property("href", Some("Href"), Some(JString(a.href.toString))),
+          Property("name", Some("Name"), Some(JString(a.name))),
+          Property("size", Some("Size"), a.size.map((JInt(_)))),
+          Property("type", Some("Type"), Some(JString(a.mediaType.toString)))
         ),
         Nil
       )
@@ -96,17 +97,28 @@ object converters {
   }
 
   def toAttachment(template: Template) : URIAttachment = {
-    val href = template.getPropertyValue("href").map(x => URI.create(x.value.toString)).get
-    val name = template.getPropertyValue("name").get.value.toString
-    val sizeFilter: PartialFunction[Value, Long] = {
-      case NumericValue(x) => x.toLong
+    val href = template.getPropertyValue("href").map(x => URI.create(x.values.toString)).get
+    val name = template.getPropertyValue("name").get.values.toString
+    val sizeFilter: PartialFunction[JValue, Long] = {
+      case JInt(x) => x.toLong
     }
     val size = template.getPropertyValue("size").map(sizeFilter)
-    val mediaType = template.getPropertyValue("type").map(x => MIMEType(x.value.toString))
+    val mediaType = template.getPropertyValue("type").map(x => MIMEType(x.values.toString))
     URIAttachment(href, name, size, mediaType)
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
-    case (a, b) => new Property(a, Some(a.capitalize), b.map(Value(_)))
+    case (a, b) => new Property(a, Some(a.capitalize), b.map(toValue(_)))
+  }
+
+  def toValue(any: Any): JValue = any match {
+    case x: String => JString(x)
+    case x: Int => JInt(x)
+    case x: Long => JInt(x)
+    case x: Double => JDouble(x)
+    case x: List[_] => JArray(x.map(z => toValue(z)))
+    case x: Boolean => JBool(x)
+    case null => JNull
+    case _ => throw new IllegalArgumentException("Unknown value")
   }
 }

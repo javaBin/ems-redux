@@ -16,16 +16,11 @@ object RequestURIBuilder {
 }
 
 object BaseURIBuilder {
-  def unapply(req: HttpRequest[HttpServletRequest]) = Some(URIBuilder(URI.create(req.underlying.getRequestURL.toString)).emptyPath())
+  def unapply(req: HttpRequest[HttpServletRequest]) = {
+    val path = req.underlying.getContextPath
+    Some(URIBuilder(URI.create(req.underlying.getRequestURL.toString)).replacePath(path))
+  }
 }
-
-object IfNoneMatch extends StringHeader("If-None-Match")
-
-object IfMatch extends StringHeader("If-Match")
-
-object IfModifiedSince extends StringHeader("If-Modified-Since")
-
-object IfUnmodifiedSince extends StringHeader("If-Unmodified-Since")
 
 object RequestContentDisposition {
   private def tokenize: (String) => Map[String, Option[String]] = (s) => {

@@ -35,6 +35,13 @@ trait Storage {
   def saveAttachment(att: Attachment): Attachment with Entity
 
   def removeAttachment(id: String): Option[Attachment with Entity]
+
+  def saveEntity[T <: Entity](entity: T) = entity match {
+    case e: Event => saveEvent(e)
+    case s: Session => saveSession(s)
+    case c: Contact => saveContact(c)
+    case _ => throw new IllegalArgumentException("Usupported entity: " + entity)
+  }
 }
 
 class MemoryStorage extends Storage {
