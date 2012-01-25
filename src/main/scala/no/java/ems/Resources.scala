@@ -11,7 +11,7 @@ import javax.servlet.http.HttpServletRequest
 import Resources._
 import java.io.OutputStream
 import no.java.http.URIBuilder
-import no.java.unfiltered.{ContentDisposition, RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
+import no.java.unfiltered._
 
 class Resources(storage: Storage) extends Plan {
 
@@ -108,7 +108,7 @@ class Resources(storage: Storage) extends Plan {
           case Some(s) => {
             req match {
               case RequestContentDisposition(cd) & BaseURIBuilder(baseURIBuilder) => {
-                val att = storage.saveAttachment(StreamingAttachment(cd.name, None, Some(MIMEType(ct)), req.inputStream))
+                val att = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, Some(MIMEType(ct)), req.inputStream))
                 val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
                 storage.saveSession(attached)
                 NoContent
@@ -227,7 +227,7 @@ object AttachmentStreamer {
         val length = attachment.data.read(buf)
         os.write(buf, 0, length)
       }
-    } ~> ContentDisposition(attachment.name).toResponseHeader
+    } ~> ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader
   }
 }
 

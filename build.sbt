@@ -17,6 +17,8 @@ libraryDependencies += "org.joda" % "joda-convert" % "1.1" % "provided"
 
 libraryDependencies += "net.hamnaberg.rest" %% "json-collection" % "1.0.0-SNAPSHOT"
 
+libraryDependencies += "org.specs2" %% "specs2" % "1.6.1" % "test"
+
 //resolvers += "maven local" at "file:///Users/maedhros/.m2/repository"
 
 publishArtifact in packageDoc := false 
