@@ -41,10 +41,29 @@ object converters {
     Event(id, name, start, end)
   }
 
+  def toContact(id: Option[String], template: Template): Contact = {
+    val name = template.getPropertyValue("name").map(_.values.toString).get
+    val bio = template.getPropertyValue("bio").map(_.values.toString)
+
+    val booleanMapper: PartialFunction[JValue, Boolean] = {
+      case JBool(b) => b
+    }
+
+    val emailMapper: PartialFunction[JValue, List[Email]] = {
+      case JArray(list) => list.map(v => Email(v.values.toString))
+    }
+
+    val foreign = template.getPropertyValue("foreign").map(booleanMapper).getOrElse(false)
+    val emails = template.getPropertyValue("emails").map(emailMapper).getOrElse(Nil)
+
+    Contact(id, name, foreign, bio, emails)
+
+  }
+
   def sessionToItem(baseBuilder: URIBuilder): (Session) => Item = {
     s => {
-      val tags = if(s.tags.isEmpty) None else Some(s.tags.map(_.name).mkString(","))
-      val keywords = if(s.keywords.isEmpty) None else Some(s.keywords.map(_.name).mkString(","))
+      val tags = if (s.tags.isEmpty) None else Some(s.tags.map(_.name).mkString(","))
+      val keywords = if (s.keywords.isEmpty) None else Some(s.keywords.map(_.name).mkString(","))
       val properties = Map(
         "title" -> Some(s.sessionAbstract.title),
         "body" -> s.sessionAbstract.body,
@@ -59,13 +78,14 @@ object converters {
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
       val links = List(
         Link(href, "session", Some(s.sessionAbstract.title)),
-        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some("Attachments for %s".format(s.sessionAbstract.title)))
+        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some("Attachments for %s".format(s.sessionAbstract.title))),
+        Link(URIBuilder(href).segments("speakers").build(), "speakers", Some("Speakers for %s".format(s.sessionAbstract.title)))
       )
       Item(href, properties, links)
     }
   }
 
-  def toSession(eventId: String, id: Option[String], template: Template) : Session = {
+  def toSession(eventId: String, id: Option[String], template: Template): Session = {
     val title = template.getPropertyValue("title").get.values.toString
     val body = template.getPropertyValue("body").map(_.values.toString)
     val lead = template.getPropertyValue("lead").map(_.values.toString)
@@ -73,8 +93,8 @@ object converters {
     val level = template.getPropertyValue("level").map(x => Level(x.values.toString))
     val language = template.getPropertyValue("lang").map(x => new Locale(x.values.toString))
     val state = template.getPropertyValue("state").map(x => State(x.values.toString))
-    val tags = template.getPropertyValue("tags").toList.flatMap(x=> x.values.toString.split(",").map(Tag(_)).toList)
-    val keywords = template.getPropertyValue("tags").toList.flatMap(x=> x.values.toString.split(",").map(Keyword(_)).toList)
+    val tags = template.getPropertyValue("tags").toList.flatMap(x => x.values.toString.split(",").map(Tag(_)).toList)
+    val keywords = template.getPropertyValue("tags").toList.flatMap(x => x.values.toString.split(",").map(Keyword(_)).toList)
     val abs = SessionAbstract(title, lead, body, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
@@ -96,7 +116,38 @@ object converters {
     }
   }
 
-  def toAttachment(template: Template) : URIAttachment = {
+  def speakerToItem(builder: URIBuilder, eventId: String, sessionId: String): (Speaker) => (Item) = {
+    s => {
+      val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.contactId)
+      Item(
+        base.build(),
+        List(
+          Property("name", Some("Name"), Some(JString(s.name))),
+          Property("bio", Some("Bio"), s.bio.map(JString(_)))
+        ),
+        s.image.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
+          List(Link(base.segments("photo").build(), "attach-photo"))
+      )
+    }
+  }
+
+  def contactToItem(baseBuilder: URIBuilder): (Contact) => (Item) = {
+    c => {
+      Item(
+        baseBuilder.segments("contacts", c.id.get).build(),
+        List(
+          Property("name", Some("Name"), Some(JString(c.name))),
+          Property("bio", Some("Bio"), c.bio.map(JString(_))),
+          Property("foreign", Some("Foreign"), Some(JBool(c.foreign))),
+          Property("emails", Some("Emails"), Some(JArray(c.emails.map(e => JString(e.address)))))
+        ),
+        c.image.map(a => Link(baseBuilder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
+          List(Link(baseBuilder.segments("contacts", "photo").build(), "attach-photo"))
+      )
+    }
+  }
+
+  def toAttachment(template: Template): URIAttachment = {
     val href = template.getPropertyValue("href").map(x => URI.create(x.values.toString)).get
     val name = template.getPropertyValue("name").get.values.toString
     val sizeFilter: PartialFunction[JValue, Long] = {

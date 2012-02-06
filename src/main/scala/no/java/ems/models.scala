@@ -32,6 +32,8 @@ case class SessionAbstract(title: String,
                            speakers: Vector[Speaker] = Vector()
                             ) {
   def addSpeaker(speaker: Speaker) = copy(speakers = speakers :+ speaker)
+  
+  def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = Vector() ++ speakers)
 
   def withTitle(input: String) = copy(input)
 
@@ -81,7 +83,18 @@ case class Session(id: Option[String],
 
   def withLevel(level: Level) = withAbstract(sessionAbstract.withLevel(level))
 
-  def addSpeaker(speaker: Speaker) = withAbstract(sessionAbstract.addSpeaker(speaker))
+  def addOrUpdateSpeaker(speaker: Speaker) = {
+    val speakers = this.speakers
+    val index = speakers.indexWhere(_.contactId == speaker.contactId)
+    if (index != -1) {
+      withAbstract(sessionAbstract.withSpeakers(speakers.updated(index, speaker)))
+    }
+    else {
+      withAbstract(sessionAbstract.addSpeaker(speaker))
+    }
+  }
+
+  def speakers = sessionAbstract.speakers
 
   private def withAbstract(sessionAbstract: SessionAbstract) = copy(sessionAbstract = sessionAbstract)
 }
@@ -113,9 +126,9 @@ object Session {
   }
 }
 
-case class Speaker(contactId: String, name: String, bio: Option[String] = None, image: Option[URIAttachment] = None)
+case class Speaker(contactId: String, name: String, bio: Option[String] = None, image: Option[Attachment with Entity] = None)
 
-case class Contact(id: Option[String], name: String, foreign: Boolean, bio: String, image: Attachment, emails: List[Email], lastModified: DateTime = new DateTime()) extends Entity
+case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], image: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity
 
 sealed abstract class Level(val name: String) {
   override def toString = name
@@ -213,6 +226,10 @@ object State {
 }
 
 case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty) {
+  def includes(mt: MIMEType): Boolean = {
+    new MimeType(toString).`match`(mt.toString)
+  }
+
   override def toString = {
     val params = if (parameters.isEmpty) "" else parameters.mkString(";", ";", "")
     "%s/%s".format(major, minor) + params

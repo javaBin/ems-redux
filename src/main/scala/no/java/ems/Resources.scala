@@ -16,15 +16,113 @@ import no.java.unfiltered._
 class Resources(storage: Storage) extends Plan {
 
   def intent = {
-    case req@GET(Path(Seg("events" :: Nil))) => handleEventsList(req)
+    case req@GET(Path(Seg("contacts" :: Nil))) => handleContactList(req)
+    case req@GET(Path(Seg("contacts" :: id :: Nil))) => handleContact(id, req)
+    case req@GET(Path(Seg("contacts" :: id :: "photo" :: Nil))) => handlePhoto(id, req)
+    case req@GET(Path(Seg("events" :: Nil))) => handleEventList(req)
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
     case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessionList(eventId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil)) => handleAttachments(eventId, sessionId, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil)) => handleSpeakers(eventId, sessionId, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil)) => handlePhoto(eventId, sessionId, speakerId, req)
     case req@Path(Seg("binary" :: id :: Nil)) => handleAttachment(id, req)
   }
 
-  def handleEventsList(request: HttpRequest[HttpServletRequest]) = {
+  def handleContactList(request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
+        val output = storage.getContacts().map(contactToItem(baseUriBuilder))
+        val href = baseUriBuilder.segments("contacts").build()
+        CollectionJsonResponse(JsonCollection(href, Nil, output))
+      }
+      case req@POST(RequestContentType(Resources.contentType)) => {
+        withTemplate(req) {
+          t => {
+            val c = toContact(None, t)
+            storage.saveContact(c)
+            NoContent
+          }
+        }
+      }
+      case POST(_) => UnsupportedMediaType
+      case _ => MethodNotAllowed
+    }
+  }
+
+  def handleContact(id: String, request: HttpRequest[HttpServletRequest]) = {
+    val contact = storage.getContact(id)
+    val base = BaseURIBuilder.unapply(request).get
+    handleObject(contact, request, (t: Template) => toContact(Some(id), t), contactToItem(base))
+  }
+  
+  def handlePhoto(id: String, request: HttpRequest[HttpServletRequest]) = {
+
+    request match {
+      case POST(_) & RequestContentType(ct) if (MIMEType.IMAGE_ALL.includes(MIMEType(ct))) => {
+        request match {
+          case RequestContentDisposition(cd) => {
+            val contact = storage.getContact(id)
+            if (contact.isDefined) {
+              val binary = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, Some(MIMEType(ct)), request.inputStream))
+              storage.saveContact(contact.get.copy(image = Some(binary)))
+              NoContent
+            }
+            else {
+              NotFound
+            }
+          }
+          case _ => {
+            val builder = RequestURIBuilder.unapply(request).get
+            BadRequest ~> CollectionJsonResponse(
+              JsonCollection(
+                builder.build(),
+                ErrorMessage("Missing Content Disposition", None, Some("You need to add a Content-Disposition header."))
+              )
+            )
+          }
+        }
+      }
+      case POST(_) => UnsupportedMediaType
+      case _ => MethodNotAllowed
+    }
+  }
+
+  def handlePhoto(eventId: String, sessionId: String, contactId: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case POST(_) & RequestContentType(ct) if (MIMEType.IMAGE_ALL.includes(MIMEType(ct))) => {
+        request match {
+          case RequestContentDisposition(cd) => {
+            val session = storage.getSession(eventId, sessionId)
+            val speaker = session.flatMap(_.speakers.find(_.contactId == contactId))
+            if (speaker.isDefined) {
+              val binary = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, Some(MIMEType(ct)), request.inputStream))
+              val updated = speaker.get.copy(image = Some(binary))
+              val updatedSession = session.get.addOrUpdateSpeaker(updated)
+              storage.saveSession(updatedSession)
+              NoContent
+            }
+            else {
+              NotFound
+            }
+          }
+          case _ => {
+            val builder = RequestURIBuilder.unapply(request).get
+            BadRequest ~> CollectionJsonResponse(
+              JsonCollection(
+                builder.build(),
+                ErrorMessage("Missing Content Disposition", None, Some("You need to add a Content-Disposition header."))
+              )
+            )
+          }
+        }
+      }
+      case POST(_) => UnsupportedMediaType
+      case _ => MethodNotAllowed
+    }
+  }
+
+  def handleEventList(request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) => {
         val output = storage.getEvents().map(eventToItem(baseUriBuilder))
@@ -51,7 +149,6 @@ class Resources(storage: Storage) extends Plan {
     handleObject(event, request, (t: Template) => toEvent(Some(id), t), eventToItem(base))
   }
 
-
   def handleSessionList(eventId: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) => {
@@ -77,6 +174,31 @@ class Resources(storage: Storage) extends Plan {
     val session = storage.getSession(eventId, sessionId)
     val base = BaseURIBuilder.unapply(request).get
     handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), sessionToItem(base))
+  }
+  
+  def handleSpeakers(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(_) & BaseURIBuilder(builder) & RequestURIBuilder(requestURIBuilder) => {
+        val session = storage.getSession(eventId, sessionId)
+        val items = session.toList.flatMap(sess => sess.speakers.map(speakerToItem(builder, eventId, sessionId)))
+        CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items))
+      }
+    }
+  }
+
+  def handleSpeaker(eventId: String, sessionId: String, speakerId: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(_) & RequestURIBuilder(requestURIBuilder) & BaseURIBuilder(builder) => {
+        val session = storage.getSession(eventId, sessionId)
+        val speaker = session.flatMap(_.speakers.find(_.contactId == speakerId)).map(speakerToItem(builder, eventId, sessionId))
+        if (speaker.isDefined) {
+          CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, speaker.get))
+        }
+        else {
+          NotFound
+        }
+      }
+    }
   }
 
   def handleAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
@@ -244,7 +366,7 @@ object Main extends App {
 
   def populate(storage: Storage) {
     val event = storage.saveEvent(Event(Some("1"), "JavaZone 2011", new DateTime(), new DateTime()))
-    val sessions = List(Session(event.id.get, "Session 1", Format.Presentation, Vector()).copy(Some("1")), Session(event.id.get, "Session 2", Format.Presentation, Vector()).copy(Some("2")))
+    val sessions = List(Session(event.id.get, "Session 1", Format.Presentation, Vector(Speaker("1", "Erlend Hamnaberg"))).copy(Some("1")), Session(event.id.get, "Session 2", Format.Presentation, Vector()).copy(Some("2")))
     for (s <- sessions) storage.saveSession(s)
     println(event)
   }
