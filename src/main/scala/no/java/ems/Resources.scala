@@ -12,16 +12,19 @@ import Resources._
 import java.io.OutputStream
 import no.java.http.URIBuilder
 import no.java.unfiltered._
+import io.Source
+import java.net.URI
 
 class Resources(storage: Storage) extends Plan {
 
   def intent = {
-    case req@GET(Path(Seg("contacts" :: Nil))) => handleContactList(req)
-    case req@GET(Path(Seg("contacts" :: id :: Nil))) => handleContact(id, req)
-    case req@GET(Path(Seg("contacts" :: id :: "photo" :: Nil))) => handlePhoto(id, req)
-    case req@GET(Path(Seg("events" :: Nil))) => handleEventList(req)
+    case req@Path(Seg("contacts" :: Nil)) => handleContactList(req)
+    case req@Path(Seg("contacts" :: id :: Nil)) => handleContact(id, req)
+    case req@Path(Seg("contacts" :: id :: "photo" :: Nil)) => handlePhoto(id, req)
+    case req@Path(Seg("events" :: Nil)) => handleEventList(req)
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
-    case req@GET(Path(Seg("events" :: eventId :: "sessions" :: Nil))) => handleSessionList(eventId, req)
+    case req@Path(Seg("events" :: eventId :: "publish" :: Nil)) => publish(eventId, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: Nil)) => handleSessionList(eventId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil)) => handleAttachments(eventId, sessionId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil)) => handleSpeakers(eventId, sessionId, req)
@@ -55,7 +58,7 @@ class Resources(storage: Storage) extends Plan {
     val base = BaseURIBuilder.unapply(request).get
     handleObject(contact, request, (t: Template) => toContact(Some(id), t), contactToItem(base))
   }
-  
+
   def handlePhoto(id: String, request: HttpRequest[HttpServletRequest]) = {
 
     request match {
@@ -185,7 +188,43 @@ class Resources(storage: Storage) extends Plan {
     val base = BaseURIBuilder.unapply(request).get
     handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), sessionToItem(base))
   }
-  
+
+  private def getValidURIForPublish(eventId: String, u: URI) = {
+    val segments = URIBuilder(u).path.map(_.seg)
+    segments match {
+      case "events" :: `eventId` :: "sessions" :: id :: Nil => Seq(id)
+      case _ => Nil
+    }
+  }
+
+  private def publishNow(eventId: String, list: URIList) {
+    val sessions = list.list.flatMap(getValidURIForPublish(eventId, _))
+
+    sessions.foreach(s => {
+      val session = storage.getSession(eventId, s)
+      session.foreach(sess =>
+        storage.saveSession(sess.publish)
+      )
+    })
+  }
+
+  def publish(eventId: String, request: HttpRequest[HttpServletRequest]) = request match {
+    case POST(RequestContentType("text/uri-list")) => {
+      val list = URIList.parse(Source.fromInputStream(request.inputStream))
+      if (list.isRight) {
+        publishNow(eventId, list.right.get)
+        NoContent
+      }
+      else {
+        val e = list.left.get
+        e.printStackTrace()
+        BadRequest
+      }
+    }
+    case POST(_)=> UnsupportedMediaType
+    case _ => MethodNotAllowed
+  }
+
   def handleSpeakers(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & BaseURIBuilder(builder) & RequestURIBuilder(requestURIBuilder) => {
