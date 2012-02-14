@@ -84,6 +84,11 @@ class Resources(storage: Storage) extends Plan {
         }
       }
       case POST(_) => UnsupportedMediaType
+      case GET(_) & BaseURIBuilder(b) => {
+        val contact = storage.getContact(id)
+        val image = contact.flatMap(_.image.map(i => b.segments("binary", i.id.get).build()))
+        if (image.isDefined) Redirect(image.get.toString) else MethodNotAllowed
+      }
       case _ => MethodNotAllowed
     }
   }
@@ -118,6 +123,11 @@ class Resources(storage: Storage) extends Plan {
         }
       }
       case POST(_) => UnsupportedMediaType
+      case GET(_) & BaseURIBuilder(b) => {
+        val session = storage.getSession(eventId, sessionId)
+        val image = session.flatMap(_.speakers.find(_.contactId == contactId)).flatMap(_.image.map(i => b.segments("binary", i.id.get).build()))
+        if (image.isDefined) Redirect(image.get.toString) else MethodNotAllowed
+      }
       case _ => MethodNotAllowed
     }
   }
