@@ -8,16 +8,24 @@ import unfiltered.request.{StringHeader, HttpRequest}
 
 object RequestURIBuilder {
   def unapply(req: HttpRequest[HttpServletRequest]) = {
+    Some(getBuilder(req))
+  }
+
+  def getBuilder(req: HttpRequest[HttpServletRequest]) = {
     val requestURI = req.underlying.getRequestURL
     Option(req.underlying.getQueryString).map("?" + _).foreach(requestURI.append(_))
-    Some(URIBuilder(URI.create(requestURI.toString)))
+    URIBuilder(URI.create(requestURI.toString))
   }
 }
 
 object BaseURIBuilder {
-  def unapply(req: HttpRequest[HttpServletRequest]) = {
+  def getBuilder(req: HttpRequest[HttpServletRequest]) = {
     val path = req.underlying.getContextPath
-    Some(URIBuilder(URI.create(req.underlying.getRequestURL.toString)).replacePath(path))
+    URIBuilder(URI.create(req.underlying.getRequestURL.toString)).replacePath(path)
+  }
+
+  def unapply(req: HttpRequest[HttpServletRequest]) = {
+    Some(getBuilder(req))
   }
 }
 
