@@ -77,32 +77,19 @@ object CharsetFilename {
   object ContentDisposition {
     val headerName = "Content-Disposition"
 
+    private val FilenameStar = """(?sm)(\w+);\s*filename\*=\s*(.*)""".r
+    private val Filename = """(?im)(\w+);\s*filename=\s*"?([a-z0-9\.\s]+)"?""".r
+    private val DT = """(?i)(\w+)""".r
+
     def apply(s: String): Option[ContentDisposition] = {
-      val scanner = new Scanner(s).useDelimiter(";")
-      val dt = if (scanner.hasNext) {
-        Some(DispositionType(scanner.next().trim()))
-      }
-      else {
-        None
-      }
-      var map = Map[String, Option[String]]()
-      while (scanner.hasNext) {
-        val token = scanner.next().trim()
-        val namevalue = token.split("=", 2)
-        val value = if (namevalue.length == 2) {
-          val trim = namevalue(1).trim()
-          val n: String = if (trim.startsWith("\"") && trim.endsWith("\"")) trim.substring(1, trim.length() - 1) else trim
-          (namevalue(0).trim().toLowerCase(Locale.ENGLISH), Some(n))
-        } else {
-          (namevalue(0).trim().toLowerCase(Locale.ENGLISH), None)
+      s match {
+        case Filename(t, f) => Some(ContentDisposition(DispositionType(t), Some(f), None))
+        case FilenameStar(t, f) => {
+          Some(ContentDisposition(DispositionType(t), None, Some(CharsetFilename.decoded(f))))
         }
-        map += value
+        case DT(t) => Some(ContentDisposition(DispositionType(t), None, None))
+        case ss => None
       }
-
-      val filename = map.get("filename").flatMap(identity)
-      val filenameStar = map.get("filename*").flatMap(identity).map(s => CharsetFilename.decoded(s))
-
-      dt.map(ContentDisposition(_, filename, filenameStar))
     }
   }
 
