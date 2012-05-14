@@ -171,7 +171,7 @@ trait EventResources extends ResourceHelper { this: Storage =>
     }
   }
 
-  def handleAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleSessionAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & RequestURIBuilder(requestURIBuilder) => {
         val items = this.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem)).getOrElse(Nil)

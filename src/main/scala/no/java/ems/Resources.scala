@@ -4,7 +4,6 @@ import storage.MongoDBStorage
 import unfiltered.request._
 import unfiltered.response._
 import unfiltered.filter.Plan
-import org.joda.time.DateTime
 import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
 import com.mongodb.casbah.MongoConnection
@@ -21,7 +20,7 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
     case req@Path(Seg("events" :: eventId :: "publish" :: Nil)) => publish(eventId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: Nil)) => handleSessionList(eventId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
-    case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil)) => handleAttachments(eventId, sessionId, req)
+    case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil)) => handleSessionAttachments(eventId, sessionId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil)) => handleSpeakers(eventId, sessionId, req)
     case req@Path(Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil)) => handleSpeakerPhoto(eventId, sessionId, speakerId, req)
     case req@Path(Seg("binary" :: id :: Nil)) => handleAttachment(id, req)
