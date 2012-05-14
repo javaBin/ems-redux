@@ -15,7 +15,6 @@ trait MongoDBStorage extends Storage {
 
   def conn: MongoConnection
 
-  //def conn = MongoConnection(host, port)
   private val db = {
     val d = conn("ems")
     d("event").ensureIndex("name")
@@ -134,18 +133,18 @@ private [storage] object MongoMapper {
 
   val toContact: (DBObject) => Contact = (m) => throw new UnsupportedOperationException()
 
-  implicit def toMongoDBObject(event: Event): DBObject = {
-    MongoDBObject("_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()), "name" -> event.name, "start" -> event.start, "end" -> event.end, "last-modified" -> event.lastModified)
-  }
-
-  implicit def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
+  def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
     case s: Session => toMongoDBObject(s)
     case s: Contact => toMongoDBObject(s)
     case s: Event => toMongoDBObject(s)
     case _ => throw new UnsupportedOperationException("Not supported")
   }
 
-  implicit def toMongoDBObject(session: Session): DBObject = {
+  private def toMongoDBObject(event: Event): DBObject = {
+    MongoDBObject("_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()), "name" -> event.name, "start" -> event.start, "end" -> event.end, "last-modified" -> event.lastModified)
+  }
+
+  private def toMongoDBObject(session: Session): DBObject = {
     MongoDBObject(
       "_id" -> session.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()),
       "eventId" -> new ObjectId(session.eventId),
@@ -159,7 +158,7 @@ private [storage] object MongoMapper {
     )
   }
 
-  implicit def toMongoDBObject(contact: Contact): DBObject = {
+  private def toMongoDBObject(contact: Contact): DBObject = {
     val obj = MongoDBObject(
       "_id" -> contact.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()),
       "name" -> contact.name,
@@ -171,7 +170,7 @@ private [storage] object MongoMapper {
     obj
   }
 
-  implicit def toMongoDBObject(abs: Abstract): DBObject = {
+  private def toMongoDBObject(abs: Abstract): DBObject = {
     val obj = MongoDBObject(
       "title" -> abs.title,
       "format" -> abs.format.name,
@@ -184,7 +183,7 @@ private [storage] object MongoMapper {
     obj
   }
 
-  def toMongoDBObject(speaker: Speaker): DBObject = {
+  private def toMongoDBObject(speaker: Speaker): DBObject = {
     val obj = MongoDBObject("_id" -> new ObjectId(speaker.contactId), "name" -> speaker.name)
     speaker.image.map(a => "photo" -> new ObjectId(a.id.get))
     obj.putAll(speaker.bio.map(b => "bio" -> b).toMap)
