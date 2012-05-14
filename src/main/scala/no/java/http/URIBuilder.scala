@@ -1,6 +1,7 @@
 package no.java.http
 
 import java.net.{URLDecoder, URI, URLEncoder}
+import scala.Option
 
 
 /**
@@ -20,15 +21,13 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
   def segments(segments: String*) = copy(path = path ::: segments.map(Segment(_)).toList)
 
   def path(path: String): URIBuilder = {
-    val p = if(path.startsWith("/")) path.substring(1) else path
-    val segments = p.split("/").map(Segment.decoded(_)).toList
-    copy(path = this.path ::: segments, pathEndsWithSlash = p.endsWith("/"))
+    val (segments, endsWithSlash) = URIBuilder.decodePath(path)
+    copy(path = this.path ::: segments, pathEndsWithSlash = endsWithSlash)
   }
 
   def replacePath(path: String): URIBuilder = {
-    val p = if(path.startsWith("/")) path.substring(1) else path
-    val segments = p.split("/").map(Segment.decoded(_)).toList
-    copy(path = segments, pathEndsWithSlash = p.endsWith("/"))
+    val (segments, endsWithSlash) = URIBuilder.decodePath(path)
+    copy(path = segments, pathEndsWithSlash = endsWithSlash)
   }
   
   def emptyPath() = copy(path = Nil)
@@ -48,7 +47,7 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
       null,
       host.getOrElse(null),
       port.getOrElse(-1),
-      path.map(_.encoded).mkString("/", "/", if (pathEndsWithSlash) "/" else ""),
+      if (path.isEmpty) null else path.map(_.encoded).mkString("/", "/", if (pathEndsWithSlash) "/" else ""),
       par.map(_.map{case (x,y) => y.map((x,_))}.mkString("", "&", "")).getOrElse(null),
       null
     )
@@ -59,8 +58,7 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
 object URIBuilder {
   val KeyValue = """(?i)(\w)=(.*)?""".r
   def apply(uri: URI): URIBuilder = {
-    val endsWithSlash = Option(uri.getPath).map(_.endsWith("/")).getOrElse(false)
-    val path = Option(uri.getPath).map(p => if(p.startsWith("/")) p.substring(1) else p).map(_.split("/").map(Segment.decoded(_)).toList).getOrElse(Nil)
+    val (path, endsWithSlash) = decodePath(uri.getPath)
     val params = Option(uri.getQuery).map(_.split("&").foldLeft(Map[String, List[String]]()){case (m, s) => s match {
       case KeyValue(k, "") => m + (k -> m.get(k).getOrElse(Nil))
       case KeyValue(k,v) => m + (k -> (m.get(k).getOrElse(Nil) ++ List(v)))
@@ -70,6 +68,12 @@ object URIBuilder {
   
   def fromPath(path: String): URIBuilder = {
     empty.path(path)
+  }
+
+  private def decodePath(path: String): (List[Segment], Boolean) = {
+    Option(path).filterNot(_.trim.isEmpty).map{ p =>
+      if(p.startsWith("/")) p.substring(1) else p
+    }.map(p => p.split("/").map(Segment.decoded(_)).toList -> p.endsWith("/")).getOrElse(Nil -> false)
   }
 
   def empty = new URIBuilder(None, None, None, Nil, Map())

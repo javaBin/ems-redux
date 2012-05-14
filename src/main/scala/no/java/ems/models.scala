@@ -24,7 +24,7 @@ trait Entity {
   def withId(id: String): T
 }
 
-case class Event(id: Option[String], title: String, start: DateTime, end: DateTime, lastModified: DateTime = new DateTime()) extends Entity {
+case class Event(id: Option[String], name: String, start: DateTime, end: DateTime, lastModified: DateTime = new DateTime()) extends Entity {
   require(start.isBefore(end), "Start must be before End")
 
 

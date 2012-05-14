@@ -7,8 +7,8 @@ import no.java.http.URIBuilder
 import io.Source
 import unfiltered.response._
 import unfiltered.request._
-import net.hamnaberg.json.collection.{ErrorMessage, Template, JsonCollection}
 import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
+import net.hamnaberg.json.collection._
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -44,10 +44,12 @@ trait EventResources extends ResourceHelper { this: Storage =>
 
   def handleSessionList(eventId: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
-      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
+      case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val href = baseUriBuilder.segments("events", eventId, "sessions").build()
-        val items = this.getSessions(eventId).map(sessionToItem(baseUriBuilder))
-        CollectionJsonResponse(JsonCollection(href, Nil, items))
+        val sessions = p("title").headOption.map(t => getSessionsByTitle(eventId, t)).getOrElse(this.getSessions(eventId))
+        val items = sessions.map(sessionToItem(baseUriBuilder))
+        val coll = JsonCollection(href, Nil, items).addQuery(new Query(href, "by-title", Some("By Title"), List(Property("title"))))
+        CollectionJsonResponse(coll)
       }
       case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
         withTemplate(req) {

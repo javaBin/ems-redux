@@ -16,12 +16,12 @@ import net.liftweb.json.JsonAST._
  */
 
 object converters {
-  val dateFormat = ISODateTimeFormat.basicDateTimeNoMillis()
+  val dateFormat = ISODateTimeFormat.basicDateTimeNoMillis().withZoneUTC()
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
       val properties = Map(
-        "name" -> Some(e.title),
+        "name" -> Some(e.name),
         "start" -> Some(dateFormat.print(e.start)),
         "end" -> Some(dateFormat.print(e.end))
       ).map(toProperty).toList
@@ -30,7 +30,7 @@ object converters {
       Item(
         href,
         properties,
-        new Link(sessions, "sessions", Some("Sessions")) :: Link(href, "event", Some(e.title)) :: Nil)
+        new Link(sessions, "sessions", Some("Sessions")) :: Link(href, "event", Some(e.name)) :: Nil)
     }
   }
 

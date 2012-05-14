@@ -12,11 +12,15 @@ package no.java.ems
 trait Storage {
   def getEvents(): List[Event]
 
+  def getEventsByName(title: String): List[Event]
+
   def getEvent(id: String): Option[Event]
 
   def saveEvent(event: Event) : Event
 
   def getSessions(eventId: String): List[Session]
+
+  def getSessionsByTitle(eventId: String, title: String): List[Session]
 
   def getSession(eventId: String, id: String): Option[Session]
 

@@ -16,15 +16,26 @@ trait MongoDBStorage extends Storage {
   def conn: MongoConnection
 
   //def conn = MongoConnection(host, port)
-  private val db = conn("ems")
+  private val db = {
+    val d = conn("ems")
+    d("event").ensureIndex("name")
+    d("session").ensureIndex("title")
+    d
+  }
 
   def getEvents() = db("event").find().map(toEvent).toList
 
   def getEvent(id: String) = db("event").findOneByID(new ObjectId(id)).map(toEvent)
 
+  def getEventsByName(name: String) = db("event").find(MongoDBObject("name" -> name)).map(toEvent).toList
+
   def saveEvent(event: Event) = saveToMongo(event, db("event"))
 
   def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> new ObjectId(eventId))).map(toSession).toList
+
+  def getSessionsByTitle(eventId: String, title: String) = db("session").find(
+    MongoDBObject("eventId" -> new ObjectId(eventId), "title" -> title)
+  ).map(toSession).toList
 
   def getSession(eventId: String, id: String) = db("session").findOne(
     MongoDBObject("_id" -> new ObjectId(id), "eventId" -> new ObjectId(eventId))
@@ -94,7 +105,7 @@ private [storage] object MongoMapper {
     val m = wrapDBObj(dbo)
     Event(
       m.get("_id").map(_.toString),
-      m.getAsOrElse("title", "No Title"),
+      m.getAsOrElse("name", "No Name"),
       m.getAsOrElse("start", new DateTime()),
       m.getAsOrElse("end", new DateTime()),
       m.getAsOrElse("last-modified", new DateTime())
@@ -124,7 +135,7 @@ private [storage] object MongoMapper {
   val toContact: (DBObject) => Contact = (m) => throw new UnsupportedOperationException()
 
   implicit def toMongoDBObject(event: Event): DBObject = {
-    MongoDBObject("_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()), "title" -> event.title, "start" -> event.start, "end" -> event.end, "last-modified" -> event.lastModified)
+    MongoDBObject("_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()), "name" -> event.name, "start" -> event.start, "end" -> event.end, "last-modified" -> event.lastModified)
   }
 
   implicit def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
