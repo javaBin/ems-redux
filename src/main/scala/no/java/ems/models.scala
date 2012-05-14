@@ -5,6 +5,8 @@ import java.net.URI
 import java.util.{Locale}
 import org.joda.time.{DateTime, Duration}
 import java.io._
+import scala.Some
+import com.mongodb.casbah.gridfs.{GridFSDBFile, GridFSFile}
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,15 +17,23 @@ import java.io._
  */
 
 trait Entity {
+  type T <: Entity
   def id: Option[String]
   def lastModified: DateTime
+
+  def withId(id: String): T
 }
 
 case class Event(id: Option[String], title: String, start: DateTime, end: DateTime, lastModified: DateTime = new DateTime()) extends Entity {
   require(start.isBefore(end), "Start must be before End")
+
+
+  type T = Event
+
+  def withId(id: String) = copy(id = Some(id))
 }
 
-case class SessionAbstract(title: String,
+case class Abstract(title: String,
                            lead: Option[String] = None,
                            body: Option[String] = None,
                            language: Locale = new Locale("no"),
@@ -50,7 +60,7 @@ case class SessionAbstract(title: String,
 case class Session(id: Option[String],
                    eventId: String,
                    duration: Option[Duration],
-                   sessionAbstract: SessionAbstract,
+                   abs: Abstract,
                    state: State,
                    published: Boolean,
                    attachments: List[URIAttachment],
@@ -59,17 +69,19 @@ case class Session(id: Option[String],
                    lastModified: DateTime = new DateTime()) extends Entity {
 
 
+  type T = Session
+
   def addAttachment(attachment: URIAttachment) = copy(attachments = attachments ::: List(attachment))
 
   def addKeyword(word: String) = copy(keywords = keywords + Keyword(word))
 
   def addTag(word: String) = copy(tags = tags + Tag(word))
 
-  def withTitle(input: String) = withAbstract(sessionAbstract.withTitle(input))
+  def withTitle(input: String) = withAbstract(abs.withTitle(input))
 
-  def withBody(input: String) = withAbstract(sessionAbstract.withBody(input))
+  def withBody(input: String) = withAbstract(abs.withBody(input))
 
-  def withLead(input: String) = withAbstract(sessionAbstract.withLead(input))
+  def withLead(input: String) = withAbstract(abs.withLead(input))
 
   def publish = if (published) this else copy(published = true)
 
@@ -78,42 +90,45 @@ case class Session(id: Option[String],
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    copy(sessionAbstract = sessionAbstract.withFormat(format), duration = Some(duration))
+    copy(abs = abs.withFormat(format), duration = Some(duration))
   }
 
-  def withLevel(level: Level) = withAbstract(sessionAbstract.withLevel(level))
+  def withLevel(level: Level) = withAbstract(abs.withLevel(level))
 
   def addOrUpdateSpeaker(speaker: Speaker) = {
     val speakers = this.speakers
     val index = speakers.indexWhere(_.contactId == speaker.contactId)
     if (index != -1) {
-      withAbstract(sessionAbstract.withSpeakers(speakers.updated(index, speaker)))
+      withAbstract(abs.withSpeakers(speakers.updated(index, speaker)))
     }
     else {
-      withAbstract(sessionAbstract.addSpeaker(speaker))
+      withAbstract(abs.addSpeaker(speaker))
     }
   }
 
-  def speakers = sessionAbstract.speakers
+  def speakers = abs.speakers
 
-  private def withAbstract(sessionAbstract: SessionAbstract) = copy(sessionAbstract = sessionAbstract)
+  private def withAbstract(abs: Abstract) = copy(abs = abs)
+
+  def withId(id: String) = copy(id = Some(id))
+
 }
 
 object Session {
-  def apply(eventId: String, sessionAbstract: SessionAbstract): Session = {
-    val duration = sessionAbstract.format match {
+  def apply(eventId: String, abs: Abstract): Session = {
+    val duration = abs.format match {
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    Session(None, eventId, Some(duration), sessionAbstract, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, Some(duration), abs, State.Pending, false, Nil, Set(), Set())
   }
 
-  def apply(eventId: String, sessionAbstract: SessionAbstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
-    val duration = sessionAbstract.format match {
+  def apply(eventId: String, abs: Abstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
+    val duration = abs.format match {
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    Session(None, eventId, Some(duration), sessionAbstract, state, false, Nil, tags, keywords)
+    Session(None, eventId, Some(duration), abs, state, false, Nil, tags, keywords)
   }
 
   def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
@@ -121,14 +136,19 @@ object Session {
       case Format.LightningTalk => Duration.standardMinutes(10)
       case x => Duration.standardMinutes(60)
     }
-    val ab = SessionAbstract(title, format = format, speakers = speakers)
+    val ab = Abstract(title, format = format, speakers = speakers)
     Session(None, eventId, Some(duration), ab, State.Pending, false, Nil, Set(), Set())
   }
 }
 
 case class Speaker(contactId: String, name: String, bio: Option[String] = None, image: Option[Attachment with Entity] = None)
 
-case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], image: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity
+case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], image: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity {
+
+  type T = Contact
+
+  def withId(id: String) = copy(id = Some(id))
+}
 
 sealed abstract class Level(val name: String) {
   override def toString = name
@@ -225,55 +245,7 @@ object State {
 
 }
 
-case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty) {
-  def includes(mt: MIMEType): Boolean = {
-    new MimeType(toString).`match`(mt.toString)
-  }
 
-  override def toString = {
-    val params = if (parameters.isEmpty) "" else parameters.mkString(";", ";", "")
-    "%s/%s".format(major, minor) + params
-  }
-}
-
-object MIMEType {
-  val ALL = apply("*/*")
-  val IMAGE_ALL = apply("image/*")
-  val VIDEO_ALL = apply("video/*")
-  val PDF = apply("application/pdf")
-  val PNG = apply("image/png")
-  val JPEG = apply("image/jpeg")
-
-  def apply(mimeType: String): MIMEType = {
-    val mime = new MimeType(mimeType)
-    import collection.JavaConverters._
-    val keys = mime.getParameters.getNames.asInstanceOf[java.util.Enumeration[String]].asScala
-    val params = keys.foldLeft(Map[String, String]())((a, b) => a.updated(b, mime.getParameters.get(b)))
-    MIMEType(mime.getPrimaryType, mime.getSubType, params)
-  }
-}
-
-
-sealed trait Attachment {
-  def name: String
-  def size: Option[Long]
-  def mediaType: Option[MIMEType]
-  def data: InputStream
-}
-
-case class ByteArrayAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], bytes: Array[Byte], lastModified: DateTime = new DateTime()) extends Attachment with Entity {
-  val data = new ByteArrayInputStream(bytes)
-}
-
-case class FileAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], file: File, lastModified: DateTime = new DateTime()) extends Attachment with Entity {
-  val data = new FileInputStream(file)
-}
-
-case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment {
-  def data = href.toURL.openStream()
-}
-
-case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment
 
 case class Email(address: String)
 

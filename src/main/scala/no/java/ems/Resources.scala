@@ -1,11 +1,13 @@
 package no.java.ems
 
+import storage.MongoDBStorage
 import unfiltered.request._
 import unfiltered.response._
 import unfiltered.filter.Plan
 import org.joda.time.DateTime
 import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
+import com.mongodb.casbah.MongoConnection
 
 trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler { this: Storage =>
 
@@ -48,16 +50,9 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
 }
 
 object Main extends App {
-  val resources = new MemoryStorage with Resources
-
-  def populate(storage: Storage) {
-    val event = storage.saveEvent(Event(Some("1"), "JavaZone 2011", new DateTime(), new DateTime()))
-    val sessions = List(Session(event.id.get, "Session 1", Format.Presentation, Vector(Speaker("1", "Erlend Hamnaberg"))).copy(Some("1")), Session(event.id.get, "Session 2", Format.Presentation, Vector()).copy(Some("2")))
-    for (s <- sessions) storage.saveSession(s)
-    println(event)
+  val resources = new MongoDBStorage with Resources {
+    def conn = MongoConnection()
   }
-
-  populate(resources)
 
   unfiltered.jetty.Http(8080).plan(resources).run()
 }

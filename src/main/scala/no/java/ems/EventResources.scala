@@ -132,13 +132,13 @@ trait EventResources extends ResourceHelper { this: Storage =>
 
   def handleSpeakerPhoto(eventId: String, sessionId: String, contactId: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
-      case POST(_) & RequestContentType(ct) if (MIMEType.IMAGE_ALL.includes(MIMEType(ct))) => {
+      case POST(_) & RequestContentType(ct) if (MIMEType.ImageAll.includes(MIMEType(ct).get)) => {
         request match {
           case RequestContentDisposition(cd) => {
             val session = this.getSession(eventId, sessionId)
             val speaker = session.flatMap(_.speakers.find(_.contactId == contactId))
             if (speaker.isDefined) {
-              val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, Some(MIMEType(ct)), request.inputStream))
+              val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
               val updated = speaker.get.copy(image = Some(binary))
               val updatedSession = session.get.addOrUpdateSpeaker(updated)
               this.saveSession(updatedSession)
@@ -198,7 +198,7 @@ trait EventResources extends ResourceHelper { this: Storage =>
           case Some(s) => {
             req match {
               case RequestContentDisposition(cd) & BaseURIBuilder(baseURIBuilder) => {
-                val att = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, Some(MIMEType(ct)), req.inputStream))
+                val att = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), req.inputStream))
                 val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
                 this.saveSession(attached)
                 NoContent

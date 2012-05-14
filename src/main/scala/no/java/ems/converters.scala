@@ -65,21 +65,21 @@ object converters {
       val tags = if (s.tags.isEmpty) None else Some(s.tags.map(_.name).mkString(","))
       val keywords = if (s.keywords.isEmpty) None else Some(s.keywords.map(_.name).mkString(","))
       val properties = Map(
-        "title" -> Some(s.sessionAbstract.title),
-        "body" -> s.sessionAbstract.body,
-        "lead" -> s.sessionAbstract.lead,
-        "lang" -> Some(s.sessionAbstract.language.getLanguage),
-        "format" -> Some(s.sessionAbstract.format.toString),
-        "level" -> Some(s.sessionAbstract.level.toString),
+        "title" -> Some(s.abs.title),
+        "body" -> s.abs.body,
+        "lead" -> s.abs.lead,
+        "lang" -> Some(s.abs.language.getLanguage),
+        "format" -> Some(s.abs.format.toString),
+        "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
         "tags" -> tags,
         "keywords" -> keywords
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
       val links = List(
-        Link(href, "session", Some(s.sessionAbstract.title)),
-        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some("Attachments for %s".format(s.sessionAbstract.title))),
-        Link(URIBuilder(href).segments("speakers").build(), "speakers", Some("Speakers for %s".format(s.sessionAbstract.title)))
+        Link(href, "session", Some(s.abs.title)),
+        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some("Attachments for %s".format(s.abs.title))),
+        Link(URIBuilder(href).segments("speakers").build(), "speakers", Some("Speakers for %s".format(s.abs.title)))
       )
       Item(href, properties, links)
     }
@@ -94,8 +94,8 @@ object converters {
     val language = template.getPropertyValue("lang").map(x => new Locale(x.values.toString))
     val state = template.getPropertyValue("state").map(x => State(x.values.toString))
     val tags = template.getPropertyValue("tags").toList.flatMap(x => x.values.toString.split(",").map(Tag(_)).toList)
-    val keywords = template.getPropertyValue("tags").toList.flatMap(x => x.values.toString.split(",").map(Keyword(_)).toList)
-    val abs = SessionAbstract(title, lead, body, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
+    val keywords = template.getPropertyValue("keywords").toList.flatMap(x => x.values.toString.split(",").map(Keyword(_)).toList)
+    val abs = Abstract(title, lead, body, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
   }
@@ -154,7 +154,7 @@ object converters {
       case JInt(x) => x.toLong
     }
     val size = template.getPropertyValue("size").map(sizeFilter)
-    val mediaType = template.getPropertyValue("type").map(x => MIMEType(x.values.toString))
+    val mediaType = template.getPropertyValue("type").flatMap(x => MIMEType(x.values.toString))
     URIAttachment(href, name, size, mediaType)
   }
 

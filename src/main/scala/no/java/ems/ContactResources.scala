@@ -43,12 +43,12 @@ trait ContactResources extends ResourceHelper { this: Storage =>
 
   def handleContactPhoto(id: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
-      case POST(_) & RequestContentType(ct) if (MIMEType.IMAGE_ALL.includes(MIMEType(ct))) => {
+      case POST(_) & RequestContentType(ct) if (MIMEType.ImageAll.includes(MIMEType(ct).get)) => {
         request match {
           case RequestContentDisposition(cd) => {
             val contact = this.getContact(id)
             if (contact.isDefined) {
-              val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, Some(MIMEType(ct)), request.inputStream))
+              val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
               this.saveContact(contact.get.copy(image = Some(binary)))
               NoContent
             }
