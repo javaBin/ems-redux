@@ -32,15 +32,15 @@ trait MongoDBStorage extends Storage {
 
   def saveEvent(event: Event) = saveToMongo(event, db("event"))
 
-  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> new ObjectId(eventId))).map(toSession).toList
+  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> new ObjectId(eventId))).map(toSession(_, this)).toList
 
   def getSessionsByTitle(eventId: String, title: String) = db("session").find(
     MongoDBObject("eventId" -> new ObjectId(eventId), "title" -> title)
-  ).map(toSession).toList
+  ).map(toSession(_, this)).toList
 
   def getSession(eventId: String, id: String) = db("session").findOne(
     MongoDBObject("_id" -> new ObjectId(id), "eventId" -> new ObjectId(eventId))
-  ).map(toSession)
+  ).map(toSession(_, this))
 
   def saveSession(session: Session) = saveToMongo(session, db("session"))
 
@@ -114,9 +114,9 @@ private [storage] object MongoMapper {
     )
   }
 
-  val toSession: (DBObject) => Session = (dbo) => {
+  def toSession(dbo: DBObject, storage: MongoDBStorage) = {
     val m = wrapDBObj(dbo)
-    val abs = m.getAs[DBObject]("abstract").map(toAbstract).getOrElse(new Abstract("No Title"))
+    val abs = m.getAs[DBObject]("abstract").map(toAbstract(_, storage)).getOrElse(new Abstract("No Title"))
 
     Session(
       m.get("_id").map(_.toString),
@@ -132,7 +132,7 @@ private [storage] object MongoMapper {
     )
   }
 
-  val toAbstract: (DBObject) => Abstract = (dbo) => {
+  private def toAbstract(dbo: DBObject, storage: MongoDBStorage) = {
     val m = wrapDBObj(dbo)
     val title = m.getAsOrElse("title", "No Title")
     val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
@@ -140,8 +140,18 @@ private [storage] object MongoMapper {
     val lead = m.getAs[String]("lead")
     val body = m.getAs[String]("body")
     val language = m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no"))
-    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map{case x:DBObject => x}.map(toSpeaker)
+    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map{case x:DBObject => x}.map(toSpeaker(_, storage))
     Abstract(title, lead, body, language, level, format, Vector() ++ speakers)
+  }
+
+  private def toSpeaker(dbo: DBObject, storage: MongoDBStorage) = {
+    val m = wrapDBObj(dbo)
+    Speaker(
+      m.get("_id").map(_.toString).get,
+      m.as[String]("name"),
+      m.getAs[String]("bio"),
+      m.get("photo").flatMap(i => storage.getAttachment(i.toString))
+    )
   }
 
   val toAttachment: (DBObject) => URIAttachment = (dbo) => {
@@ -159,20 +169,10 @@ private [storage] object MongoMapper {
     val name = m.as[String]("name")
     val foreign = m.getAsOrElse("foreign", false)
     val emails = m.getAs[Seq[_]]("emails").getOrElse(Nil).map(e => Email(e.toString)).toList
-    val image = m.get("image").flatMap(i => storage.getAttachment(i.toString))
+    val photo = m.get("photo").flatMap(i => storage.getAttachment(i.toString))
     val bio = m.getAs[String]("bio")
     val lm = m.getAsOrElse("last-modified", new DateTime())
-    Contact(id, name, foreign, bio, emails, image, lm)
-  }
-
-  val toSpeaker: (DBObject) => Speaker = (dbo) => {
-    val m = wrapDBObj(dbo)
-    Speaker(
-      m.get("_id").map(_.toString).get,
-      m.as[String]("name"),
-      m.getAs[String]("bio"),
-      m.get("photo").map()
-    )
+    Contact(id, name, foreign, bio, emails, photo, lm)
   }
 
   def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {

@@ -49,7 +49,7 @@ trait ContactResources extends ResourceHelper { this: Storage =>
             val contact = this.getContact(id)
             if (contact.isDefined) {
               val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
-              this.saveContact(contact.get.copy(image = Some(binary)))
+              this.saveContact(contact.get.copy(photo = Some(binary)))
               NoContent
             }
             else {
