@@ -125,7 +125,7 @@ object converters {
           Property("name", Some("Name"), Some(JString(s.name))),
           Property("bio", Some("Bio"), s.bio.map(JString(_)))
         ),
-        s.image.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
+        s.photo.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
           List(Link(base.segments("photo").build(), "attach-photo"))
       )
     }

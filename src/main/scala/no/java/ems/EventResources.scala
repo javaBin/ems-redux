@@ -141,7 +141,7 @@ trait EventResources extends ResourceHelper { this: Storage =>
             val speaker = session.flatMap(_.speakers.find(_.contactId == contactId))
             if (speaker.isDefined) {
               val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
-              val updated = speaker.get.copy(image = Some(binary))
+              val updated = speaker.get.copy(photo = Some(binary))
               val updatedSession = session.get.addOrUpdateSpeaker(updated)
               this.saveSession(updatedSession)
               NoContent
@@ -164,7 +164,7 @@ trait EventResources extends ResourceHelper { this: Storage =>
       case POST(_) => UnsupportedMediaType
       case GET(_) & BaseURIBuilder(b) => {
         val session = this.getSession(eventId, sessionId)
-        val image = session.flatMap(_.speakers.find(_.contactId == contactId)).flatMap(_.image.map(i => b.segments("binary", i.id.get).build()))
+        val image = session.flatMap(_.speakers.find(_.contactId == contactId)).flatMap(_.photo.map(i => b.segments("binary", i.id.get).build()))
         if (image.isDefined) Redirect(image.get.toString) else MethodNotAllowed
       }
       case _ => MethodNotAllowed

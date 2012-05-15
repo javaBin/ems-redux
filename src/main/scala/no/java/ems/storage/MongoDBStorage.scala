@@ -183,7 +183,13 @@ private [storage] object MongoMapper {
   }
 
   private def toMongoDBObject(event: Event): DBObject = {
-    MongoDBObject("_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()), "name" -> event.name, "start" -> event.start, "end" -> event.end, "last-modified" -> event.lastModified)
+    MongoDBObject(
+      "_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()),
+      "name" -> event.name,
+      "start" -> event.start,
+      "end" -> event.end,
+      "last-modified" -> event.lastModified
+    )
   }
 
   private def toMongoDBObject(session: Session): DBObject = {
@@ -238,8 +244,10 @@ private [storage] object MongoMapper {
   }
 
   private def toMongoDBObject(speaker: Speaker): DBObject = {
-    val obj = MongoDBObject("_id" -> new ObjectId(speaker.contactId), "name" -> speaker.name)
-    speaker.image.map(a => "photo" -> new ObjectId(a.id.get))
+    val obj = MongoDBObject(
+      "_id" -> new ObjectId(speaker.contactId),
+      "name" -> speaker.name)
+    obj.putAll(speaker.photo.map(a => "photo" -> new ObjectId(a.id.get)).toMap)
     obj.putAll(speaker.bio.map(b => "bio" -> b).toMap)
     obj
   }
