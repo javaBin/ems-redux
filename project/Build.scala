@@ -37,6 +37,7 @@ object Build extends sbt.Build {
         "joda-time" % "joda-time" % "2.1",
         "org.joda" % "joda-convert" % "1.1" % "provided",
         "net.hamnaberg.rest" %% "scala-json-collection" % "1.0-SNAPSHOT",
+        "commons-io" % "commons-io" % "2.3",
         "com.mongodb.casbah" %% "casbah" % "2.1.5-1",
         "org.specs2" %% "specs2" % "1.6.1" % "test"
       ),

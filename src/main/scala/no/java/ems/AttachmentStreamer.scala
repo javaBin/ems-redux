@@ -3,15 +3,19 @@ package no.java.ems
 import unfiltered.response.ResponseStreamer
 import java.io.OutputStream
 import no.java.unfiltered.{DispositionType, ContentDisposition}
+import org.apache.commons.io.IOUtils
 
 object AttachmentStreamer {
-  def apply(attachment: Attachment) = {
+  def apply(attachment: Attachment, storage: Storage) = {
     new ResponseStreamer {
-      val buf = new Array[Byte](1024 * 8)
-
       def stream(os: OutputStream) {
-        val length = attachment.data.read(buf)
-        os.write(buf, 0, length)
+        val stream = storage.getStream(attachment)
+        try {
+          IOUtils.copy(stream, os)
+        }
+        finally {
+          IOUtils.closeQuietly(stream)
+        }
       }
     } ~> ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader
   }

@@ -14,7 +14,7 @@ trait AttachmentHandler {this: Storage =>
     request match {
       case GET(_) => {
         this.getAttachment(id) match {
-          case Some(a) => AttachmentStreamer(a)
+          case Some(a) => AttachmentStreamer(a, this)
           case None => NotFound
         }
       }

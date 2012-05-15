@@ -16,15 +16,6 @@ sealed trait Attachment {
   def name: String
   def size: Option[Long]
   def mediaType: Option[MIMEType]
-  def data: InputStream
-}
-
-case class ByteArrayAttachment(id: Option[String], name: String, size: Option[Long], mediaType: Option[MIMEType], bytes: Array[Byte], lastModified: DateTime = new DateTime()) extends Attachment with Entity {
-  val data = new ByteArrayInputStream(bytes)
-
-  type T = ByteArrayAttachment
-
-  def withId(id: String) = copy(id = Some(id))
 }
 
 case class GridFileAttachment(file: GridFSFile) extends Attachment with Entity {
@@ -54,7 +45,7 @@ case class GridFileAttachment(file: GridFSFile) extends Attachment with Entity {
   }
 }
 
-case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment {
+case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType]) extends Attachment {
   def data = href.toURL.openStream()
 }
 
@@ -87,4 +78,3 @@ object MIMEType {
     MIMEType(mime.getPrimaryType, mime.getSubType, params)
   }
 }
-

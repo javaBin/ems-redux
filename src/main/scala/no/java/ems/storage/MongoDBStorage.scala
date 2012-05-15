@@ -3,6 +3,8 @@ package no.java.ems.storage
 import com.mongodb.casbah.gridfs.GridFS
 import com.mongodb.casbah.Imports._
 import org.joda.time.DateTime
+import java.net.URI
+import java.util.Locale
 import no.java.ems._
 
 
@@ -42,9 +44,9 @@ trait MongoDBStorage extends Storage {
 
   def saveSession(session: Session) = saveToMongo(session, db("session"))
 
-  def getContact(id: String) = db("contact").findOneByID(new ObjectId(id)).map(toContact)
+  def getContact(id: String) = db("contact").findOneByID(new ObjectId(id)).map(toContact(_, this))
 
-  def getContacts() = db("contact").find().map(toContact).toList
+  def getContacts() = db("contact").find().map(toContact(_, this)).toList
 
   def saveContact(contact: Contact) = saveToMongo(contact, db("contact"))
 
@@ -59,7 +61,7 @@ trait MongoDBStorage extends Storage {
     val file = att match {
       case GridFileAttachment(f) => f
       case a => {
-        val f = fs.createFile(a.data, a.name)
+        val f = fs.createFile(getStream(a), a.name)
         a.mediaType.foreach(mt => f.contentType = mt.toString)
         f
       }
@@ -97,6 +99,7 @@ trait MongoDBStorage extends Storage {
 }
 
 private [storage] object MongoMapper {
+  import com.mongodb.casbah.Imports._
   import com.mongodb.casbah.commons.conversions.scala._
   RegisterJodaTimeConversionHelpers()
 
@@ -113,7 +116,7 @@ private [storage] object MongoMapper {
 
   val toSession: (DBObject) => Session = (dbo) => {
     val m = wrapDBObj(dbo)
-    val abs = m.get("abstract").map{case x: DBObject => x}.map(toAbstract).getOrElse(new Abstract("No Title"))
+    val abs = m.getAs[DBObject]("abstract").map(toAbstract).getOrElse(new Abstract("No Title"))
 
     Session(
       m.get("_id").map(_.toString),
@@ -129,9 +132,40 @@ private [storage] object MongoMapper {
     )
   }
 
-  val toAbstract: (DBObject) => Abstract = (m) => throw new UnsupportedOperationException()
+  val toAbstract: (DBObject) => Abstract = (dbo) => {
+    val m = wrapDBObj(dbo)
+    val title = m.getAsOrElse("title", "No Title")
+    val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
+    val level = m.getAs[String]("level").map(Level(_)).getOrElse(Level.Beginner)
+    val lead = m.getAs[String]("lead")
+    val body = m.getAs[String]("body")
+    val language = m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no"))
+    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map{case x:DBObject => x}.map(toSpeaker)
+    Abstract(title, lead, body, language, level, format, Vector() ++ speakers)
+  }
 
-  val toContact: (DBObject) => Contact = (m) => throw new UnsupportedOperationException()
+  val toAttachment: (DBObject) => URIAttachment = (dbo) => {
+    val m = wrapDBObj(dbo)
+    val href = URI.create(m.getAs[String]("href").get)
+    val mt = m.getAs[String]("mime-type").flatMap(MIMEType(_))
+    val name = m.getAs[String]("name").get
+    val size = m.getAs[Long]("size")
+    URIAttachment(href, name, size, mt)
+  }
+
+  def toContact(dbo: DBObject, storage: MongoDBStorage) = {
+    val m = wrapDBObj(dbo)
+    val id = m.get("_id").map(_.toString)
+    val name = m.as[String]("name")
+    val foreign = m.getAsOrElse("foreign", false)
+    val emails = m.getAs[Seq[_]]("emails").getOrElse(Nil).map(e => Email(e.toString)).toList
+    val image = m.get("image").flatMap(i => storage.getAttachment(i.toString))
+    val bio = m.getAs[String]("bio")
+    val lm = m.getAsOrElse("last-modified", new DateTime())
+    Contact(id, name, foreign, bio, emails, image, lm)
+  }
+
+  val toSpeaker: (DBObject) => Speaker = (dbo) => throw new UnsupportedOperationException()
 
   def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
     case s: Session => toMongoDBObject(s)
@@ -154,6 +188,7 @@ private [storage] object MongoMapper {
       "keywords" -> session.keywords.map(_.name),
       "duration" -> session.duration.map(_.toString).orNull,
       "state" -> session.state.name,
+      "attachments" -> session.attachments.map(toMongoDBObject),
       "last-modified" -> session.lastModified
     )
   }
@@ -167,6 +202,16 @@ private [storage] object MongoMapper {
       "last-modified" -> contact.lastModified
     )
     obj.putAll(contact.bio.map(b => "bio" -> b).toMap)
+    obj
+  }
+
+  private def toMongoDBObject(att: URIAttachment): DBObject = {
+    val obj = MongoDBObject(
+      "href" -> att.href.toString,
+      "name" -> att.name,
+      "mime-type" -> att.mediaType.map(_.toString),
+      "size" -> att.size
+    )
     obj
   }
 

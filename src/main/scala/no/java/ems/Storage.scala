@@ -1,5 +1,7 @@
 package no.java.ems
 
+import java.io.InputStream
+
 
 /**
  * Created by IntelliJ IDEA.
@@ -37,6 +39,13 @@ trait Storage {
   def saveAttachment(att: Attachment): Attachment with Entity
 
   def removeAttachment(id: String)
+
+  def getStream(att: Attachment): InputStream = att match {
+    case u: URIAttachment => u.href.toURL.openStream()
+    case u: GridFileAttachment => u.data
+    case u: StreamingAttachment => u.data
+    case _ => throw new IllegalArgumentException("No stream available for %s".format(att.getClass.getName))
+  }
 
   def saveEntity[T <: Entity](entity: T) = entity match {
     case e: Event => saveEvent(e)

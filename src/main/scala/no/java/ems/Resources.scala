@@ -50,7 +50,7 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
 
 object Main extends App {
   val resources = new MongoDBStorage with Resources {
-    def conn = MongoConnection()
+    val conn = MongoConnection()
   }
 
   unfiltered.jetty.Http(8080).plan(resources).run()
