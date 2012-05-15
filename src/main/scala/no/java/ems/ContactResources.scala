@@ -70,7 +70,7 @@ trait ContactResources extends ResourceHelper { this: Storage =>
       case POST(_) => UnsupportedMediaType
       case GET(_) & BaseURIBuilder(b) => {
         val contact = this.getContact(id)
-        val image = contact.flatMap(_.image.map(i => b.segments("binary", i.id.get).build()))
+        val image = contact.flatMap(_.photo.map(i => b.segments("binary", i.id.get).build()))
         if (image.isDefined) Redirect(image.get.toString) else MethodNotAllowed
       }
       case _ => MethodNotAllowed

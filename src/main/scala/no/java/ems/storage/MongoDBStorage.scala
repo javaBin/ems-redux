@@ -165,7 +165,15 @@ private [storage] object MongoMapper {
     Contact(id, name, foreign, bio, emails, image, lm)
   }
 
-  val toSpeaker: (DBObject) => Speaker = (dbo) => throw new UnsupportedOperationException()
+  val toSpeaker: (DBObject) => Speaker = (dbo) => {
+    val m = wrapDBObj(dbo)
+    Speaker(
+      m.get("_id").map(_.toString).get,
+      m.as[String]("name"),
+      m.getAs[String]("bio"),
+      m.get("photo").map()
+    )
+  }
 
   def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
     case s: Session => toMongoDBObject(s)
@@ -202,6 +210,7 @@ private [storage] object MongoMapper {
       "last-modified" -> contact.lastModified
     )
     obj.putAll(contact.bio.map(b => "bio" -> b).toMap)
+    obj.putAll(contact.photo.map(b => "photo" -> b.id.get).toMap)
     obj
   }
 

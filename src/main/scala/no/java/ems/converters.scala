@@ -141,7 +141,7 @@ object converters {
           Property("foreign", Some("Foreign"), Some(JBool(c.foreign))),
           Property("emails", Some("Emails"), Some(JArray(c.emails.map(e => JString(e.address)))))
         ),
-        c.image.map(a => Link(baseBuilder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
+        c.photo.map(a => Link(baseBuilder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
           List(Link(baseBuilder.segments("contacts", "photo").build(), "attach-photo"))
       )
     }

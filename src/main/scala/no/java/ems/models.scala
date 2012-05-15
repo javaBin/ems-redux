@@ -143,7 +143,7 @@ object Session {
 
 case class Speaker(contactId: String, name: String, bio: Option[String] = None, image: Option[Attachment with Entity] = None)
 
-case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], image: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity {
+case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], photo: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity {
 
   type T = Contact
 
