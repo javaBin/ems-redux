@@ -51,7 +51,7 @@ trait MongoDBStorage extends Storage {
   def saveContact(contact: Contact) = saveToMongo(contact, db("contact"))
 
 
-  def getAttachment(id: String) = {
+  def getAttachment(id: String): Option[Attachment with Entity] = {
     val fs = GridFS(db)
     fs.findOne(new ObjectId(id)).map(GridFileAttachment)
   }
@@ -67,8 +67,8 @@ trait MongoDBStorage extends Storage {
       }
     }
     file.metaData.put("last-modified", new DateTime())
-    file.save
-    GridFileAttachment(file)
+    file.save()
+    getAttachment(file.id.toString).getOrElse(throw new IllegalArgumentException("Failed to save"))
   }
 
   def removeAttachment(id: String) = {

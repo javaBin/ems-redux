@@ -11,7 +11,6 @@ object Build extends sbt.Build {
   lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherSettings ++ Seq(
     organization := "no.java",
     scalaVersion := "2.9.1",
-    crossScalaVersions := Seq("2.9.1"),
     scalacOptions := Seq("-deprecation"),
     deployRepository <<= (version) apply {
       (v: String) => if (v.trim().endsWith("SNAPSHOT")) Resolvers.sonatypeNexusSnapshots else Resolvers.sonatypeNexusStaging
@@ -22,30 +21,62 @@ object Build extends sbt.Build {
     aetherCredentials := {
       val cred = Path.userHome / ".sbt" / ".credentials"
       if (cred.exists()) Some(Credentials(cred)) else None
-    }
+    },
+    manifestSetting,
+    publish <<= Aether.deployTask.init,
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+  )
+
+  lazy val testDeps = Seq(
+    "org.specs2" %% "specs2" % "1.11" % "test"
+  )
+
+  lazy val unfiltered = Seq(
+    "net.databinder" %% "unfiltered-filter" % "0.6.1",
+    "net.databinder" %% "unfiltered-jetty" % "0.6.1"
   )
 
   lazy val root = Project(
     id = "ems",
     base = file("."),
     settings = buildSettings ++ Seq(
-      description := "Collection+JSON",
-      name := "ems",
-      libraryDependencies := Seq(
-        "net.databinder" %% "unfiltered-filter" % "0.6.1",
-        "net.databinder" %% "unfiltered-jetty" % "0.6.1",
-        "joda-time" % "joda-time" % "2.1",
-        "org.joda" % "joda-convert" % "1.1" % "provided",
-        "net.hamnaberg.rest" %% "scala-json-collection" % "1.0-SNAPSHOT",
-        "commons-io" % "commons-io" % "2.3",
-        "com.mongodb.casbah" %% "casbah" % "2.1.5-1",
-        "org.specs2" %% "specs2" % "1.6.1" % "test"
-      ),
-      manifestSetting,
-      publish <<= Aether.deployTask.init,
-      credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+      name := "ems"
     ) ++ mavenCentralFrouFrou
-  )
+  ).aggregate(server)
+
+  lazy val server = module("server")(settings = Seq(
+    libraryDependencies := unfiltered ++ Seq(
+      "joda-time" % "joda-time" % "2.1",
+      "org.joda" % "joda-convert" % "1.1" % "provided",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "1.0-SNAPSHOT",
+      "commons-io" % "commons-io" % "2.3",
+      "org.mongodb" %% "casbah-core" % "2.3.0",
+      "org.mongodb" %% "casbah-gridfs" % "2.3.0"
+      ) ++ testDeps
+  ))
+
+  lazy val cake = module("cake")(settings = Seq(
+    description := "The cake is a lie"
+  ))
+
+  private def module(moduleName: String)(
+    settings: Seq[Setting[_]],
+    projectId: String = "ems-" + moduleName,
+    dirName: String = moduleName,
+    srcPath: String = "ems/" + moduleName.replace("-","/")
+    ) = Project(projectId, file(dirName),
+    settings = (buildSettings :+
+      srcPathSetting(projectId, srcPath)) ++ settings)
+
+  def srcPathSetting(projectId: String, rootPkg: String) = {
+    mappings in (LocalProject(projectId), Compile, packageSrc) ~= {
+      defaults: Seq[(File,String)] =>
+        defaults.map { case(file, path) =>
+          (file, rootPkg + "/" + path)
+        }
+    }
+  }
+
 
   object Resolvers {
     val sonatypeNexusSnapshots = "Sonatype Nexus Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"

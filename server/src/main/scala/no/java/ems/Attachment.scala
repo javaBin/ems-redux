@@ -18,19 +18,16 @@ sealed trait Attachment {
   def mediaType: Option[MIMEType]
 }
 
-case class GridFileAttachment(file: GridFSFile) extends Attachment with Entity {
+case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity {
   type T = GridFileAttachment
 
-  val data = file match {
-    case f: GridFSDBFile => f.inputStream
-    case _ => throw new IllegalStateException("No inputstream was available for non-db object")
-  }
+  val data = file.inputStream
 
-  def name = file.filename
+  def name = file.filename.get
 
   def size = Some(file.size)
 
-  def mediaType = MIMEType(file.contentType)
+  def mediaType = file.contentType.flatMap(MIMEType(_))
 
   def lastModified = file.metaData.getAsOrElse[DateTime]("last-modified", new DateTime())
 
