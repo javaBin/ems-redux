@@ -42,13 +42,13 @@ object Build extends sbt.Build {
     settings = buildSettings ++ Seq(
       name := "ems"
     ) ++ mavenCentralFrouFrou
-  ).aggregate(server)
+  ).aggregate(server, cake, imported)
 
   lazy val server = module("server")(settings = Seq(
     libraryDependencies := unfiltered ++ Seq(
       "joda-time" % "joda-time" % "2.1",
       "org.joda" % "joda-convert" % "1.1" % "provided",
-      "net.hamnaberg.rest" %% "scala-json-collection" % "1.0-SNAPSHOT",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "1.0",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.3.0",
       "org.mongodb" %% "casbah-gridfs" % "2.3.0"
@@ -58,6 +58,11 @@ object Build extends sbt.Build {
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie"
   ))
+
+  lazy val imported = module("import")(settings = Seq(
+    description := "Database import",
+    libraryDependencies += "org.scalaquery" %% "scalaquery" % "0.10.0-M1"
+  )) dependsOn(server)
 
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],
