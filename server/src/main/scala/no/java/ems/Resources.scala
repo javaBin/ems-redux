@@ -1,12 +1,13 @@
 package no.java.ems
 
-import storage.MongoDBStorage
+import storage.{MongoSetting, MongoDBStorage}
 import unfiltered.request._
 import unfiltered.response._
 import unfiltered.filter.Plan
 import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
 import com.mongodb.casbah.MongoConnection
+import util.Properties
 
 trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler with VenueResources { this: Storage =>
 
@@ -51,5 +52,5 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
 }
 
 object Resources extends Resources with MongoDBStorage {
-  def conn = MongoConnection()
+  val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
 }

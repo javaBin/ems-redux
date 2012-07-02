@@ -16,16 +16,7 @@ import java.util
 trait MongoDBStorage extends Storage {
   import MongoMapper._
 
-  def conn: MongoConnection
-
-  private val db = {
-    val d = conn("ems")
-    d("contact").ensureIndex("name")
-    d("event").ensureIndex("name")
-    d("session").ensureIndex("title")
-    d("venue").ensureIndex("name")
-    d
-  }
+  def db: MongoDB
 
   def getVenues() = db("venue").find().map(toVenue).toList
 
@@ -85,7 +76,7 @@ trait MongoDBStorage extends Storage {
   }
 
   def shutdown() {
-    conn.close()
+    db.underlying.getMongo.close()
   }
 
   private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection): A#T = {

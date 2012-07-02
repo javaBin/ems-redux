@@ -1,9 +1,9 @@
-import com.mongodb.casbah.MongoConnection
 import io.Source
 import java.io.File
 import no.java.ems.Event
-import no.java.ems.storage.MongoDBStorage
+import no.java.ems.storage.{MongoSetting, MongoDBStorage}
 import org.joda.time.format.ISODateTimeFormat
+import util.Properties
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -12,7 +12,7 @@ import org.joda.time.format.ISODateTimeFormat
 object Importer {
 
   object storage extends MongoDBStorage {
-    def conn = MongoConnection()
+    val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
   }
   val isoDF = ISODateTimeFormat.basicDateTimeNoMillis
 
