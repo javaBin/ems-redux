@@ -34,6 +34,33 @@ object converters {
     }
   }
 
+  def venueToItem(baseBuilder: URIBuilder): (Venue) => Item = {
+    v => {
+      val properties = Map(
+        "name" -> Some(v.name)
+      ).map(toProperty).toList
+      val href = baseBuilder.segments("venues", v.id.get).build()
+      val rooms = baseBuilder.segments("venues", v.id.get, "rooms").build()
+      Item(
+        href,
+        properties,
+        new Link(rooms, "rooms", Some("Rooms")) :: Link(href, "venue", Some(v.name)) :: Nil)
+    }
+  }
+
+  def roomToItem(baseBuilder: URIBuilder, venueId: String): (Room) => Item = {
+    r => {
+      val properties = Map(
+        "name" -> Some(r.name)
+      ).map(toProperty).toList
+      val href = baseBuilder.segments("venues", venueId, "rooms", r.id.get).build()
+      Item(
+        href,
+        properties,
+        Link(href, "room", Some(r.name)) :: Nil)
+    }
+  }
+
   def toEvent(id: Option[String], template: Template): Event = {
     val name = template.getPropertyValue("name").map(_.values.toString).get
     val start = template.getPropertyValue("start").map(x => dateFormat.parseDateTime(x.values.toString)).get

@@ -12,6 +12,12 @@ import java.io.InputStream
  */
 
 trait Storage {
+  def getVenues(): List[Venue]
+
+  def getVenue(id: String): Option[Venue]
+
+  def saveVenue(venue: Venue): Venue
+
   def getEvents(): List[Event]
 
   def getEventsByName(title: String): List[Event]
@@ -51,6 +57,7 @@ trait Storage {
     case e: Event => saveEvent(e)
     case s: Session => saveSession(s)
     case c: Contact => saveContact(c)
+    case v: Venue => saveVenue(v)
     case _ => throw new IllegalArgumentException("Usupported entity: " + entity)
   }
 

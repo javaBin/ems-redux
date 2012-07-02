@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 import java.net.URI
 import java.util.Locale
 import no.java.ems._
+import java.util
 
 
 /**
@@ -19,41 +20,48 @@ trait MongoDBStorage extends Storage {
 
   private val db = {
     val d = conn("ems")
+    d("contact").ensureIndex("name")
     d("event").ensureIndex("name")
     d("session").ensureIndex("title")
+    d("venue").ensureIndex("name")
     d
   }
 
+  def getVenues() = db("venue").find().map(toVenue).toList
+
+  def getVenue(id: String) = db("venue").findOneByID(id).map(toVenue)
+
+  def saveVenue(venue: Venue) = saveToMongo(venue, db("venue"))
+
   def getEvents() = db("event").find().map(toEvent).toList
 
-  def getEvent(id: String) = db("event").findOneByID(new ObjectId(id)).map(toEvent)
+  def getEvent(id: String) = db("event").findOneByID(id).map(toEvent)
 
   def getEventsByName(name: String) = db("event").find(MongoDBObject("name" -> name)).map(toEvent).toList
 
   def saveEvent(event: Event) = saveToMongo(event, db("event"))
 
-  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> new ObjectId(eventId))).map(toSession(_, this)).toList
+  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> eventId)).map(toSession(_, this)).toList
 
   def getSessionsByTitle(eventId: String, title: String) = db("session").find(
-    MongoDBObject("eventId" -> new ObjectId(eventId), "title" -> title)
+    MongoDBObject("eventId" -> eventId, "title" -> title)
   ).map(toSession(_, this)).toList
 
   def getSession(eventId: String, id: String) = db("session").findOne(
-    MongoDBObject("_id" -> new ObjectId(id), "eventId" -> new ObjectId(eventId))
+    MongoDBObject("_id" -> id, "eventId" -> eventId)
   ).map(toSession(_, this))
 
   def saveSession(session: Session) = saveToMongo(session, db("session"))
 
-  def getContact(id: String) = db("contact").findOneByID(new ObjectId(id)).map(toContact(_, this))
+  def getContact(id: String) = db("contact").findOneByID(id).map(toContact(_, this))
 
   def getContacts() = db("contact").find().map(toContact(_, this)).toList
 
   def saveContact(contact: Contact) = saveToMongo(contact, db("contact"))
 
-
   def getAttachment(id: String): Option[Attachment with Entity] = {
     val fs = GridFS(db)
-    fs.findOne(new ObjectId(id)).map(GridFileAttachment)
+    fs.findOne(id).map(GridFileAttachment)
   }
 
   def saveAttachment(att: Attachment) = {
@@ -71,9 +79,9 @@ trait MongoDBStorage extends Storage {
     getAttachment(file.id.toString).getOrElse(throw new IllegalArgumentException("Failed to save"))
   }
 
-  def removeAttachment(id: String) = {
+  def removeAttachment(id: String) {
     val fs = GridFS(db)
-    fs.remove(new ObjectId(id))
+    fs.remove(id)
   }
 
   def shutdown() {
@@ -84,7 +92,7 @@ trait MongoDBStorage extends Storage {
     val stored = withId(entity)
     val toSave = toMongoDBObject(stored)
     if (entity.id.isDefined) {
-      coll.update(MongoDBObject("_id" -> new ObjectId(entity.id.get)), toSave)
+      coll.update(MongoDBObject("_id" -> entity.id.get), toSave)
     }
     else {
       coll.insert(toSave, WriteConcern.Normal)
@@ -93,7 +101,7 @@ trait MongoDBStorage extends Storage {
   }
 
   private def withId[Y <: Entity](entity: Y): Y#T = {
-    val id = entity.id.getOrElse(new ObjectId().toString)
+    val id = entity.id.getOrElse(util.UUID.randomUUID().toString)
     entity.withId(id)
   }
 }
@@ -110,6 +118,19 @@ private [storage] object MongoMapper {
       m.getAsOrElse("name", "No Name"),
       m.getAsOrElse("start", new DateTime()),
       m.getAsOrElse("end", new DateTime()),
+      m.getAsOrElse("last-modified", new DateTime())
+    )
+  }
+
+  val toVenue: (DBObject) => Venue = (dbo) => {
+    val m = wrapDBObj(dbo)
+    Venue(
+      m.get("_id").map(_.toString),
+      m.getAsOrElse("name", "No Name"),
+      m.getAsOrElse[MongoDBList]("rooms", MongoDBList.empty).map(r => {
+        val w = wrapDBObj(r.asInstanceOf[DBObject])
+        Room(w.get("_id").map(_.toString), w.getAsOrElse("name", "No Name"), w.getAsOrElse("last-modified", new DateTime()))
+      }).toList,
       m.getAsOrElse("last-modified", new DateTime())
     )
   }
@@ -179,12 +200,13 @@ private [storage] object MongoMapper {
     case s: Session => toMongoDBObject(s)
     case s: Contact => toMongoDBObject(s)
     case s: Event => toMongoDBObject(s)
+    case s: Venue => toMongoDBObject(s)
     case _ => throw new UnsupportedOperationException("Not supported")
   }
 
   private def toMongoDBObject(event: Event): DBObject = {
     MongoDBObject(
-      "_id" -> event.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()),
+      "_id" -> event.id.getOrElse(util.UUID.randomUUID().toString),
       "name" -> event.name,
       "start" -> event.start,
       "end" -> event.end,
@@ -192,10 +214,23 @@ private [storage] object MongoMapper {
     )
   }
 
+  private def toMongoDBObject(venue: Venue): DBObject = {
+    MongoDBObject(
+      "_id" -> venue.id.getOrElse(util.UUID.randomUUID().toString),
+      "name" -> venue.name,
+      "rooms" -> venue.rooms.map(r => MongoDBObject(
+        "_id" -> r.id.getOrElse(util.UUID.randomUUID().toString),
+        "name" -> r.name,
+        "last-modified" -> r.lastModified
+      )),
+      "last-modified" -> venue.lastModified
+    )
+  }
+
   private def toMongoDBObject(session: Session): DBObject = {
     MongoDBObject(
-      "_id" -> session.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()),
-      "eventId" -> new ObjectId(session.eventId),
+      "_id" -> session.id.getOrElse(util.UUID.randomUUID().toString),
+      "eventId" -> session.eventId,
       "abstract" -> toMongoDBObject(session.abs),
       "published" -> session.published,
       "tags" -> session.tags.map(_.name),
@@ -209,7 +244,7 @@ private [storage] object MongoMapper {
 
   private def toMongoDBObject(contact: Contact): DBObject = {
     val obj = MongoDBObject(
-      "_id" -> contact.id.map(i => new ObjectId(i)).getOrElse(new ObjectId()),
+      "_id" -> contact.id.getOrElse(util.UUID.randomUUID().toString),
       "name" -> contact.name,
       "foreign" -> contact.foreign,
       "emails" -> contact.emails.map(_.address),
@@ -245,9 +280,9 @@ private [storage] object MongoMapper {
 
   private def toMongoDBObject(speaker: Speaker): DBObject = {
     val obj = MongoDBObject(
-      "_id" -> new ObjectId(speaker.contactId),
+      "_id" -> speaker.contactId,
       "name" -> speaker.name)
-    obj.putAll(speaker.photo.map(a => "photo" -> new ObjectId(a.id.get)).toMap)
+    obj.putAll(speaker.photo.map(a => "photo" -> a.id.get).toMap)
     obj.putAll(speaker.bio.map(b => "bio" -> b).toMap)
     obj
   }

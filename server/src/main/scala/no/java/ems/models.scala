@@ -24,9 +24,28 @@ trait Entity {
   def withId(id: String): T
 }
 
+case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], photo: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity {
+
+  type T = Contact
+
+  def withId(id: String) = copy(id = Some(id))
+}
+
+
+case class Venue(id: Option[String], name: String, rooms: Seq[Room], lastModified: DateTime = new DateTime()) extends Entity {
+  type T = Venue
+
+  def withId(id: String) = copy(id = Some(id))
+}
+
+case class Room(id: Option[String], name: String, lastModified: DateTime = new DateTime()) extends Entity {
+  type T = Room
+
+  def withId(id: String) = copy(id = Some(id))
+}
+
 case class Event(id: Option[String], name: String, start: DateTime, end: DateTime, lastModified: DateTime = new DateTime()) extends Entity {
   require(start.isBefore(end), "Start must be before End")
-
 
   type T = Event
 
@@ -143,12 +162,6 @@ object Session {
 
 case class Speaker(contactId: String, name: String, bio: Option[String] = None, photo: Option[Attachment with Entity] = None)
 
-case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], photo: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity {
-
-  type T = Contact
-
-  def withId(id: String) = copy(id = Some(id))
-}
 
 sealed abstract class Level(val name: String) {
   override def toString = name

@@ -8,13 +8,15 @@ import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
 import com.mongodb.casbah.MongoConnection
 
-trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler { this: Storage =>
+trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler with VenueResources { this: Storage =>
 
   def intent = {
     case req@Path(Seg(Nil)) => handleRoot(req)
     case req@Path(Seg("contacts" :: Nil)) => handleContactList(req)
     case req@Path(Seg("contacts" :: id :: Nil)) => handleContact(id, req)
     case req@Path(Seg("contacts" :: id :: "photo" :: Nil)) => handleContactPhoto(id, req)
+    case req@Path(Seg("venues" :: Nil)) => handleVenues(req)
+    case req@Path(Seg("venues" :: id :: Nil)) => handleVenue(id, req)
     case req@Path(Seg("events" :: Nil)) => handleEventList(req)
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
     case req@Path(Seg("events" :: eventId :: "publish" :: Nil)) => publish(eventId, req)
@@ -31,27 +33,23 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
 
     ContentType("application/xrd+xml") ~> ResponseString(
       <XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">
-         <Link rel="http://rels.java.no/ems/contacts"
+         <Link rel="contacts"
                 href={builder.segments("contacts").toString}>
            <Title>contacts</Title>
          </Link>
-         <Link rel="http://rels.java.no/ems/events"
+         <Link rel="events"
                 href={builder.segments("events").toString}>
            <Title>events</Title>
          </Link>
-         <Link rel="http://rels.java.no/ems/binary"
-                href={builder.segments("binary").toString}>
-           <Title>binary</Title>
+         <Link rel="venues"
+                href={builder.segments("venues").toString}>
+           <Title>events</Title>
          </Link>
       </XRD>.toString()
     )
   }
 }
 
-object Main extends App {
-  val resources = new MongoDBStorage with Resources {
-    val conn = MongoConnection()
-  }
-
-  unfiltered.jetty.Http(8080).plan(resources).run()
+object Resources extends Resources with MongoDBStorage {
+  def conn = MongoConnection()
 }
