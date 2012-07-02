@@ -3,6 +3,7 @@ import sbt.Keys._
 import xml.Group
 import aether._
 import AetherKeys._
+import com.typesafe.startscript.StartScriptPlugin
 
 object Build extends sbt.Build {
 
@@ -25,7 +26,7 @@ object Build extends sbt.Build {
     manifestSetting,
     publish <<= Aether.deployTask.init,
     credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-  )
+  ) ++ StartScriptPlugin.startScriptForClassesSettings
 
   lazy val testDeps = Seq(
     "org.specs2" %% "specs2" % "1.11" % "test"
@@ -40,18 +41,19 @@ object Build extends sbt.Build {
     id = "ems",
     base = file("."),
     settings = buildSettings ++ Seq(
-      name := "ems"
+      name := "ems",
+      StartScriptPlugin.stage in Compile := Unit
     ) ++ mavenCentralFrouFrou
   ).aggregate(server, cake, imported)
 
   lazy val server = module("server")(settings = Seq(
     libraryDependencies := unfiltered ++ Seq(
       "joda-time" % "joda-time" % "2.1",
-      "org.joda" % "joda-convert" % "1.1" % "provided",
+      "org.joda" % "joda-convert" % "1.1",
       "net.hamnaberg.rest" %% "scala-json-collection" % "1.0",
       "commons-io" % "commons-io" % "2.3",
-      "org.mongodb" %% "casbah-core" % "2.3.0",
-      "org.mongodb" %% "casbah-gridfs" % "2.3.0"
+      "org.mongodb" %% "casbah-core" % "2.4.0",
+      "org.mongodb" %% "casbah-gridfs" % "2.4.0"
       ) ++ testDeps
   ))
 
