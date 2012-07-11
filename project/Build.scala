@@ -44,7 +44,7 @@ object Build extends sbt.Build {
       name := "ems",
       StartScriptPlugin.stage in Compile := Unit
     ) ++ mavenCentralFrouFrou
-  ).aggregate(server, cake, imported)
+  ).aggregate(server, cake)
 
   lazy val server = module("server")(settings = Seq(
     libraryDependencies := unfiltered ++ Seq(
@@ -60,10 +60,6 @@ object Build extends sbt.Build {
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie"
   ))
-
-  lazy val imported = module("import")(settings = Seq(
-    description := "Database import"
-  )) dependsOn(server)
 
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],
