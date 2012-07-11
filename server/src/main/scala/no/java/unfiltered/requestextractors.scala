@@ -2,7 +2,7 @@ package no.java.unfiltered
 
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
-import no.java.http.URIBuilder
+import no.java.util.URIBuilder
 import unfiltered.request.{StringHeader, HttpRequest}
 
 

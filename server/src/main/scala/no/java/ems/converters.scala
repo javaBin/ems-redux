@@ -4,7 +4,7 @@ import java.net.URI
 import model._
 import org.joda.time.format.ISODateTimeFormat
 import net.hamnaberg.json.collection._
-import no.java.http.URIBuilder
+import no.java.util.URIBuilder
 import java.util.Locale
 import net.liftweb.json.JsonAST._
 

@@ -4,7 +4,7 @@ import javax.servlet.http.HttpServletRequest
 import model.Entity
 import no.java.ems.converters._
 import java.net.URI
-import no.java.http.URIBuilder
+import no.java.util.URIBuilder
 import io.Source
 import unfiltered.response._
 import unfiltered.request._
