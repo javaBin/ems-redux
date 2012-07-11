@@ -1,13 +1,11 @@
-import com.mongodb.casbah.MongoConnection
+package no.java.ems.storage
+
 import java.io.{FileInputStream, BufferedReader, FileReader, File}
-import java.net.URI
 import java.util.Locale
 import javax.activation.FileTypeMap
-import net.liftweb.json.JsonAST._
 import net.liftweb.json.{DefaultFormats, JsonParser}
-import no.java.ems.{URIAttachment, MIMEType, Attachment}
+import no.java.ems.{StreamingAttachment, MIMEType, Attachment}
 import no.java.ems.model._
-import no.java.ems.storage.{MongoSetting, MongoDBStorage}
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.Some
@@ -21,8 +19,7 @@ object ImportMain extends App {
 
 object Importer {
   object storage extends MongoDBStorage {
-    //val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
-    val db = MongoConnection()("ems")
+    val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
   }
 
   implicit val Formats = DefaultFormats
@@ -51,7 +48,16 @@ object Importer {
         (c \ "bio").extractOpt[String],
         (c \ "emails").extract[List[String]].map(Email(_)),
         (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
-        (c \ "photo").extractOpt[String].map(f => FileAttachment(None, new File(f)))
+        (c \ "photo").extractOpt[String].map(f => {
+          val file = new File(f)
+          storage.saveAttachment(
+            StreamingAttachment(
+              file.getName,
+              Some(file.length()),
+              MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(file.getName)),
+              new FileInputStream(file)
+            ))
+        })
       )
     )
   }
@@ -98,15 +104,23 @@ object Importer {
           (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
           (c \ "level").extractOpt[String].map(Level(_)).getOrElse(Level.Beginner),
           (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation),
-          Vector((c \ "speaker").children.map(s =>
+          (c \ "speaker").children.map(s =>
             Speaker(
               (s \ "id").extract[String],
               (s \ "name").extract[String],
               (s \ "bio").extractOpt[String],
-              (s \ "photo").extractOpt[String].map(f => FileAttachment(None, new File(f))
-              )
-            )) : _*
-          )),
+              (c \ "photo").extractOpt[String].map(f => {
+                val file = new File(f)
+                storage.saveAttachment(
+                  StreamingAttachment(
+                    file.getName,
+                    Some(file.length()),
+                    MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(file.getName)),
+                    new FileInputStream(file)
+                  ))
+              })
+            ))
+          ),
         (c \ "state").extractOpt[String].map(State(_)).getOrElse(State.Pending),
         (c \ "published").extractOrElse(false),
         /*(c \ "attachments").children.map(o => {
@@ -123,35 +137,3 @@ object Importer {
     )
   }
 }
-
-case class FileAttachment(id: Option[String], file: File, lastModified: DateTime = new DateTime()) extends Attachment with Entity {
-
-  type T = FileAttachment
-
-  def withId(id: String) = copy(id = Some(id))
-
-  def name = file.getName
-
-  def size = Some(file.length())
-
-  def mediaType = MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(name))
-
-  def data = new FileInputStream(file)
-}
-
-
-/*
- {
-  "events": [
-    {
-      "id" : "<id>",
-      "name": "",
-      "start": "",
-      "end": "",
-      "sessions": [],
-      "timeslots": [],
-      "venue": "<id>"
-    }
-  ]
- }
-*/

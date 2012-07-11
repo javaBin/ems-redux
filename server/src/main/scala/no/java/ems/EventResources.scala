@@ -50,8 +50,8 @@ trait EventResources extends ResourceHelper { this: Storage =>
         val sessions = p("title").headOption.map(t => getSessionsByTitle(eventId, t)).getOrElse(this.getSessions(eventId))
         val items = sessions.map(sessionToItem(baseUriBuilder))
         val coll = JsonCollection(href, Nil, items).
-          addQuery(new Query(href, "search by-title", Some("By Title"), List(Property("title"))).
-          addQuery(new Query(href, "search by-tags", Some("By Tags"), List(Property("tags")))))
+          addQuery(new Query(href, "search by-title", Some("By Title"), List(Property("title")))).
+          addQuery(new Query(href, "search by-tags", Some("By Tags"), List(Property("tags"))))
         CollectionJsonResponse(coll)
       }
       case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {

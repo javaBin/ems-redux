@@ -153,9 +153,9 @@ private[storage] object MongoMapper {
     val m = wrapDBObj(dbo)
     val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
     val level = m.getAs[String]("level").map(Level(_)).getOrElse(Level.Beginner)
-    val speakers = Vector(m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
+    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
       case x: DBObject => x
-    }.map(toSpeaker(_, storage)) : _*)
+    }.map(toSpeaker(_, storage))
     Abstract(
       m.getAsOrElse("title", "No Title"),
       m.getAs[String]("summary"),

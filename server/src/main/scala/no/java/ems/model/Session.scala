@@ -13,11 +13,11 @@ case class Abstract(title: String,
                     language: Locale = new Locale("no"),
                     level: Level = Level.Beginner,
                     format: Format = Format.Presentation,
-                    speakers: Vector[Speaker] = Vector()
+                    speakers: Seq[Speaker] = Seq()
                      ) {
-  def addSpeaker(speaker: Speaker) = copy(speakers = speakers :+ speaker)
+  def addSpeaker(speaker: Speaker) = copy(speakers = speakers ++ Seq(speaker))
 
-  def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = Vector() ++ speakers)
+  def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = speakers)
 
   def withTitle(input: String) = copy(input)
 
@@ -65,7 +65,7 @@ case class Session(id: Option[String],
   def withLevel(level: Level) = withAbstract(abs.withLevel(level))
 
   def addOrUpdateSpeaker(speaker: Speaker) = {
-    val speakers = this.speakers
+    val speakers = Vector(this.speakers : _*)
     val index = speakers.indexWhere(_.contactId == speaker.contactId)
     if (index != -1) {
       withAbstract(abs.withSpeakers(speakers.updated(index, speaker)))
