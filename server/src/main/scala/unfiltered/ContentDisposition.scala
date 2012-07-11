@@ -1,4 +1,4 @@
-package no.java.unfiltered
+package unfilteredx
 
 import unfiltered.response.ResponseHeader
 import java.nio.charset.Charset

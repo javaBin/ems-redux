@@ -2,7 +2,7 @@ package no.java.ems
 
 import unfiltered.response.ResponseStreamer
 import java.io.OutputStream
-import no.java.unfiltered.{DispositionType, ContentDisposition}
+import unfilteredx.{DispositionType, ContentDisposition}
 import org.apache.commons.io.IOUtils
 
 object AttachmentStreamer {

@@ -1,4 +1,4 @@
-package no.java.unfiltered
+package unfilteredx
 
 import org.specs2.mutable.Specification
 import io.Codec
