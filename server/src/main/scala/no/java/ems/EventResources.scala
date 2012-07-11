@@ -1,6 +1,7 @@
 package no.java.ems
 
 import javax.servlet.http.HttpServletRequest
+import model.Entity
 import no.java.ems.converters._
 import java.net.URI
 import no.java.http.URIBuilder

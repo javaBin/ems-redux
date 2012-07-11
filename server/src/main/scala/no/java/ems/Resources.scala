@@ -9,15 +9,13 @@ import no.java.unfiltered._
 import com.mongodb.casbah.MongoConnection
 import util.Properties
 
-trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler with VenueResources { this: Storage =>
+trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler { this: Storage =>
 
   def intent = {
     case req@Path(Seg(Nil)) => handleRoot(req)
     case req@Path(Seg("contacts" :: Nil)) => handleContactList(req)
     case req@Path(Seg("contacts" :: id :: Nil)) => handleContact(id, req)
     case req@Path(Seg("contacts" :: id :: "photo" :: Nil)) => handleContactPhoto(id, req)
-    case req@Path(Seg("venues" :: Nil)) => handleVenues(req)
-    case req@Path(Seg("venues" :: id :: Nil)) => handleVenue(id, req)
     case req@Path(Seg("events" :: Nil)) => handleEventList(req)
     case req@Path(Seg("events" :: id :: Nil)) => handleEvent(id, req)
     case req@Path(Seg("events" :: eventId :: "publish" :: Nil)) => publish(eventId, req)

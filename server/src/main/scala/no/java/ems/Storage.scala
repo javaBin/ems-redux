@@ -1,6 +1,8 @@
 package no.java.ems
 
 import java.io.InputStream
+import storage.GridFileAttachment
+import model._
 
 
 /**
@@ -12,11 +14,6 @@ import java.io.InputStream
  */
 
 trait Storage {
-  def getVenues(): List[Venue]
-
-  def getVenue(id: String): Option[Venue]
-
-  def saveVenue(venue: Venue): Venue
 
   def getEvents(): List[Event]
 
@@ -47,7 +44,7 @@ trait Storage {
   def removeAttachment(id: String)
 
   def getStream(att: Attachment): InputStream = att match {
-    case u: URIAttachment => u.href.toURL.openStream()
+    case u: URIAttachment => u.data
     case u: GridFileAttachment => u.data
     case u: StreamingAttachment => u.data
     case _ => throw new IllegalArgumentException("No stream available for %s".format(att.getClass.getName))
@@ -57,7 +54,6 @@ trait Storage {
     case e: Event => saveEvent(e)
     case s: Session => saveSession(s)
     case c: Contact => saveContact(c)
-    case v: Venue => saveVenue(v)
     case _ => throw new IllegalArgumentException("Usupported entity: " + entity)
   }
 

@@ -1,5 +1,6 @@
 package no.java.ems
 
+import model.Entity
 import unfiltered.response._
 import unfiltered.request._
 import javax.servlet.http.HttpServletRequest

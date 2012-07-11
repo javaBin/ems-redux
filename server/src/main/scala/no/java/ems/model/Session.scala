@@ -1,74 +1,29 @@
-package no.java.ems
+package no.java.ems.model
 
-import javax.activation.MimeType
-import java.net.URI
-import java.util.{Locale}
+import java.util.Locale
 import org.joda.time.{DateTime, Duration}
-import java.io._
 import scala.Some
-import com.mongodb.casbah.gridfs.{GridFSDBFile, GridFSFile}
-
-/**
- * Created by IntelliJ IDEA.
- * User: maedhros
- * Date: 10/26/11
- * Time: 11:12 PM
- * To change this template use File | Settings | File Templates.
- */
-
-trait Entity {
-  type T <: Entity
-  def id: Option[String]
-  def lastModified: DateTime
-
-  def withId(id: String): T
-}
-
-case class Contact(id: Option[String], name: String, foreign: Boolean, bio: Option[String], emails: List[Email], photo: Option[Attachment with Entity] = None, lastModified: DateTime = new DateTime()) extends Entity {
-
-  type T = Contact
-
-  def withId(id: String) = copy(id = Some(id))
-}
-
-
-case class Venue(id: Option[String], name: String, rooms: Seq[Room], lastModified: DateTime = new DateTime()) extends Entity {
-  type T = Venue
-
-  def withId(id: String) = copy(id = Some(id))
-}
-
-case class Room(id: Option[String], name: String, lastModified: DateTime = new DateTime()) extends Entity {
-  type T = Room
-
-  def withId(id: String) = copy(id = Some(id))
-}
-
-case class Event(id: Option[String], name: String, start: DateTime, end: DateTime, lastModified: DateTime = new DateTime()) extends Entity {
-  require(start.isBefore(end), "Start must be before End")
-
-  type T = Event
-
-  def withId(id: String) = copy(id = Some(id))
-}
+import no.java.ems.{Attachment, URIAttachment}
 
 case class Abstract(title: String,
-                           lead: Option[String] = None,
-                           body: Option[String] = None,
-                           language: Locale = new Locale("no"),
-                           level: Level = Level.Beginner,
-                           format: Format = Format.Presentation,
-                           speakers: Vector[Speaker] = Vector()
-                            ) {
+                    summary: Option[String] = None,
+                    body: Option[String] = None,
+                    audience: Option[String] = None,
+                    outline: Option[String] = None,
+                    language: Locale = new Locale("no"),
+                    level: Level = Level.Beginner,
+                    format: Format = Format.Presentation,
+                    speakers: Vector[Speaker] = Vector()
+                     ) {
   def addSpeaker(speaker: Speaker) = copy(speakers = speakers :+ speaker)
-  
+
   def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = Vector() ++ speakers)
 
   def withTitle(input: String) = copy(input)
 
   def withBody(input: String) = copy(body = Some(input))
 
-  def withLead(input: String) = copy(lead = Some(input))
+  def withSummary(input: String) = copy(summary = Some(input))
 
   def withFormat(format: Format) = copy(format = format)
 
@@ -78,7 +33,8 @@ case class Abstract(title: String,
 
 case class Session(id: Option[String],
                    eventId: String,
-                   duration: Option[Duration],
+                   roomId: Option[String],
+                   slotId: Option[String],
                    abs: Abstract,
                    state: State,
                    published: Boolean,
@@ -100,17 +56,11 @@ case class Session(id: Option[String],
 
   def withBody(input: String) = withAbstract(abs.withBody(input))
 
-  def withLead(input: String) = withAbstract(abs.withLead(input))
+  def withSummary(input: String) = withAbstract(abs.withSummary(input))
 
   def publish = if (published) this else copy(published = true)
 
-  def withFormat(format: Format) = {
-    val duration = format match {
-      case Format.LightningTalk => Duration.standardMinutes(10)
-      case x => Duration.standardMinutes(60)
-    }
-    copy(abs = abs.withFormat(format), duration = Some(duration))
-  }
+  def withFormat(format: Format) = copy(abs = abs.withFormat(format))
 
   def withLevel(level: Level) = withAbstract(abs.withLevel(level))
 
@@ -135,28 +85,16 @@ case class Session(id: Option[String],
 
 object Session {
   def apply(eventId: String, abs: Abstract): Session = {
-    val duration = abs.format match {
-      case Format.LightningTalk => Duration.standardMinutes(10)
-      case x => Duration.standardMinutes(60)
-    }
-    Session(None, eventId, Some(duration), abs, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, None, None, abs, State.Pending, false, Nil, Set(), Set())
   }
 
   def apply(eventId: String, abs: Abstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
-    val duration = abs.format match {
-      case Format.LightningTalk => Duration.standardMinutes(10)
-      case x => Duration.standardMinutes(60)
-    }
-    Session(None, eventId, Some(duration), abs, state, false, Nil, tags, keywords)
+    Session(None, eventId, None, None, abs, state, false, Nil, tags, keywords)
   }
 
   def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
-    val duration = format match {
-      case Format.LightningTalk => Duration.standardMinutes(10)
-      case x => Duration.standardMinutes(60)
-    }
     val ab = Abstract(title, format = format, speakers = speakers)
-    Session(None, eventId, Some(duration), ab, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, None, None, ab, State.Pending, false, Nil, Set(), Set())
   }
 }
 
@@ -256,16 +194,4 @@ object State {
 
   case object Pending extends State("pending")
 
-}
-
-
-
-case class Email(address: String)
-
-case class Tag(name: String) {
-  require(!name.contains(","), "Tag must NOT contain any commas")
-}
-
-case class Keyword(name: String) {
-  require(!name.contains(","), "Keyword must NOT contain any commas")
 }

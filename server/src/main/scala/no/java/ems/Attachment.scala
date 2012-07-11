@@ -12,34 +12,10 @@ import com.mongodb.casbah.gridfs.{GridFSFile, GridFSDBFile}
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
  */
 
-sealed trait Attachment {
+trait Attachment {
   def name: String
   def size: Option[Long]
   def mediaType: Option[MIMEType]
-}
-
-case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity {
-  type T = GridFileAttachment
-
-  val data = file.inputStream
-
-  def name = file.filename.get
-
-  def size = Some(file.size)
-
-  def mediaType = file.contentType.flatMap(MIMEType(_))
-
-  def lastModified = file.metaData.getAsOrElse[DateTime]("last-modified", new DateTime())
-
-  def id = file.id match {
-    case null => None
-    case i => Some(i.toString)
-  }
-
-  def withId(id: String) = {
-    file.put("_id", id)
-    this
-  }
 }
 
 case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType]) extends Attachment {

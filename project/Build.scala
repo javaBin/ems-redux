@@ -62,8 +62,7 @@ object Build extends sbt.Build {
   ))
 
   lazy val imported = module("import")(settings = Seq(
-    description := "Database import",
-    libraryDependencies += "org.scalaquery" %% "scalaquery" % "0.10.0-M1"
+    description := "Database import"
   )) dependsOn(server)
 
   private def module(moduleName: String)(

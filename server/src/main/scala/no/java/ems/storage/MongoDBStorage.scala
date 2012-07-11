@@ -1,12 +1,13 @@
 package no.java.ems.storage
 
-import com.mongodb.casbah.gridfs.GridFS
+import com.mongodb.casbah.gridfs.{GridFSDBFile, GridFS}
 import com.mongodb.casbah.Imports._
 import org.joda.time.DateTime
 import java.net.URI
 import java.util.Locale
 import no.java.ems._
 import java.util
+import model._
 
 
 /**
@@ -14,15 +15,10 @@ import java.util
  */
 
 trait MongoDBStorage extends Storage {
+
   import MongoMapper._
 
   def db: MongoDB
-
-  def getVenues() = db("venue").find().map(toVenue).toList
-
-  def getVenue(id: String) = db("venue").findOneByID(id).map(toVenue)
-
-  def saveVenue(venue: Venue) = saveToMongo(venue, db("venue"))
 
   def getEvents() = db("event").find().map(toEvent).toList
 
@@ -55,6 +51,15 @@ trait MongoDBStorage extends Storage {
     fs.findOne(id).map(GridFileAttachment)
   }
 
+  def importEntity[A <: Entity](entity: A): A#T = {
+    entity match {
+      case e: Contact => saveToMongo[A](entity, db("contact"), true)
+      case e: Event => saveToMongo[A](entity, db("event"), true)
+      case e: Session => saveToMongo[A](entity, db("event"), true)
+      case _ => throw new IllegalArgumentException("Unknown entity")
+    }
+  }
+
   def saveAttachment(att: Attachment) = {
     val fs = GridFS(db)
     val file = att match {
@@ -79,10 +84,11 @@ trait MongoDBStorage extends Storage {
     db.underlying.getMongo.close()
   }
 
-  private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection): A#T = {
+  private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection, fromImport: Boolean = false): A#T = {
     val stored = withId(entity)
     val toSave = toMongoDBObject(stored)
-    if (entity.id.isDefined) {
+
+    if (entity.id.isDefined && !fromImport) {
       coll.update(MongoDBObject("_id" -> entity.id.get), toSave)
     }
     else {
@@ -97,9 +103,11 @@ trait MongoDBStorage extends Storage {
   }
 }
 
-private [storage] object MongoMapper {
+private[storage] object MongoMapper {
+
   import com.mongodb.casbah.Imports._
   import com.mongodb.casbah.commons.conversions.scala._
+
   RegisterJodaTimeConversionHelpers()
 
   val toEvent: (DBObject) => Event = (dbo) => {
@@ -109,19 +117,15 @@ private [storage] object MongoMapper {
       m.getAsOrElse("name", "No Name"),
       m.getAsOrElse("start", new DateTime()),
       m.getAsOrElse("end", new DateTime()),
-      m.getAsOrElse("last-modified", new DateTime())
-    )
-  }
-
-  val toVenue: (DBObject) => Venue = (dbo) => {
-    val m = wrapDBObj(dbo)
-    Venue(
-      m.get("_id").map(_.toString),
-      m.getAsOrElse("name", "No Name"),
-      m.getAsOrElse[MongoDBList]("rooms", MongoDBList.empty).map(r => {
-        val w = wrapDBObj(r.asInstanceOf[DBObject])
-        Room(w.get("_id").map(_.toString), w.getAsOrElse("name", "No Name"), w.getAsOrElse("last-modified", new DateTime()))
-      }).toList,
+      m.getAsOrElse("venue", "Unknown"),
+      m.getAsOrElse("rooms", Seq()).map(o => {
+        val w = wrapDBObj(o.asInstanceOf[DBObject])
+        Room(w.getAs[String]("_id"), w.as[String]("name"))
+      }),
+      m.getAsOrElse("slots", Seq()).map(o => {
+        val w = wrapDBObj(o.asInstanceOf[DBObject])
+        Slot(w.getAs[String]("_id"), w.getAsOrElse("start", new DateTime(0L)), w.getAsOrElse("end", new DateTime(0L)))
+      }),
       m.getAsOrElse("last-modified", new DateTime())
     )
   }
@@ -133,27 +137,36 @@ private [storage] object MongoMapper {
     Session(
       m.get("_id").map(_.toString),
       m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId")),
-      m.get("duration").map(d => org.joda.time.Duration.parse(d.toString)),
+      m.get("slotId").map(_.toString),
+      m.get("roomId").map(_.toString),
       abs,
       m.getAs[String]("state").map(State(_)).getOrElse(State.Pending),
       m.getAs[Boolean]("published").getOrElse(false),
       Nil,
-      m.getAsOrElse[MongoDBList]("tags", MongoDBList.empty).map(t => Tag(t.toString)).toSet[Tag],
-      m.getAsOrElse[MongoDBList]("keywords", MongoDBList.empty).map(k => Keyword(k.toString)).toSet[Keyword],
+      m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
+      m.getAsOrElse[Seq[_]]("keywords", Seq.empty).map(k => Keyword(k.toString)).toSet[Keyword],
       m.getAsOrElse("last-modified", new DateTime())
     )
   }
 
   private def toAbstract(dbo: DBObject, storage: MongoDBStorage) = {
     val m = wrapDBObj(dbo)
-    val title = m.getAsOrElse("title", "No Title")
     val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
     val level = m.getAs[String]("level").map(Level(_)).getOrElse(Level.Beginner)
-    val lead = m.getAs[String]("lead")
-    val body = m.getAs[String]("body")
-    val language = m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no"))
-    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map{case x:DBObject => x}.map(toSpeaker(_, storage))
-    Abstract(title, lead, body, language, level, format, Vector() ++ speakers)
+    val speakers = Vector(m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
+      case x: DBObject => x
+    }.map(toSpeaker(_, storage)) : _*)
+    Abstract(
+      m.getAsOrElse("title", "No Title"),
+      m.getAs[String]("summary"),
+      m.getAs[String]("body"),
+      m.getAs[String]("audience"),
+      m.getAs[String]("outline"),
+      m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no")),
+      level,
+      format,
+      speakers
+    )
   }
 
   private def toSpeaker(dbo: DBObject, storage: MongoDBStorage) = {
@@ -179,19 +192,18 @@ private [storage] object MongoMapper {
     val m = wrapDBObj(dbo)
     val id = m.get("_id").map(_.toString)
     val name = m.as[String]("name")
-    val foreign = m.getAsOrElse("foreign", false)
+    val locale = m.getAs[String]("locale").map(l => new Locale(l)).getOrElse(new Locale("no"))
     val emails = m.getAs[Seq[_]]("emails").getOrElse(Nil).map(e => Email(e.toString)).toList
     val photo = m.get("photo").flatMap(i => storage.getAttachment(i.toString))
     val bio = m.getAs[String]("bio")
     val lm = m.getAsOrElse("last-modified", new DateTime())
-    Contact(id, name, foreign, bio, emails, photo, lm)
+    Contact(id, name, bio, emails, locale, photo, lm)
   }
 
   def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
     case s: Session => toMongoDBObject(s)
     case s: Contact => toMongoDBObject(s)
     case s: Event => toMongoDBObject(s)
-    case s: Venue => toMongoDBObject(s)
     case _ => throw new UnsupportedOperationException("Not supported")
   }
 
@@ -201,20 +213,17 @@ private [storage] object MongoMapper {
       "name" -> event.name,
       "start" -> event.start,
       "end" -> event.end,
-      "last-modified" -> event.lastModified
-    )
-  }
-
-  private def toMongoDBObject(venue: Venue): DBObject = {
-    MongoDBObject(
-      "_id" -> venue.id.getOrElse(util.UUID.randomUUID().toString),
-      "name" -> venue.name,
-      "rooms" -> venue.rooms.map(r => MongoDBObject(
+      "venue" -> event.venue,
+      "rooms" -> event.rooms.map(r => MongoDBObject(
         "_id" -> r.id.getOrElse(util.UUID.randomUUID().toString),
-        "name" -> r.name,
-        "last-modified" -> r.lastModified
+        "name" -> r.name
       )),
-      "last-modified" -> venue.lastModified
+      "slots" -> event.slots.map(ts => MongoDBObject(
+        "_id" -> ts.id.getOrElse(util.UUID.randomUUID().toString),
+        "start" -> ts.start,
+        "end" -> ts.end
+      )),
+      "last-modified" -> event.lastModified
     )
   }
 
@@ -226,9 +235,10 @@ private [storage] object MongoMapper {
       "published" -> session.published,
       "tags" -> session.tags.map(_.name),
       "keywords" -> session.keywords.map(_.name),
-      "duration" -> session.duration.map(_.toString).orNull,
       "state" -> session.state.name,
       "attachments" -> session.attachments.map(toMongoDBObject),
+      "roomId" -> session.roomId,
+      "slotId" -> session.slotId,
       "last-modified" -> session.lastModified
     )
   }
@@ -237,44 +247,64 @@ private [storage] object MongoMapper {
     val obj = MongoDBObject(
       "_id" -> contact.id.getOrElse(util.UUID.randomUUID().toString),
       "name" -> contact.name,
-      "foreign" -> contact.foreign,
+      "bio" -> contact.bio,
+      "photo" -> contact.photo.map(_.id),
+      "locale" -> contact.locale.getLanguage,
       "emails" -> contact.emails.map(_.address),
       "last-modified" -> contact.lastModified
     )
-    obj.putAll(contact.bio.map(b => "bio" -> b).toMap)
-    obj.putAll(contact.photo.map(b => "photo" -> b.id.get).toMap)
     obj
   }
 
   private def toMongoDBObject(att: URIAttachment): DBObject = {
-    val obj = MongoDBObject(
+    MongoDBObject(
       "href" -> att.href.toString,
       "name" -> att.name,
       "mime-type" -> att.mediaType.map(_.toString),
       "size" -> att.size
     )
-    obj
   }
 
   private def toMongoDBObject(abs: Abstract): DBObject = {
-    val obj = MongoDBObject(
+    MongoDBObject(
       "title" -> abs.title,
       "format" -> abs.format.name,
       "level" -> abs.level.name,
       "language" -> abs.language.getLanguage,
       "speakers" -> abs.speakers.map(toMongoDBObject)
     )
-    obj.putAll(abs.body.map(b => "body" -> b).toMap)
-    obj.putAll(abs.lead.map(b => "lead" -> b).toMap)
-    obj
   }
 
   private def toMongoDBObject(speaker: Speaker): DBObject = {
-    val obj = MongoDBObject(
+    MongoDBObject(
       "_id" -> speaker.contactId,
-      "name" -> speaker.name)
-    obj.putAll(speaker.photo.map(a => "photo" -> a.id.get).toMap)
-    obj.putAll(speaker.bio.map(b => "bio" -> b).toMap)
-    obj
+      "name" -> speaker.name,
+      "bio" -> speaker.bio,
+      "photo" -> speaker.photo.map(_.id)
+    )
+  }
+}
+
+case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity {
+  type T = GridFileAttachment
+
+  def data = file.inputStream
+
+  def name = file.filename.get
+
+  def size = Some(file.size)
+
+  def mediaType = file.contentType.flatMap(MIMEType(_))
+
+  def lastModified = file.metaData.getAsOrElse[DateTime]("last-modified", new DateTime())
+
+  def id = file.id match {
+    case null => None
+    case i => Some(i.toString)
+  }
+
+  def withId(id: String) = {
+    file.put("_id", id)
+    this
   }
 }
