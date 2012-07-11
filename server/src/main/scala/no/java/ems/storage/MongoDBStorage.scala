@@ -118,11 +118,11 @@ private[storage] object MongoMapper {
       m.getAsOrElse("start", new DateTime()),
       m.getAsOrElse("end", new DateTime()),
       m.getAsOrElse("venue", "Unknown"),
-      m.getAsOrElse("rooms", Seq()).map(o => {
+      m.getAsOrElse[Seq[_]]("rooms", Seq()).map(o => {
         val w = wrapDBObj(o.asInstanceOf[DBObject])
         Room(w.getAs[String]("_id"), w.as[String]("name"))
       }),
-      m.getAsOrElse("slots", Seq()).map(o => {
+      m.getAsOrElse[Seq[_]]("slots", Seq()).map(o => {
         val w = wrapDBObj(o.asInstanceOf[DBObject])
         Slot(w.getAs[String]("_id"), w.getAsOrElse("start", new DateTime(0L)), w.getAsOrElse("end", new DateTime(0L)))
       }),
