@@ -18,11 +18,11 @@ object Snippets {
         <meta name="author" content=" "/>
 
         <!-- Le styles -->
-        <link href="bootstrap-2.0.4/css/bootstrap.css" rel="stylesheet"/>
+        <link href="/bootstrap-2.0.4/css/bootstrap.css" rel="stylesheet"/>
         <style>
           {"body {padding-top: 60px;}"}
         </style>
-        <link href="bootstrap-2.0.4/css/bootstrap-responsive.css" rel="stylesheet"/>
+        <link href="/bootstrap-2.0.4/css/bootstrap-responsive.css" rel="stylesheet"/>
 
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
@@ -49,10 +49,10 @@ object Snippets {
                     <a href="#">Home</a>
                   </li>
                   <li>
-                    <a id="events" href="#events">Events</a>
+                    <a id="events" href="#">Events</a>
                   </li>
                   <li>
-                    <a id="contacts" href="#contacts">Contacts</a>
+                    <a href="/contacts">Contacts</a>
                   </li>
                 </ul>
               </div> <!--/.nav-collapse -->
@@ -60,15 +60,17 @@ object Snippets {
           </div>
         </div>
 
-        <div class="container">
+        <div id="mainContent" class="container">
           {content}
         </div> <!-- /container -->
 
         <!-- Le javascript -->
         <!-- Placed at the end of the document so the pages load faster -->
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
-        <script src="bootstrap-2.0.4/js/bootstrap.js"></script>
-        <script src="js/cake.js"></script>
+        <script src="/js/jquery-1.7.2.min.js"></script>
+        <script src="/bootstrap-2.0.4/js/bootstrap.min.js"></script>
+        <script src="/js/underscore.js"></script>
+        <script src="/js/collection-json.js"></script>
+        <script src="/js/cake.js"></script>
 
       </body>
     </html>
