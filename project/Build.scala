@@ -28,14 +28,7 @@ object Build extends sbt.Build {
     credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
   ) ++ StartScriptPlugin.startScriptForClassesSettings
 
-  lazy val testDeps = Seq(
-    "org.specs2" %% "specs2" % "1.11" % "test"
-  )
 
-  lazy val unfiltered = Seq(
-    "net.databinder" %% "unfiltered-filter" % "0.6.1",
-    "net.databinder" %% "unfiltered-jetty" % "0.6.1"
-  )
 
   lazy val root = Project(
     id = "ems",
@@ -47,18 +40,12 @@ object Build extends sbt.Build {
   ).aggregate(server, cake)
 
   lazy val server = module("server")(settings = Seq(
-    libraryDependencies := unfiltered ++ Seq(
-      "joda-time" % "joda-time" % "2.1",
-      "org.joda" % "joda-convert" % "1.1",
-      "net.hamnaberg.rest" %% "scala-json-collection" % "1.0",
-      "commons-io" % "commons-io" % "2.3",
-      "org.mongodb" %% "casbah-core" % "2.4.0",
-      "org.mongodb" %% "casbah-gridfs" % "2.4.0"
-      ) ++ testDeps
+    libraryDependencies := Dependencies.server
   ))
 
   lazy val cake = module("cake")(settings = Seq(
-    description := "The cake is a lie"
+    description := "The cake is a lie",
+    libraryDependencies := Dependencies.cake
   ))
 
   private def module(moduleName: String)(
@@ -123,4 +110,32 @@ object Build extends sbt.Build {
       )
     }
   )
+
+  object Dependencies {
+
+    lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
+      "net.hamnaberg.rest" %% "scala-json-collection" % "1.0",
+      "commons-io" % "commons-io" % "2.3",
+      "org.mongodb" %% "casbah-core" % "2.4.0",
+      "org.mongodb" %% "casbah-gridfs" % "2.4.0"
+    )
+
+    lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
+      "net.databinder" %% "dispatch-http" % "0.8.8"
+    )
+
+    private lazy val testDeps = Seq(
+      "org.specs2" %% "specs2" % "1.11" % "test"
+    )
+
+    private lazy val joda = Seq(
+      "joda-time" % "joda-time" % "2.1",
+      "org.joda" % "joda-convert" % "1.1"
+    )
+
+    private lazy val unfiltered = Seq(
+      "net.databinder" %% "unfiltered-filter" % "0.6.3",
+      "net.databinder" %% "unfiltered-jetty" % "0.6.3"
+    )
+  }
 }
