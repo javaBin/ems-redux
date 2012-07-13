@@ -6,8 +6,7 @@ import unfiltered.response._
 import unfiltered.filter.Plan
 import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
-import com.mongodb.casbah.MongoConnection
-import util.Properties
+import scala.util.Properties
 
 trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler { this: Storage =>
 

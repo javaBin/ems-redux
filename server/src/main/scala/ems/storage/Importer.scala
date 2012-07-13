@@ -8,8 +8,7 @@ import no.java.ems.{StreamingAttachment, MIMEType, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import scala.Some
-import util.Properties
+import scala.util.Properties
 
 
 object ImportMain extends App {
