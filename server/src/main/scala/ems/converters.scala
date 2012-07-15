@@ -2,7 +2,7 @@ package no.java.ems
 
 import java.net.URI
 import model._
-import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.format.DateTimeFormat
 import net.hamnaberg.json.collection._
 import no.java.util.URIBuilder
 import java.util.Locale
@@ -17,14 +17,14 @@ import net.liftweb.json.JsonAST._
  */
 
 object converters {
-  val dateFormat = ISODateTimeFormat.basicDateTimeNoMillis().withZoneUTC()
+  val DateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'h:m:ss'Z'").withZoneUTC()
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
       val properties = Map(
         "name" -> Some(e.name),
-        "start" -> Some(dateFormat.print(e.start)),
-        "end" -> Some(dateFormat.print(e.end))
+        "start" -> Some(DateFormat.print(e.start)),
+        "end" -> Some(DateFormat.print(e.end))
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", e.id.get).build()
       val sessions = baseBuilder.segments("events", e.id.get, "sessions").build()
@@ -45,8 +45,8 @@ object converters {
   def slotToItem(baseBuilder: URIBuilder, eventId: String): (Slot) => Item = {
     r => {
       val properties = Map(
-        "start" -> Some(dateFormat.print(r.start)),
-        "end" -> Some(dateFormat.print(r.end))
+        "start" -> Some(DateFormat.print(r.start)),
+        "end" -> Some(DateFormat.print(r.end))
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", eventId, "slots", r.id.get).build()
       Item(href, properties, Nil)
@@ -127,8 +127,8 @@ object converters {
 
   def toEvent(id: Option[String], template: Template): Event = {
     val name = template.getPropertyValue("name").map(_.values.toString).get
-    val start = template.getPropertyValue("start").map(x => dateFormat.parseDateTime(x.values.toString)).get
-    val end = template.getPropertyValue("end").map(x => dateFormat.parseDateTime(x.values.toString)).get
+    val start = template.getPropertyValue("start").map(x => DateFormat.parseDateTime(x.values.toString)).get
+    val end = template.getPropertyValue("end").map(x => DateFormat.parseDateTime(x.values.toString)).get
     val venue = template.getPropertyValue("venue").map(_.values.toString).get
     Event(id, name, start, end, venue, Nil, Nil)
   }
