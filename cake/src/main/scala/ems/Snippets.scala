@@ -24,6 +24,8 @@ object Snippets {
         </style>
         <link href="/bootstrap-2.0.4/css/bootstrap-responsive.css" rel="stylesheet"/>
 
+        <link href={EmsConfig.root.toString} rel="nofollow ems"/>
+
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
         <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -70,6 +72,7 @@ object Snippets {
         <script src="/bootstrap-2.0.4/js/bootstrap.min.js"></script>
         <script src="/js/underscore.js"></script>
         <script src="/js/collection-json.js"></script>
+        <script src="/js/mustache.js"></script>
         <script src="/js/cake.js"></script>
 
       </body>

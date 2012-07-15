@@ -14,8 +14,4 @@ object Pages {
       <input type="password" name="password"/>
     </form>
   )
-
-  def events(href: URI) = template {
-    <ul class="events"/>
-  }
 }

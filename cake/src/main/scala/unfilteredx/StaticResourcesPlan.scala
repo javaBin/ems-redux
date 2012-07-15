@@ -25,6 +25,7 @@ object StaticResourcesPlan extends Plan {
     case GET(Path(Seg("js" :: file))) => serveStatic("js", file.mkString("/"), JsonContent)
     case GET(Path(Seg(Bootstrap :: "js" :: file))) => serveStatic("%s/js".format(Bootstrap), file.mkString("/"), JsContent)
     case GET(Path(Seg("img" :: file))) => serveImage("img", file.mkString("/"))
+    case GET(Path(Seg("templates" :: file))) => serveStatic("templates", file.mkString("/"), HtmlContent)
     case GET(Path(Seg(Bootstrap :: "img" :: file))) => serveImage("%s/img".format(Bootstrap), file.mkString("/"))
   }
 

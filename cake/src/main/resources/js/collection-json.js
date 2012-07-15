@@ -6,6 +6,23 @@ function toObject() {
   }, {});
 }
 
+function toObject(withData) {
+  return _.reduce(withData.data, function(map, field) {
+    map[field.name] = field.value;
+    return map;
+  }, {});
+}
+
+function toItems(data) {
+    return data.collection.items.map(function(i) {
+        var obj = {};
+        obj.href = i.href;
+        obj.data = toObject(i);
+        return obj;
+    });
+}
+
+
 function fixTemplate(t) {
   t.toObject = toObject;
   t.data = _.isArray(t.data) ? t.data : [];
