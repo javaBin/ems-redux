@@ -18,10 +18,16 @@ function toItems(data) {
         var obj = {};
         obj.href = i.href;
         obj.data = toObject(i);
+        obj.links = i.links;
         return obj;
     });
 }
 
+function findLinkByRel(obj, rel) {
+    return _.find(obj.links, function(link) {
+        return rel === link.rel;
+    });
+}
 
 function fixTemplate(t) {
   t.toObject = toObject;
@@ -82,9 +88,7 @@ function fromObject(root) {
     });
   };
   root.findLinkByRel = function(rel) {
-    return _.find(this.collection.links, function(link) {
-      return rel === link.rel;
-    });
+    return findLinkByRel(this.collection, rel);
   }
 
 //  console.log('out', root);
