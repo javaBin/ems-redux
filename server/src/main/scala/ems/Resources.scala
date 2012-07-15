@@ -7,6 +7,7 @@ import unfiltered.filter.Plan
 import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
 import scala.util.Properties
+import net.hamnaberg.json.collection.{Link, JsonCollection}
 
 trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler { this: Storage =>
 
@@ -28,23 +29,14 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
 
   def handleRoot(req: HttpRequest[HttpServletRequest]) = {
     val builder = BaseURIBuilder.getBuilder(req)
-
-    ContentType("application/xrd+xml") ~> ResponseString(
-      <XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0">
-         <Link rel="contacts"
-                href={builder.segments("contacts").toString}>
-           <Title>contacts</Title>
-         </Link>
-         <Link rel="events"
-                href={builder.segments("events").toString}>
-           <Title>events</Title>
-         </Link>
-         <Link rel="venues"
-                href={builder.segments("venues").toString}>
-           <Title>events</Title>
-         </Link>
-      </XRD>.toString()
-    )
+    CollectionJsonResponse(JsonCollection(
+      RequestURIBuilder.getBuilder(req).emptyParams().build(),
+      List(
+        Link(builder.segments("contacts").build(), "contact collection"),
+        Link(builder.segments("events").build(), "event collection")
+      ),
+      Nil
+    ))
   }
 }
 
