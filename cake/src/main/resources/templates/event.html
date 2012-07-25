@@ -1,10 +1,9 @@
 <div class="span12">
     <h2>{{title}}</h2>
-    <!--<a rel="event item" data-url="{{href}}" href="#">{{data.name}}</a>-->
     {{#sessions}}
     <div class="row">
         <div class="span6">
-            <a rel="session item" data-url="{{href}}" href="#">{{data.name}}</a>
+            <a rel="session item" data-url="{{href}}" href="#/session/{{data.title}}">{{data.title}}</a>
         </div>
     </div>
     {{/sessions}}

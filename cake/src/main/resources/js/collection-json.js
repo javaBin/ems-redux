@@ -14,7 +14,8 @@ function toObject(withData) {
 }
 
 function toItems(data) {
-    return data.collection.items.map(function(i) {
+    var items = data.collection.items || [];
+    return _.map(items, function(i) {
         var obj = {};
         obj.href = i.href;
         obj.data = toObject(i);
