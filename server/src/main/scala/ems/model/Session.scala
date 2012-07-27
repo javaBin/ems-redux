@@ -124,7 +124,7 @@ object Level {
   }
 
 
-  object Beginner extends Level("beginner")
+  case object Beginner extends Level("beginner")
 
   case object Beginner_Intermediate extends Level("beginner-intermediate")
 
