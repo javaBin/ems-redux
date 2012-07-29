@@ -52,6 +52,8 @@ There will also be hypertext controls for the photo of the contact.
 
 # Link relations
 See the [wiki](https://github.com/javaBin/ems-redux/wiki/Link-Relations) for the link relations used.
+All link relations not found in the registries defined in collection+json should be considered to have the base URI of
+http://purl.org/javabin/rels
 
 # Exploring the API
 You can use Trygve Laugstøl's excellent [collection+json browser](http://collection-json-explorer.herokuapp.com/) to explore the API.
