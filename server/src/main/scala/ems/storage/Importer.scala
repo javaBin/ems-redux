@@ -4,11 +4,12 @@ import java.io.{FileInputStream, BufferedReader, FileReader, File}
 import java.util.Locale
 import javax.activation.FileTypeMap
 import net.liftweb.json.{DefaultFormats, JsonParser}
-import no.java.ems.{StreamingAttachment, MIMEType, Attachment}
+import no.java.ems.{URIAttachment, StreamingAttachment, MIMEType, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Properties
+import java.net.URI
 
 
 object ImportMain extends App {
@@ -34,6 +35,11 @@ object Importer {
     events(new File(baseDir, "events.json")).foreach(e => {
       val written = storage.importEntity[Event](e)
       println("Wrote " + e.name + "to DB with id" + written.id)
+      val id = written.id.getOrElse("")
+      sessions(new File(baseDir, id)).foreach(s => {
+        val written = storage.importEntity[Session](s)
+        println("Wrote " + s.abs.title + "to DB with id" + written.id)
+      })
     })
     storage.shutdown()
   }
@@ -86,6 +92,7 @@ object Importer {
       )
     )
   }
+
   def sessions(file: File) = {
     val parsed = JsonParser.parse(new BufferedReader(new FileReader(file)))
     (parsed \ "sessions").children.map(c =>
@@ -110,26 +117,22 @@ object Importer {
               (s \ "bio").extractOpt[String],
               (c \ "photo").extractOpt[String].map(f => {
                 val file = new File(f)
-                storage.saveAttachment(
-                  StreamingAttachment(
-                    file.getName,
-                    Some(file.length()),
-                    MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(file.getName)),
-                    new FileInputStream(file)
-                  ))
+                storage.saveAttachment(StreamingAttachment(file))
               })
             ))
           ),
         (c \ "state").extractOpt[String].map(State(_)).getOrElse(State.Pending),
         (c \ "published").extractOrElse(false),
-        /*(c \ "attachments").children.map(o => {
+        (c \ "attachments").children.map(f => {
+          val file = new File(f.toString)
+          val att: Attachment with Entity = storage.saveAttachment(StreamingAttachment(file))
           URIAttachment(
-            (o \ "href").extractOpt[String].map(URI.create(_)).getOrElse(throw new IllegalArgumentException("Not valid")),
-            (o \ "name").extract[String],
-            (o \ "length").extractOpt[Long],
-            (o \ "type").extractOpt[String].flatMap(MIMEType(_))
+            URI.create(att.id.get),
+            att.name,
+            att.size,
+            att.mediaType
           )
-        })*/Nil,
+        }),
         (c \ "tags").extractOpt[String].map(_.split(",").map(Tag(_)).toSet[Tag]).getOrElse(Set.empty),
         (c \ "keywords").extractOpt[String].map(_.split(",").map(Keyword(_)).toSet[Keyword]).getOrElse(Set.empty)
       )

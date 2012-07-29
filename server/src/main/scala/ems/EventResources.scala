@@ -50,8 +50,8 @@ trait EventResources extends ResourceHelper { this: Storage =>
         val sessions = p("title").headOption.map(t => getSessionsByTitle(eventId, t)).getOrElse(this.getSessions(eventId))
         val items = sessions.map(sessionToItem(baseUriBuilder))
         val coll = JsonCollection(href, Nil, items).
-          addQuery(new Query(href, "search by-title", Some("By Title"), List(Property("title")))).
-          addQuery(new Query(href, "search by-tags", Some("By Tags"), List(Property("tags"))))
+          addQuery(new Query(href, "search by-title", Some("By Title"), List(ValueProperty("title")))).
+          addQuery(new Query(href, "search by-tags", Some("By Tags"), List(ValueProperty("tags"))))
         CollectionJsonResponse(coll)
       }
       case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
@@ -176,8 +176,8 @@ trait EventResources extends ResourceHelper { this: Storage =>
 
   def handleSessionAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
-      case GET(_) & RequestURIBuilder(requestURIBuilder) => {
-        val items = this.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem)).getOrElse(Nil)
+      case GET(_) & RequestURIBuilder(requestURIBuilder) & BaseURIBuilder(baseURIBuilder) => {
+        val items = this.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem(baseURIBuilder))).getOrElse(Nil)
         CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items))
       }
 

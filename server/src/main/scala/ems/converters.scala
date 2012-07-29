@@ -6,7 +6,7 @@ import org.joda.time.format.DateTimeFormat
 import net.hamnaberg.json.collection._
 import no.java.util.URIBuilder
 import java.util.Locale
-import net.liftweb.json.JsonAST._
+import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
 
 /**
  * Created by IntelliJ IDEA.
@@ -79,15 +79,24 @@ object converters {
     }
   }
 
-  val attachmentToItem: (URIAttachment) => (Item) = {
+  def attachmentToItem(baseURIBuilder: URIBuilder): (URIAttachment) => (Item) = {
     a => {
+      val href = {
+        val h = a.href
+        if (!h.isAbsolute) {
+          baseURIBuilder.segments("binary", h.getPath).build()
+        }
+        else {
+          h
+        }
+      }
       Item(
-        a.href,
+        href,
         List(
-          Property("href", Some("Href"), Some(JString(a.href.toString))),
-          Property("name", Some("Name"), Some(JString(a.name))),
-          Property("size", Some("Size"), a.size.map((JInt(_)))),
-          Property("type", Some("Type"), Some(JString(a.mediaType.toString)))
+          ValueProperty("href", Some("Href"), Some(StringValue(href.toString))),
+          ValueProperty("name", Some("Name"), Some(StringValue(a.name))),
+          ValueProperty("size", Some("Size"), a.size.map(s => (NumberValue(BigDecimal(s))))),
+          ValueProperty("type", Some("Type"), Some(StringValue(a.mediaType.toString)))
         ),
         Nil
       )
@@ -100,8 +109,8 @@ object converters {
       Item(
         base.build(),
         List(
-          Property("name", Some("Name"), Some(JString(s.name))),
-          Property("bio", Some("Bio"), s.bio.map(JString(_)))
+          ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
+          ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
         ),
         s.photo.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
           List(Link(base.segments("photo").build(), "attach-photo"))
@@ -114,10 +123,10 @@ object converters {
       Item(
         baseBuilder.segments("contacts", c.id.get).build(),
         List(
-          Property("name", Some("Name"), Some(JString(c.name))),
-          Property("bio", Some("Bio"), c.bio.map(JString(_))),
-          Property("locale", Some("Locale"), Some(JString(c.locale.getLanguage))),
-          Property("emails", Some("Emails"), Some(JArray(c.emails.map(e => JString(e.address)))))
+          ValueProperty("name", Some("Name"), Some(StringValue(c.name))),
+          ValueProperty("bio", Some("Bio"), c.bio.map(StringValue(_))),
+          ValueProperty("locale", Some("Locale"), Some(StringValue(c.locale.getLanguage))),
+          ListProperty("emails", Some("Emails"), c.emails.map(e => StringValue(e.address)))
         ),
         c.photo.map(a => Link(baseBuilder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
           List(Link(baseBuilder.segments("contacts", "photo").build(), "attach-photo"))
@@ -126,68 +135,63 @@ object converters {
   }
 
   def toEvent(id: Option[String], template: Template): Event = {
-    val name = template.getPropertyValue("name").map(_.values.toString).get
-    val start = template.getPropertyValue("start").map(x => DateFormat.parseDateTime(x.values.toString)).get
-    val end = template.getPropertyValue("end").map(x => DateFormat.parseDateTime(x.values.toString)).get
-    val venue = template.getPropertyValue("venue").map(_.values.toString).get
+    val name = template.getPropertyValue("name").map(_.value.toString).get
+    val start = template.getPropertyValue("start").map(x => DateFormat.parseDateTime(x.value.toString)).get
+    val end = template.getPropertyValue("end").map(x => DateFormat.parseDateTime(x.value.toString)).get
+    val venue = template.getPropertyValue("venue").map(_.value.toString).get
     Event(id, name, start, end, venue, Nil, Nil)
   }
 
   def toContact(id: Option[String], template: Template): Contact = {
-    val name = template.getPropertyValue("name").map(_.values.toString).get
-    val bio = template.getPropertyValue("bio").map(_.values.toString)
+    val name = template.getPropertyValue("name").map(_.value.toString).get
+    val bio = template.getPropertyValue("bio").map(_.value.toString)
 
-    val emailMapper: PartialFunction[JValue, List[Email]] = {
-      case JArray(list) => list.map(v => Email(v.values.toString))
-    }
-
-    val locale = template.getPropertyValue("locale").map(_.values.toString).map(x => new Locale(x)).getOrElse(new Locale("no"))
-    val emails = template.getPropertyValue("emails").map(emailMapper).getOrElse(Nil)
+    val locale = template.getPropertyValue("locale").map(_.value.toString).map(x => new Locale(x)).getOrElse(new Locale("no"))
+    val emails = template.getPropertyAsSeq("emails").map(e => Email(e.value.toString)).toList
 
     Contact(id, name, bio, emails, locale)
   }
 
 
   def toSession(eventId: String, id: Option[String], template: Template): Session = {
-    val title = template.getPropertyValue("title").get.values.toString
-    val body = template.getPropertyValue("body").map(_.values.toString)
-    val outline = template.getPropertyValue("outline").map(_.values.toString)
-    val audience = template.getPropertyValue("audience").map(_.values.toString)
-    val summary = template.getPropertyValue("summary").map(_.values.toString)
-    val format = template.getPropertyValue("format").map(x => Format(x.values.toString))
-    val level = template.getPropertyValue("level").map(x => Level(x.values.toString))
-    val language = template.getPropertyValue("lang").map(x => new Locale(x.values.toString))
-    val state = template.getPropertyValue("state").map(x => State(x.values.toString))
-    val tags = template.getPropertyValue("tags").toList.flatMap(x => x.values.toString.split(",").map(Tag(_)).toList)
-    val keywords = template.getPropertyValue("keywords").toList.flatMap(x => x.values.toString.split(",").map(Keyword(_)).toList)
+    val title = template.getPropertyValue("title").get.value.toString
+    val body = template.getPropertyValue("body").map(_.value.toString)
+    val outline = template.getPropertyValue("outline").map(_.value.toString)
+    val audience = template.getPropertyValue("audience").map(_.value.toString)
+    val summary = template.getPropertyValue("summary").map(_.value.toString)
+    val format = template.getPropertyValue("format").map(x => Format(x.value.toString))
+    val level = template.getPropertyValue("level").map(x => Level(x.value.toString))
+    val language = template.getPropertyValue("lang").map(x => new Locale(x.value.toString))
+    val state = template.getPropertyValue("state").map(x => State(x.value.toString))
+    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
+    val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
     val abs = Abstract(title, summary, body, audience, outline, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
   }
 
   def toAttachment(template: Template): URIAttachment = {
-    val href = template.getPropertyValue("href").map(x => URI.create(x.values.toString)).get
-    val name = template.getPropertyValue("name").get.values.toString
-    val sizeFilter: PartialFunction[JValue, Long] = {
-      case JInt(x) => x.toLong
+    val href = template.getPropertyValue("href").map(x => URI.create(x.value.toString)).get
+    val name = template.getPropertyValue("name").get.value.toString
+    val sizeFilter: PartialFunction[Value[_], Long] = {
+      case NumberValue(x) => x.toLong
     }
     val size = template.getPropertyValue("size").map(sizeFilter)
-    val mediaType = template.getPropertyValue("type").flatMap(x => MIMEType(x.values.toString))
+    val mediaType = template.getPropertyValue("type").flatMap(x => MIMEType(x.value.toString))
     URIAttachment(href, name, size, mediaType)
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
-    case (a, b) => new Property(a, Some(a.capitalize), b.map(toValue(_)))
+    case (a, b) => ValueProperty(a, Some(a.capitalize), b.map(toValue(_)))
   }
 
-  def toValue(any: Any): JValue = any match {
-    case x: String => JString(x)
-    case x: Int => JInt(x)
-    case x: Long => JInt(x)
-    case x: Double => JDouble(x)
-    case x: List[_] => JArray(x.map(z => toValue(z)))
-    case x: Boolean => JBool(x)
-    case null => JNull
+  def toValue(any: Any): Value[_] = any match {
+    case x: String => StringValue(x)
+    case x: Int => NumberValue(BigDecimal(x))
+    case x: Long => NumberValue(BigDecimal(x))
+    case x: Double => NumberValue(BigDecimal(x))
+    case x: Boolean => BooleanValue(x)
+    case null => NullValue
     case _ => throw new IllegalArgumentException("Unknown value")
   }
 }

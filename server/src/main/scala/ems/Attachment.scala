@@ -4,7 +4,7 @@ import org.joda.time.DateTime
 import java.io.{FileInputStream, File, ByteArrayInputStream, InputStream}
 import java.net.URI
 import com.mongodb.casbah.Imports._
-import javax.activation.MimeType
+import javax.activation.{FileTypeMap, MimeType}
 import scala.Some
 import com.mongodb.casbah.gridfs.{GridFSFile, GridFSDBFile}
 
@@ -23,6 +23,15 @@ case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType:
 }
 
 case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment
+
+object StreamingAttachment {
+  def apply(file: File): StreamingAttachment = StreamingAttachment(
+    file.getName,
+    Some(file.length()),
+    MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(file.getName)),
+    new FileInputStream(file)
+  )
+}
 
 case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty) {
   def includes(mt: MIMEType): Boolean = {

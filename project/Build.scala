@@ -114,7 +114,7 @@ object Build extends sbt.Build {
   object Dependencies {
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
-      "net.hamnaberg.rest" %% "scala-json-collection" % "1.0",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "1.1",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.4.0",
       "org.mongodb" %% "casbah-gridfs" % "2.4.0"
