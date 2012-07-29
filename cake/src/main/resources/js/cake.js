@@ -32,10 +32,12 @@ cake.loadTemplate = function(href, name) {
 
 cake.events = function(href) {
     cake.get(href, function(data) {
-        var events = toItems(data);
-        _.each(events, function(e){
-            e.sessionHref = findLinkByRel(e, "sessions").href;
+        var events = _.map(fromObject(data).items, function(item) {
+            var i = item.toObject();
+            i.sessionHref = item.findLinkByRel("session collection").href;
+            return i;
         });
+
         console.log(events);
         var rendered = Mustache.render(cake.templates.events, {events: events});
         $('#mainContent').html(rendered);
@@ -43,11 +45,21 @@ cake.events = function(href) {
 }
 
 cake.sessions = function(title, href) {
-    console.log("title " + title);
-    console.log("href " + href);
     cake.get(href, function(data) {
-        var sessions = toItems(data);
+        var sessions = _.map(fromObject(data).items, function(item) {
+            return item.toObject();
+        });
         var rendered = Mustache.render(cake.templates.event, {title: title, sessions: sessions});
+        $("#mainContent").html(rendered);
+    });
+}
+
+cake.session = function(href) {
+    cake.get(href, function(data) {
+        var session = _.map(fromObject(data).items, function(item) {
+            return item.toObject();
+        });
+        var rendered = Mustache.render(cake.templates.session, {session: session});
         $("#mainContent").html(rendered);
     });
 }

@@ -6,24 +6,6 @@ function toObject() {
   }, {});
 }
 
-function toObject(withData) {
-  return _.reduce(withData.data, function(map, field) {
-    map[field.name] = field.value;
-    return map;
-  }, {});
-}
-
-function toItems(data) {
-    var items = data.collection.items || [];
-    return _.map(items, function(i) {
-        var obj = {};
-        obj.href = i.href;
-        obj.data = toObject(i);
-        obj.links = i.links;
-        return obj;
-    });
-}
-
 function findLinkByRel(obj, rel) {
     return _.find(obj.links, function(link) {
         return rel === link.rel;
@@ -63,6 +45,9 @@ function fromObject(root) {
     _.each(c.items, function(item) {
       item.links = _.isArray(item.links) ? item.links : [];
       item.toObject = toObject;
+      item.findLinkByRel = function(rel) {
+          return findLinkByRel(item, rel);
+      };
     });
 
     c.links = _.isArray(c.links) ? c.links : [];
