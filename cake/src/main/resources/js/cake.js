@@ -20,7 +20,6 @@ cake.loadRoot = function() {
 
     cake.get(root, function(data) {
         cake.root = data;
-        console.log(cake.root)
     });
 }
 
@@ -32,13 +31,12 @@ cake.loadTemplate = function(href, name) {
 
 cake.events = function(href) {
     cake.get(href, function(data) {
-        var events = _.map(fromObject(data).items, function(item) {
+        var events = _.map(fromObject(data).collection.items, function(item) {
             var i = item.toObject();
             i.sessionHref = item.findLinkByRel("session collection").href;
+            i.href = item.href;
             return i;
         });
-
-        console.log(events);
         var rendered = Mustache.render(cake.templates.events, {events: events});
         $('#mainContent').html(rendered);
     });
@@ -46,8 +44,10 @@ cake.events = function(href) {
 
 cake.sessions = function(title, href) {
     cake.get(href, function(data) {
-        var sessions = _.map(fromObject(data).items, function(item) {
-            return item.toObject();
+        var sessions = _.map(fromObject(data).collection.items, function(item) {
+            var s = item.toObject();
+            s.href = item.href;
+            return s;
         });
         var rendered = Mustache.render(cake.templates.event, {title: title, sessions: sessions});
         $("#mainContent").html(rendered);
@@ -56,10 +56,12 @@ cake.sessions = function(title, href) {
 
 cake.session = function(href) {
     cake.get(href, function(data) {
-        var session = _.map(fromObject(data).items, function(item) {
-            return item.toObject();
+        var session = _.map(fromObject(data).collection.items, function(item) {
+            var s = item.toObject();
+            console.log(s)
+            return s;
         });
-        var rendered = Mustache.render(cake.templates.session, {session: session});
+        var rendered = Mustache.render(cake.templates.session, {session: _.head(session)});
         $("#mainContent").html(rendered);
     });
 }
@@ -79,11 +81,14 @@ $(document).ready(function() {
         cake.events(fromObject(cake.root).findLinkByRel("event collection").href);
     });
 
-    $("body").click(function(event) {
+    $("#mainContent").click(function(event) {
         var target = $(event.target);
         if (target.is('a')) {
             if (target.attr("rel") == 'event item') {
                 cake.sessions(target.text(), target.attr("data-session-url"));
+            }
+            if (target.attr("rel") == "session item") {
+                cake.session(target.attr("data-url"));
             }
         }
     });

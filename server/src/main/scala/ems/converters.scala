@@ -28,7 +28,7 @@ object converters {
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", e.id.get).build()
       val sessions = baseBuilder.segments("events", e.id.get, "sessions").build()
-      Item(href, properties, new Link(sessions, "sessions", Some("Sessions")) :: Nil)
+      Item(href, properties, new Link(sessions, "session collection", Some("Sessions")) :: Nil)
     }
   }
 
@@ -72,8 +72,8 @@ object converters {
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
       val links = List(
-        Link(URIBuilder(href).segments("attachments").build(), "attachments", Some("Attachments for %s".format(s.abs.title))),
-        Link(URIBuilder(href).segments("speakers").build(), "speakers", Some("Speakers for %s".format(s.abs.title)))
+        Link(URIBuilder(href).segments("attachments").build(), "collection attachment", Some("Attachments for %s".format(s.abs.title))),
+        Link(URIBuilder(href).segments("speakers").build(), "collection speaker", Some("Speakers for %s".format(s.abs.title)))
       )
       Item(href, properties, links)
     }
