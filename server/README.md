@@ -11,8 +11,6 @@ All collections in EMS are homogenious. This means there will only be one type o
 
 `URI` properties are normalized URIs according to RFC-3986.
 
-`comma-delimited string` properties are multi-value strings which are delimited by a **,**
-
 Never assume that the properties listed are the only ones there. As the API evolves, new properties MAY appear. Clients
 MUST be written to allow for this. Old clients MUST ignore unknown properties.
 
@@ -36,15 +34,15 @@ A Session is always linked to a specific Event. A session consists of the follow
 * `format` required, enumeration from the set ("presentation", "lightning-talk", "panel" or "bof"), if not filled, the server will assign a default.
 * `level` required, enumeration from set set ("beginner", "beginner-intermediate", "intermediate",  "intermediate-advanced", "advanced"), if not filled, the server will assign a default.
 * `state` optional, set by the server. May be set by the use of hypertext controls found elsewhere.
-* `tags` optional, `comma-delimited-string`
-* `keywords` optional, `comma-delimited-string`
+* `tags` optional, string array
+* `keywords` optional, string array
 
 
 ## Contact
 A Contact is a primary object type in EMS. A contact consists of the following fields:
 
 * `name` required, string.
-* `emails` required, `comma-delimited string`. There MUST be at least 1 email.
+* `emails` required, array string. There MUST be at least 1 email.
 * `bio` optional, string.
 * `locale` optional, two-letter iso code of language of the contact. Usually 'en' or 'no'.
 
@@ -53,7 +51,7 @@ There will also be hypertext controls for the photo of the contact.
 # Link relations
 See the [wiki](https://github.com/javaBin/ems-redux/wiki/Link-Relations) for the link relations used.
 All link relations not found in the registries defined in collection+json should be considered to have the base URI of
-http://purl.org/javabin/rels
+http://purl.org/javabin/rels/ems/
 
 # Exploring the API
 You can use Trygve Laugstøl's excellent [collection+json browser](http://collection-json-explorer.herokuapp.com/) to explore the API.
