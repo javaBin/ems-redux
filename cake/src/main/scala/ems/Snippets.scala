@@ -23,6 +23,7 @@ object Snippets {
           {"body {padding-top: 60px;}"}
         </style>
         <link href="/bootstrap-2.0.4/css/bootstrap-responsive.css" rel="stylesheet"/>
+        <link href="/css/flags.css" rel="stylesheet"/>
 
         <link href={EmsConfig.root.toString} rel="nofollow ems"/>
 
