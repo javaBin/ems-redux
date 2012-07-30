@@ -10,6 +10,7 @@ case class Abstract(title: String,
                     body: Option[String] = None,
                     audience: Option[String] = None,
                     outline: Option[String] = None,
+                    equipment: Option[String] = None,
                     language: Locale = new Locale("no"),
                     level: Level = Level.Beginner,
                     format: Format = Format.Presentation,
@@ -22,6 +23,12 @@ case class Abstract(title: String,
   def withTitle(input: String) = copy(input)
 
   def withBody(input: String) = copy(body = Some(input))
+
+  def withAudience(input: String) = copy(audience = Some(input))
+
+  def withOutline(input: String) = copy(outline = Some(input))
+
+  def withEquipment(input: String) = copy(equipment = Some(input))
 
   def withSummary(input: String) = copy(summary = Some(input))
 

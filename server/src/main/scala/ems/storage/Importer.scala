@@ -110,6 +110,7 @@ object Importer {
           (c \ "body").extractOpt[String],
           (c \ "audience").extractOpt[String],
           (c \ "outline").extractOpt[String],
+          (c \ "equipment").extractOpt[String],
           (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
           (c \ "level").extractOpt[String].map(Level(_)).getOrElse(Level.Beginner),
           (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation),

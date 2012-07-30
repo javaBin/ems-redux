@@ -55,20 +55,19 @@ object converters {
 
   def sessionToItem(baseBuilder: URIBuilder): (Session) => Item = {
     s => {
-      val tags = if (s.tags.isEmpty) None else Some(s.tags.map(_.name).mkString(","))
-      val keywords = if (s.keywords.isEmpty) None else Some(s.keywords.map(_.name).mkString(","))
       val properties = Map(
         "title" -> Some(s.abs.title),
         "body" -> s.abs.body,
         "summary" -> s.abs.summary,
         "audience" -> s.abs.audience,
-        "outline" -> s.abs.audience,
+        "outline" -> s.abs.outline,
+        "equipment" -> s.abs.equipment,
         "locale" -> Some(s.abs.language.getLanguage),
         "format" -> Some(s.abs.format.toString),
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
-        "tags" -> tags,
-        "keywords" -> keywords
+        "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty)),
+        "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty))
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
       val links = List(
@@ -158,6 +157,7 @@ object converters {
     val body = template.getPropertyValue("body").map(_.value.toString)
     val outline = template.getPropertyValue("outline").map(_.value.toString)
     val audience = template.getPropertyValue("audience").map(_.value.toString)
+    val equipment = template.getPropertyValue("equipment").map(_.value.toString)
     val summary = template.getPropertyValue("summary").map(_.value.toString)
     val format = template.getPropertyValue("format").map(x => Format(x.value.toString))
     val level = template.getPropertyValue("level").map(x => Level(x.value.toString))
@@ -165,7 +165,7 @@ object converters {
     val state = template.getPropertyValue("state").map(x => State(x.value.toString))
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
     val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
-    val abs = Abstract(title, summary, body, audience, outline, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
+    val abs = Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
   }
@@ -182,6 +182,8 @@ object converters {
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
+    case (a, Some(x: Seq[Any])) => ListProperty(a, Some(a.capitalize), x.map(toValue(_)))
+    case (a, Some(x: Map[String, Any])) => ObjectProperty(a, Some(a.capitalize), x.map{case (k,v) => k -> toValue(v)}.toMap)
     case (a, b) => ValueProperty(a, Some(a.capitalize), b.map(toValue(_)))
   }
 
@@ -192,6 +194,6 @@ object converters {
     case x: Double => NumberValue(BigDecimal(x))
     case x: Boolean => BooleanValue(x)
     case null => NullValue
-    case _ => throw new IllegalArgumentException("Unknown value")
+    case _ => throw new IllegalArgumentException("Unknown value " + any.getClass)
   }
 }
