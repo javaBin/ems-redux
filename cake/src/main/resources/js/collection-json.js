@@ -1,7 +1,16 @@
 
 function toObject() {
   return _.reduce(this.data, function(map, field) {
-    map[field.name] = field.value;
+      if (_.isArray(field.array)) {
+          map[field.name] = field.array;
+      }
+      else if (_.isObject(field.object)) {
+          map[field.name] = field.object;
+      }
+      else {
+          map[field.name] = field.value;
+      }
+
     return map;
   }, {});
 }
