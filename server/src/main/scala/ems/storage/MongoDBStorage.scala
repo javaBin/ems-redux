@@ -67,9 +67,14 @@ trait MongoDBStorage extends Storage {
     val file = att match {
       case GridFileAttachment(f) => f
       case a => {
-        val f = fs.createFile(getStream(a), a.name)
-        a.mediaType.foreach(mt => f.contentType = mt.toString)
-        f
+        fs.findOne(att.name) match {
+          case Some(f) => GridFileAttachment(f)
+          case None => {
+            val f = fs.createFile(getStream(a), a.name)
+            a.mediaType.foreach(mt => f.contentType = mt.toString)
+            f
+          }
+        }
       }
     }
     file.metaData = MongoDBObject("last-modified" -> new JDate())
@@ -166,6 +171,7 @@ private[storage] object MongoMapper {
       m.getAs[String]("body"),
       m.getAs[String]("audience"),
       m.getAs[String]("outline"),
+      m.getAs[String]("equipment"),
       m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no")),
       level,
       format,
@@ -272,6 +278,10 @@ private[storage] object MongoMapper {
   private def toMongoDBObject(abs: Abstract): DBObject = {
     MongoDBObject(
       "title" -> abs.title,
+      "summary" -> abs.summary,
+      "equipment" -> abs.equipment,
+      "outline" -> abs.outline,
+      "audience" -> abs.audience,
       "format" -> abs.format.name,
       "level" -> abs.level.name,
       "language" -> abs.language.getLanguage,
