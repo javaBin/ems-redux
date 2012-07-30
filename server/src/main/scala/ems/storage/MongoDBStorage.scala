@@ -2,13 +2,12 @@ package no.java.ems.storage
 
 import com.mongodb.casbah.gridfs.{GridFSDBFile, GridFS}
 import com.mongodb.casbah.Imports._
-import org.joda.time.DateTime
 import java.net.URI
 import java.util.Locale
 import no.java.ems._
 import java.util
 import model._
-
+import java.util.{Date => JDate}
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -17,6 +16,9 @@ import model._
 trait MongoDBStorage extends Storage {
 
   import MongoMapper._
+  import com.mongodb.casbah.commons.conversions.scala._
+
+  DeregisterJodaTimeConversionHelpers()
 
   def db: MongoDB
 
@@ -48,14 +50,14 @@ trait MongoDBStorage extends Storage {
 
   def getAttachment(id: String): Option[Attachment with Entity] = {
     val fs = GridFS(db)
-    fs.findOne(id).map(GridFileAttachment)
+    fs.findOne(new ObjectId(id)).map(GridFileAttachment)
   }
 
   def importEntity[A <: Entity](entity: A): A#T = {
     entity match {
       case e: Contact => saveToMongo[A](entity, db("contact"), true)
       case e: Event => saveToMongo[A](entity, db("event"), true)
-      case e: Session => saveToMongo[A](entity, db("event"), true)
+      case e: Session => saveToMongo[A](entity, db("session"), true)
       case _ => throw new IllegalArgumentException("Unknown entity")
     }
   }
@@ -70,7 +72,7 @@ trait MongoDBStorage extends Storage {
         f
       }
     }
-    file.metaData.put("last-modified", new DateTime())
+    file.metaData = MongoDBObject("last-modified" -> new JDate())
     file.save()
     getAttachment(file.id.toString).getOrElse(throw new IllegalArgumentException("Failed to save"))
   }
@@ -88,11 +90,13 @@ trait MongoDBStorage extends Storage {
     val stored = withId(entity)
     val toSave = toMongoDBObject(stored)
 
-    if (entity.id.isDefined && !fromImport) {
+
+    val update = if (fromImport) coll.findOneByID(entity.id.get, MongoDBObject()).isDefined else entity.id.isDefined
+    if (update) {
       coll.update(MongoDBObject("_id" -> entity.id.get), toSave)
     }
     else {
-      coll.insert(toSave, WriteConcern.Normal)
+      coll.insert(toSave, WriteConcern.Safe)
     }
     stored
   }
@@ -108,15 +112,15 @@ private[storage] object MongoMapper {
   import com.mongodb.casbah.Imports._
   import com.mongodb.casbah.commons.conversions.scala._
 
-  RegisterJodaTimeConversionHelpers()
+  DeregisterJodaTimeConversionHelpers()
 
   val toEvent: (DBObject) => Event = (dbo) => {
     val m = wrapDBObj(dbo)
     Event(
       m.get("_id").map(_.toString),
       m.getAsOrElse("name", "No Name"),
-      m.getAsOrElse("start", new DateTime()),
-      m.getAsOrElse("end", new DateTime()),
+      m.getAsOrElse[JDate]("start", new JDate()),
+      m.getAsOrElse[JDate]("end", new JDate()),
       m.getAsOrElse("venue", "Unknown"),
       m.getAsOrElse[Seq[_]]("rooms", Seq()).map(o => {
         val w = wrapDBObj(o.asInstanceOf[DBObject])
@@ -124,9 +128,9 @@ private[storage] object MongoMapper {
       }),
       m.getAsOrElse[Seq[_]]("slots", Seq()).map(o => {
         val w = wrapDBObj(o.asInstanceOf[DBObject])
-        Slot(w.getAs[String]("_id"), w.getAsOrElse("start", new DateTime(0L)), w.getAsOrElse("end", new DateTime(0L)))
+        Slot(w.getAs[String]("_id"), w.getAsOrElse[JDate]("start", new JDate(0L)), w.getAsOrElse[JDate]("end", new JDate(0L)))
       }),
-      m.getAsOrElse("last-modified", new DateTime())
+      m.getAsOrElse[JDate]("last-modified", new JDate())
     )
   }
 
@@ -145,7 +149,7 @@ private[storage] object MongoMapper {
       Nil,
       m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
       m.getAsOrElse[Seq[_]]("keywords", Seq.empty).map(k => Keyword(k.toString)).toSet[Keyword],
-      m.getAsOrElse("last-modified", new DateTime())
+      m.getAsOrElse[JDate]("last-modified", new JDate())
     )
   }
 
@@ -196,7 +200,7 @@ private[storage] object MongoMapper {
     val emails = m.getAs[Seq[_]]("emails").getOrElse(Nil).map(e => Email(e.toString)).toList
     val photo = m.get("photo").flatMap(i => storage.getAttachment(i.toString))
     val bio = m.getAs[String]("bio")
-    val lm = m.getAsOrElse("last-modified", new DateTime())
+    val lm = m.getAsOrElse[JDate]("last-modified", new JDate())
     Contact(id, name, bio, emails, locale, photo, lm)
   }
 
@@ -211,8 +215,8 @@ private[storage] object MongoMapper {
     MongoDBObject(
       "_id" -> event.id.getOrElse(util.UUID.randomUUID().toString),
       "name" -> event.name,
-      "start" -> event.start,
-      "end" -> event.end,
+      "start" -> event.start.toDate,
+      "end" -> event.end.toDate,
       "venue" -> event.venue,
       "rooms" -> event.rooms.map(r => MongoDBObject(
         "_id" -> r.id.getOrElse(util.UUID.randomUUID().toString),
@@ -220,10 +224,10 @@ private[storage] object MongoMapper {
       )),
       "slots" -> event.slots.map(ts => MongoDBObject(
         "_id" -> ts.id.getOrElse(util.UUID.randomUUID().toString),
-        "start" -> ts.start,
-        "end" -> ts.end
+        "start" -> ts.start.toDate,
+        "end" -> ts.end.toDate
       )),
-      "last-modified" -> event.lastModified
+      "last-modified" -> event.lastModified.toDate
     )
   }
 
@@ -239,7 +243,7 @@ private[storage] object MongoMapper {
       "attachments" -> session.attachments.map(toMongoDBObject),
       "roomId" -> session.roomId,
       "slotId" -> session.slotId,
-      "last-modified" -> session.lastModified
+      "last-modified" -> session.lastModified.toDate
     )
   }
 
@@ -251,7 +255,7 @@ private[storage] object MongoMapper {
       "photo" -> contact.photo.map(_.id),
       "locale" -> contact.locale.getLanguage,
       "emails" -> contact.emails.map(_.address),
-      "last-modified" -> contact.lastModified
+      "last-modified" -> contact.lastModified.toDate
     )
     obj
   }
@@ -296,7 +300,7 @@ case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity
 
   def mediaType = file.contentType.flatMap(MIMEType(_))
 
-  def lastModified = file.metaData.getAsOrElse[DateTime]("last-modified", new DateTime())
+  def lastModified = file.metaData.getAsOrElse[JDate]("last-modified", new JDate())
 
   def id = file.id match {
     case null => None

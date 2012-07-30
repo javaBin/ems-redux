@@ -14,7 +14,7 @@ import java.net.URI
 
 object ImportMain extends App {
 
-  Importer.execute()
+  Importer.execute(new File(args.headOption.getOrElse("/tmp/ems")))
 }
 
 object Importer {
@@ -30,16 +30,19 @@ object Importer {
   def execute(baseDir: File = new File("/tmp/ems")) {
     contacts(new File(baseDir, "contacts.json")).foreach(c => {
       val written = storage.importEntity[Contact](c)
-      println("Wrote " + c.name + "to DB with id" + written.id)
+      println("Wrote " + c.name + " to DB with id " + written.id.get)
     })
     events(new File(baseDir, "events.json")).foreach(e => {
       val written = storage.importEntity[Event](e)
-      println("Wrote " + e.name + "to DB with id" + written.id)
+      println("Wrote " + e.name + " to DB with id " + written.id.get)
       val id = written.id.getOrElse("")
-      sessions(new File(baseDir, id)).foreach(s => {
-        val written = storage.importEntity[Session](s)
-        println("Wrote " + s.abs.title + "to DB with id" + written.id)
-      })
+      val eventDir = new File(baseDir, id)
+      if (new File(eventDir, "sessions.json").exists()) {
+        sessions(new File(eventDir, "sessions.json")).foreach(s => {
+          val written = storage.importEntity[Session](s)
+          println("Wrote " + s.abs.title + " to DB with id " + written.id.get)
+        })
+      }
     })
     storage.shutdown()
   }
@@ -102,7 +105,7 @@ object Importer {
         (c \ "room").extractOpt[String],
         (c \ "slot").extractOpt[String],
         Abstract(
-          (c \ "title").extract[String],
+          Option((c \ "title").extract[String]).getOrElse("No title"),
           (c \ "summary").extractOpt[String],
           (c \ "body").extractOpt[String],
           (c \ "audience").extractOpt[String],
@@ -124,7 +127,7 @@ object Importer {
         (c \ "state").extractOpt[String].map(State(_)).getOrElse(State.Pending),
         (c \ "published").extractOrElse(false),
         (c \ "attachments").children.map(f => {
-          val file = new File(f.toString)
+          val file = new File(f.values.toString)
           val att: Attachment with Entity = storage.saveAttachment(StreamingAttachment(file))
           URIAttachment(
             URI.create(att.id.get),
