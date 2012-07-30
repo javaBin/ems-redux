@@ -68,7 +68,7 @@ trait MongoDBStorage extends Storage {
       case GridFileAttachment(f) => f
       case a => {
         fs.findOne(att.name) match {
-          case Some(f) => GridFileAttachment(f)
+          case Some(f) => f
           case None => {
             val f = fs.createFile(getStream(a), a.name)
             a.mediaType.foreach(mt => f.contentType = mt.toString)
