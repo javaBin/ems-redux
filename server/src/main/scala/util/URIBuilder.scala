@@ -41,14 +41,18 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
   def replaceQueryParam(name: String, value:String) = copy(params = params + (name -> List(value)))
   
   def build() = {
-    val par = if (params.isEmpty) None else Some(params)
+    def mkParamString() = {
+      params.map{case (k, v) => v.map(i => "%s=%s".format(k, i)).mkString("&")}.mkString("&")
+    }
+
+    val par = if (params.isEmpty) None else Some(mkParamString())
     new URI(
       scheme.getOrElse(null),
       null,
       host.getOrElse(null),
       port.getOrElse(-1),
       if (path.isEmpty) null else path.map(_.encoded).mkString("/", "/", if (pathEndsWithSlash) "/" else ""),
-      par.map(_.map{case (x,y) => y.map((x,_))}.mkString("", "&", "")).getOrElse(null),
+      par.getOrElse(null),
       null
     )
   }
@@ -56,13 +60,19 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
 }
 
 object URIBuilder {
-  val KeyValue = """(?i)(\w)=(.*)?""".r
+  val KeyValue = """(?i)(\w+)=(.*)?""".r
   def apply(uri: URI): URIBuilder = {
     val (path, endsWithSlash) = decodePath(uri.getPath)
-    val params = Option(uri.getQuery).map(_.split("&").foldLeft(Map[String, List[String]]()){case (m, s) => s match {
-      case KeyValue(k, "") => m + (k -> m.get(k).getOrElse(Nil))
-      case KeyValue(k,v) => m + (k -> (m.get(k).getOrElse(Nil) ++ List(v)))
-    }}).getOrElse(Map[String, List[String]]())
+    def buildMap: (String) => Map[String, scala.List[String]] = s => {
+      val arr: Array[String] = s.split("&")
+      arr.foldLeft(Map[String, List[String]]()) {
+        case (m, part) => part match {
+          case KeyValue(k, "") => m + (k -> m.get(k).getOrElse(Nil))
+          case KeyValue(k, v) => m + (k -> (m.get(k).getOrElse(Nil) ++ List(v)))
+        }
+      }
+    }
+    val params = Option(uri.getQuery).map(buildMap).getOrElse(Map[String, List[String]]())
     new URIBuilder(Option(uri.getScheme), Option(uri.getHost), Option(uri.getPort).filterNot(_ == -1), path, params, endsWithSlash)
   }
   
