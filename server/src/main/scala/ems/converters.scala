@@ -17,7 +17,7 @@ import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue
  */
 
 object converters {
-  val DateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'h:m:ss'Z'").withZoneUTC()
+  val DateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZoneUTC()
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
