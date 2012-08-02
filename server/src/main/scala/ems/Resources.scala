@@ -2,17 +2,19 @@ package no.java.ems
 
 import storage.{MongoSetting, MongoDBStorage}
 import unfiltered.request._
-import unfiltered.response._
 import unfiltered.filter.Plan
 import javax.servlet.http.HttpServletRequest
 import no.java.unfiltered._
 import scala.util.Properties
 import net.hamnaberg.json.collection.{Link, JsonCollection}
 
-trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler { this: Storage =>
+trait Resources extends Plan with EventResources with ContactResources with AttachmentHandler with ChangelogResources {
+
+  def storage: MongoDBStorage
 
   def intent = {
     case req@Path(Seg(Nil)) => handleRoot(req)
+    case req@Path(Seg("changelog" :: Nil)) => handleChangelog(req)
     case req@Path(Seg("contacts" :: Nil)) => handleContactList(req)
     case req@Path(Seg("contacts" :: id :: Nil)) => handleContact(id, req)
     case req@Path(Seg("contacts" :: id :: "photo" :: Nil)) => handleContactPhoto(id, req)
@@ -40,6 +42,10 @@ trait Resources extends Plan with EventResources with ContactResources with Atta
   }
 }
 
-object Resources extends Resources with MongoDBStorage {
-  val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
+object Resources extends Resources {
+
+  def storage = new MongoDBStorage {
+    val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
+  }
+
 }

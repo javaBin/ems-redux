@@ -1,6 +1,7 @@
 package no.java.ems
 
 import model.Entity
+import storage.MongoDBStorage
 import unfiltered.response._
 import unfiltered.request._
 import javax.servlet.http.HttpServletRequest
@@ -11,7 +12,9 @@ import no.java.unfiltered.RequestURIBuilder
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
  */
 
-trait ResourceHelper { this: Storage =>
+trait ResourceHelper {
+
+  def storage: MongoDBStorage
 
   private [ems] def handleObject[T <: Entity](obj: Option[T], request: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, toItem: (T) => Item) = {
     request match {
@@ -31,7 +34,7 @@ trait ResourceHelper { this: Storage =>
             withTemplate(req) {
               t => {
                 val e = fromTemplate(t)
-                this.saveEntity(e)
+                storage.saveEntity(e)
                 NoContent
               }
             }

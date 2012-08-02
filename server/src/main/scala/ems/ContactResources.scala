@@ -12,12 +12,12 @@ import converters._
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
  */
 
-trait ContactResources extends ResourceHelper { this: Storage =>
+trait ContactResources extends ResourceHelper {
 
   def handleContactList(request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) => {
-        val output = this.getContacts().map(contactToItem(baseUriBuilder))
+        val output = storage.getContacts().map(contactToItem(baseUriBuilder))
         val href = baseUriBuilder.segments("contacts").build()
         CollectionJsonResponse(JsonCollection(href, Nil, output))
       }
@@ -25,7 +25,7 @@ trait ContactResources extends ResourceHelper { this: Storage =>
         withTemplate(req) {
           t => {
             val c = toContact(None, t)
-            this.saveContact(c)
+            storage.saveContact(c)
             NoContent
           }
         }
@@ -36,7 +36,7 @@ trait ContactResources extends ResourceHelper { this: Storage =>
   }
 
   def handleContact(id: String, request: HttpRequest[HttpServletRequest]) = {
-    val contact = this.getContact(id)
+    val contact = storage.getContact(id)
     val base = BaseURIBuilder.unapply(request).get
     handleObject(contact, request, (t: Template) => toContact(Some(id), t), contactToItem(base))
   }
@@ -46,10 +46,10 @@ trait ContactResources extends ResourceHelper { this: Storage =>
       case POST(_) & RequestContentType(ct) if (MIMEType.ImageAll.includes(MIMEType(ct).get)) => {
         request match {
           case RequestContentDisposition(cd) => {
-            val contact = this.getContact(id)
+            val contact = storage.getContact(id)
             if (contact.isDefined) {
-              val binary = this.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
-              this.saveContact(contact.get.copy(photo = Some(binary)))
+              val binary = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
+              storage.saveContact(contact.get.copy(photo = Some(binary)))
               NoContent
             }
             else {
@@ -69,7 +69,7 @@ trait ContactResources extends ResourceHelper { this: Storage =>
       }
       case POST(_) => UnsupportedMediaType
       case GET(_) & BaseURIBuilder(b) => {
-        val contact = this.getContact(id)
+        val contact = storage.getContact(id)
         val image = contact.flatMap(_.photo.map(i => b.segments("binary", i.id.get).build()))
         if (image.isDefined) Redirect(image.get.toString) else MethodNotAllowed
       }

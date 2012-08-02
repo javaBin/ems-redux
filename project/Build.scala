@@ -117,7 +117,8 @@ object Build extends sbt.Build {
       "net.hamnaberg.rest" %% "scala-json-collection" % "1.1",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.4.0",
-      "org.mongodb" %% "casbah-gridfs" % "2.4.0"
+      "org.mongodb" %% "casbah-gridfs" % "2.4.0",
+      "org.mongodb" %% "casbah-query" % "2.4.0"
     )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(

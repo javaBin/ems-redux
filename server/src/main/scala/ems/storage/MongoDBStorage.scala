@@ -8,12 +8,14 @@ import no.java.ems._
 import java.util
 import model._
 import java.util.{Date => JDate}
+import java.io.InputStream
+import org.joda.time.DateTime
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
  */
 
-trait MongoDBStorage extends Storage {
+trait MongoDBStorage  {
 
   import MongoMapper._
   import com.mongodb.casbah.commons.conversions.scala._
@@ -82,6 +84,22 @@ trait MongoDBStorage extends Storage {
     getAttachment(file.id.toString).getOrElse(throw new IllegalArgumentException("Failed to save"))
   }
 
+  def getChangedEvents(from: DateTime): Seq[Event] = {
+    val q = "last-modified" $gte from.toDate
+    db("event").find(q).map(toEvent).toSeq
+  }
+
+  def getChangedSessions(from: DateTime): Seq[Session] = {
+    val q = "last-modified" $gte from.toDate
+    db("session").find(q).map(toSession(_, this)).toSeq
+  }
+
+  def getChangedContacts(from: DateTime): Seq[Contact] = {
+    val q = "last-modified" $gte from.toDate
+    db("contact").find(q).map(toContact(_, this)).toSeq
+  }
+
+  //TODO: Make sure that we remove where its used as well.
   def removeAttachment(id: String) {
     val fs = GridFS(db)
     fs.remove(id)
@@ -89,6 +107,20 @@ trait MongoDBStorage extends Storage {
 
   def shutdown() {
     db.underlying.getMongo.close()
+  }
+
+  def getStream(att: Attachment): InputStream = att match {
+    case u: URIAttachment => u.data
+    case u: GridFileAttachment => u.data
+    case u: StreamingAttachment => u.data
+    case _ => throw new IllegalArgumentException("No stream available for %s".format(att.getClass.getName))
+  }
+
+  def saveEntity[T <: Entity](entity: T) = entity match {
+    case e: Event => saveEvent(e)
+    case s: Session => saveSession(s)
+    case c: Contact => saveContact(c)
+    case _ => throw new IllegalArgumentException("Usupported entity: " + entity)
   }
 
   private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection, fromImport: Boolean = false): A#T = {
@@ -110,6 +142,7 @@ trait MongoDBStorage extends Storage {
     val id = entity.id.getOrElse(util.UUID.randomUUID().toString)
     entity.withId(id)
   }
+
 }
 
 private[storage] object MongoMapper {
