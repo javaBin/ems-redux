@@ -1,10 +1,9 @@
 package no.java.ems.storage
 
-import java.io.{FileInputStream, BufferedReader, FileReader, File}
+import java.io.{BufferedReader, FileReader, File}
 import java.util.Locale
-import javax.activation.FileTypeMap
 import net.liftweb.json.{DefaultFormats, JsonParser}
-import no.java.ems.{URIAttachment, StreamingAttachment, MIMEType, Attachment}
+import no.java.ems.{URIAttachment, StreamingAttachment, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -58,13 +57,7 @@ object Importer {
         (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
         (c \ "photo").extractOpt[String].map(f => {
           val file = new File(f)
-          storage.saveAttachment(
-            StreamingAttachment(
-              file.getName,
-              Some(file.length()),
-              MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(file.getName)),
-              new FileInputStream(file)
-            ))
+          storage.saveAttachment(StreamingAttachment(file))
         })
       )
     )
@@ -87,7 +80,7 @@ object Importer {
         }),
         (c \ "timeslots").children.map(o => {
           Slot(
-            None,
+            (o \ "id").extractOpt[String],
             (o \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
             (o \ "end").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(1L))
           )
@@ -114,12 +107,12 @@ object Importer {
           (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
           (c \ "level").extractOpt[String].map(Level(_)).getOrElse(Level.Beginner),
           (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation),
-          (c \ "speaker").children.map(s =>
+          (c \ "speakers").children.map(s =>
             Speaker(
               (s \ "id").extract[String],
               (s \ "name").extract[String],
               (s \ "bio").extractOpt[String],
-              (c \ "photo").extractOpt[String].map(f => {
+              (s \ "photo").extractOpt[String].map(f => {
                 val file = new File(f)
                 storage.saveAttachment(StreamingAttachment(file))
               })

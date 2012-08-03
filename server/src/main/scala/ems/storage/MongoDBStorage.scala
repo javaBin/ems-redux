@@ -339,7 +339,7 @@ case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity
 
   def name = file.filename.get
 
-  def size = Some(file.size)
+  def size = Some(file.length)
 
   def mediaType = file.contentType.flatMap(MIMEType(_))
 

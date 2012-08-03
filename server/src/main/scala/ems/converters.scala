@@ -7,6 +7,7 @@ import net.hamnaberg.json.collection._
 import no.java.util.URIBuilder
 import java.util.Locale
 import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
+import security.User
 
 /**
  * Created by IntelliJ IDEA.
@@ -53,7 +54,7 @@ object converters {
     }
   }
 
-  def sessionToItem(baseBuilder: URIBuilder): (Session) => Item = {
+  def sessionToItem(baseBuilder: URIBuilder)(implicit u: Option[User]): (Session) => Item = {
     s => {
       val properties = Map(
         "title" -> Some(s.abs.title),
@@ -66,15 +67,16 @@ object converters {
         "format" -> Some(s.abs.format.toString),
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
-        "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty)),
-        "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty))
-      ).map(toProperty).toList
+        "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty)
+      ) + u.map(_ => "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty))).getOrElse("tags" -> None)
+      val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
+
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
       val links = List(
         Link(URIBuilder(href).segments("attachments").build(), "collection attachment", Some("Attachments for %s".format(s.abs.title))),
         Link(URIBuilder(href).segments("speakers").build(), "collection speaker", Some("Speakers for %s".format(s.abs.title)))
-      )
-      Item(href, properties, links)
+      ) ++ s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
+      Item(href, filtered, links)
     }
   }
 
@@ -182,12 +184,24 @@ object converters {
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
-    case (a, Some(x: Seq[Any])) => ListProperty(a, Some(a.capitalize), x.map(toValue(_)))
-    case (a, Some(x: Map[String, Any])) => ObjectProperty(a, Some(a.capitalize), x.map{case (k,v) => k -> toValue(v)}.toMap)
+    case (a, Some(x: Seq[_])) => ListProperty(a, Some(a.capitalize), x.map(toValue(_)))
+    case (a, Some(x: Map[_, _])) => ObjectProperty(a, Some(a.capitalize), x.map{case (k: Any, v: Any) => k.toString -> toValue(v)}.toMap)
     case (a, b) => ValueProperty(a, Some(a.capitalize), b.map(toValue(_)))
   }
 
-  def toValue(any: Any): Value[_] = any match {
+  private def getRel(a: URIAttachment) = {
+    val VideoSites = Set("vimeo.com", "www.vimeo.com", "youtube.com", "www.youtube.com")
+    val mime = MIMEType.fromFilename(a.name).getOrElse(MIMEType.OctetStream)
+    if (MIMEType.VideoAll.includes(mime) || VideoSites.contains(a.href.getHost)) { //TODO: Hack to allow for broken file names.
+      "enclosure video"
+    }
+    else {
+      "enclosure presentation"
+    }
+  }
+
+
+  private def toValue(any: Any): Value[_] = any match {
     case x: String => StringValue(x)
     case x: Int => NumberValue(BigDecimal(x))
     case x: Long => NumberValue(BigDecimal(x))

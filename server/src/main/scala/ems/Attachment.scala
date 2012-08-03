@@ -1,12 +1,10 @@
 package no.java.ems
 
 import org.joda.time.DateTime
-import java.io.{FileInputStream, File, ByteArrayInputStream, InputStream}
+import java.io.{FileInputStream, File, InputStream}
 import java.net.URI
-import com.mongodb.casbah.Imports._
-import javax.activation.{FileTypeMap, MimeType}
+import javax.activation.{MimetypesFileTypeMap, MimeType}
 import scala.Some
-import com.mongodb.casbah.gridfs.{GridFSFile, GridFSDBFile}
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -28,7 +26,7 @@ object StreamingAttachment {
   def apply(file: File): StreamingAttachment = StreamingAttachment(
     file.getName,
     Some(file.length()),
-    MIMEType(FileTypeMap.getDefaultFileTypeMap.getContentType(file.getName)),
+    MIMEType.fromFilename(file.getName),
     new FileInputStream(file)
   )
 }
@@ -45,12 +43,15 @@ case class MIMEType(major: String, minor: String, parameters: Map[String, String
 }
 
 object MIMEType {
+  private val resolver = new MimetypesFileTypeMap()
+
   val All = MIMEType("*", "*")
   val ImageAll = MIMEType("image", "*")
   val VideoAll = MIMEType("video", "*")
   val Pdf = MIMEType("application", "pdf")
   val Png = MIMEType("image", "png")
   val Jpeg = MIMEType("image", "jpeg")
+  val OctetStream = MIMEType("application", "octet-stream")
 
   def apply(mimeType: String): Option[MIMEType] = util.control.Exception.allCatch.opt{
     val mime = new MimeType(mimeType)
@@ -58,5 +59,9 @@ object MIMEType {
     val keys = mime.getParameters.getNames.asInstanceOf[java.util.Enumeration[String]].asScala
     val params = keys.foldLeft(Map[String, String]())((a, b) => a.updated(b, mime.getParameters.get(b)))
     MIMEType(mime.getPrimaryType, mime.getSubType, params)
+  }
+
+  def fromFilename(filename: String) = {
+    apply(resolver.getContentType(filename.toLowerCase))
   }
 }
