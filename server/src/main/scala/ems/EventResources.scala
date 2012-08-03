@@ -6,6 +6,7 @@ import no.java.ems.converters._
 import java.net.URI
 import no.java.util.URIBuilder
 import io.Source
+import security.User
 import unfiltered.response._
 import unfiltered.request._
 import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
@@ -43,12 +44,13 @@ trait EventResources extends ResourceHelper {
     handleObject(event, request, (t: Template) => toEvent(Some(id), t), eventToItem(base))
   }
 
-  def handleSessionList(eventId: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleSessionList(eventId: String, request: HttpRequest[HttpServletRequest])(implicit u: Option[User]) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val href = baseUriBuilder.segments("events", eventId, "sessions").build()
         val sessions = p("title").headOption.map(t => storage.getSessionsByTitle(eventId, t)).getOrElse(storage.getSessions(eventId))
-        val items = sessions.map(sessionToItem(baseUriBuilder))
+        val filtered = u.map(_ => sessions).getOrElse(sessions.filter(_.published))
+        val items = filtered.map(sessionToItem(baseUriBuilder))
         val coll = JsonCollection(href, Nil, items).
           addQuery(new Query(href, "search by-title", Some("By Title"), List(ValueProperty("title")))).
           addQuery(new Query(href, "search by-tags", Some("By Tags"), List(ValueProperty("tags"))))
@@ -68,7 +70,7 @@ trait EventResources extends ResourceHelper {
     }
   }
 
-  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit u: Option[User]) = {
     val session = storage.getSession(eventId, sessionId)
     val base = BaseURIBuilder.unapply(request).get
     handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), sessionToItem(base))

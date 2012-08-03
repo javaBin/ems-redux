@@ -1,6 +1,7 @@
 package no.java.ems
 
 import no.java.unfiltered.{RequestURIBuilder, BaseURIBuilder}
+import security.User
 import storage.MongoDBStorage
 import unfiltered.request._
 import unfiltered.response._
@@ -15,7 +16,7 @@ import net.hamnaberg.json.collection.{ErrorMessage, JsonCollection}
 trait ChangelogResources {
   def storage: MongoDBStorage
 
-  def handleChangelog(req: HttpRequest[HttpServletRequest]) = {
+  def handleChangelog(req: HttpRequest[HttpServletRequest])(implicit u: Option[User]) = {
     req match {
       case GET(Params(p)) & BaseURIBuilder(b) & RequestURIBuilder(r) => {
         val query = p("type").headOption ->
