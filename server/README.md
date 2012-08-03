@@ -55,3 +55,21 @@ http://purl.org/javabin/rels/ems/
 
 # Exploring the API
 You can use Trygve Laugstøl's excellent [collection+json browser](http://collection-json-explorer.herokuapp.com/) to explore the API.
+
+# Enabling authentication
+The application is using JAAS for authentication.
+
+Set the system property 'java.security.auth.login.config' to the location of the config file.
+
+If no system or security properties were set, try to read from the file,
+${user.home}/.java.login.config, where ${user.home} is the value
+represented by the "user.home" System property.
+
+Example file:
+
+ems {
+  com.sun.security.auth.module.LdapLoginModule REQUIRED
+  userProvider="ldap://ldap.java.no"
+  authIdentity="uid={USERNAME},ou=People,dc=java,dc=no"
+  useSSL=false;
+};
