@@ -59,6 +59,8 @@ You can use Trygve Laugstøl's excellent [collection+json browser](http://collec
 # Enabling authentication
 The application is using JAAS for authentication.
 
+The authentication is for now just Basic, meaning that the application should use HTTPS to make this more secure.
+
 Set the system property 'java.security.auth.login.config' to the location of the config file.
 
 If no system or security properties were set, try to read from the file,
