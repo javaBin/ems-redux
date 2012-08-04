@@ -15,7 +15,7 @@ object JAASAuthenticator extends Authenticator {
       def handle(callbacks: Array[Callback]) {
         callbacks.foreach {
           case n: NameCallback => n.setName(username)
-          case n: PasswordCallback => n.setPassword(username.toCharArray)
+          case n: PasswordCallback => n.setPassword(password.toCharArray)
           case cb => throw new UnsupportedCallbackException(cb, "Uexpected callback found")
         }
       }
