@@ -1,6 +1,6 @@
 package no.java.ems
 
-import security.{User, Authenticator}
+import security.{JAASAuthenticator, User, Authenticator}
 import storage.{MongoSetting, MongoDBStorage}
 import unfiltered.request._
 import unfiltered.filter.Plan
@@ -11,6 +11,8 @@ import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator) extends Plan with EventResources with ContactResources with AttachmentHandler with ChangelogResources {
   import auth._
+
+  def this() = this(Resources.storage, JAASAuthenticator)
 
   def intent = {
     case Authenticated(f) => f((u: Option[User]) => pathMapper(u))

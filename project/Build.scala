@@ -3,7 +3,7 @@ import sbt.Keys._
 import xml.Group
 import aether._
 import AetherKeys._
-import com.typesafe.startscript.StartScriptPlugin
+import com.github.siasia.WebappPlugin._
 
 object Build extends sbt.Build {
 
@@ -24,29 +24,25 @@ object Build extends sbt.Build {
       if (cred.exists()) Some(Credentials(cred)) else None
     },
     manifestSetting,
-    publish <<= Aether.deployTask.init,
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-  ) ++ StartScriptPlugin.startScriptForClassesSettings
-
-
+    publish <<= Aether.deployTask.init
+  )
 
   lazy val root = Project(
     id = "ems",
     base = file("."),
     settings = buildSettings ++ Seq(
-      name := "ems",
-      StartScriptPlugin.stage in Compile := Unit
+      name := "ems"
     ) ++ mavenCentralFrouFrou
   ).aggregate(server, cake)
 
   lazy val server = module("server")(settings = Seq(
     libraryDependencies := Dependencies.server
-  ))
+  ) ++ webappSettings)
 
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie",
     libraryDependencies := Dependencies.cake
-  ))
+  ) ++ webappSettings)
 
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],
@@ -136,7 +132,8 @@ object Build extends sbt.Build {
 
     private lazy val unfiltered = Seq(
       "net.databinder" %% "unfiltered-filter" % "0.6.3",
-      "net.databinder" %% "unfiltered-jetty" % "0.6.3"
+      "javax.servlet" % "servlet-api" % "2.5" % "provided",
+      "net.databinder" %% "unfiltered-jetty" % "0.6.3" % "test"
     )
   }
 }
