@@ -9,23 +9,19 @@ object Build extends sbt.Build {
 
   val liftJSONversion = "2.4"
 
-  lazy val buildSettings = Defaults.defaultSettings ++ Aether.aetherSettings ++ Seq(
+  lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "no.java",
     scalaVersion := "2.9.1",
     scalacOptions := Seq("-deprecation"),
-    deployRepository <<= (version) apply {
-      (v: String) => if (v.trim().endsWith("SNAPSHOT")) Resolvers.sonatypeNexusSnapshots else Resolvers.sonatypeNexusStaging
+    publishTo <<= (version) apply {
+      (v: String) => if (v.trim().endsWith("SNAPSHOT")) Some(Resolvers.sonatypeNexusSnapshots) else Some(Resolvers.sonatypeNexusStaging)
     },
     pomIncludeRepository := {
       x => false
     },
-    aetherCredentials := {
-      val cred = Path.userHome / ".sbt" / ".credentials"
-      if (cred.exists()) Some(Credentials(cred)) else None
-    },
-    manifestSetting,
-    publish <<= Aether.deployTask.init
-  )
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
+    manifestSetting
+  ) ++ Aether.aetherPublishSettings
 
   lazy val root = Project(
     id = "ems",
