@@ -1,5 +1,3 @@
-// IDEA plugin
-resolvers += "OSS Sonatype SNAPSHOTS" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 resolvers <++= sbtVersion(sv => sv match {
  case v if (v.startsWith("0.11")) => Seq(Resolver.url("scalasbt", new URL("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns))
@@ -12,7 +10,7 @@ libraryDependencies <+= sbtVersion(v => v match {
     case x if (x.startsWith("0.12")) => "com.github.siasia" %% "xsbt-web-plugin" % "0.12.0-0.2.11.1"
 })
 
-addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.1.0-SNAPSHOT")
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.1.0")
 
 addSbtPlugin("no.arktekk.sbt" % "aether-deploy" % "0.5")
 
