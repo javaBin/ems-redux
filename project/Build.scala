@@ -2,7 +2,6 @@ import sbt._
 import sbt.Keys._
 import xml.Group
 import aether._
-import AetherKeys._
 import com.github.siasia.WebappPlugin._
 
 object Build extends sbt.Build {
@@ -19,26 +18,32 @@ object Build extends sbt.Build {
     pomIncludeRepository := {
       x => false
     },
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
-    manifestSetting
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
   ) ++ Aether.aetherPublishSettings
 
+  //TODO: Sbt should produce a POM artifact with modules for the aggregates
   lazy val root = Project(
     id = "ems",
     base = file("."),
     settings = buildSettings ++ Seq(
       name := "ems"
     ) ++ mavenCentralFrouFrou
-  ).aggregate(server, cake)
+  ) aggregate(server, cake, jetty)
 
   lazy val server = module("server")(settings = Seq(
-    libraryDependencies := Dependencies.server
+    libraryDependencies := Dependencies.server,
+    manifestSetting
   ) ++ webappSettings)
 
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie",
-    libraryDependencies := Dependencies.cake
+    libraryDependencies := Dependencies.cake,
+    manifestSetting
   ) ++ webappSettings)
+
+  lazy val jetty = module("jetty")(settings = Seq(
+    libraryDependencies := Dependencies.jetty
+  )).dependsOn(cake, server)
 
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],
@@ -85,8 +90,8 @@ object Build extends sbt.Build {
     homepage := Some(new URL("http://github.com/javaBin/ems-redux")),
     startYear := Some(2011),
     licenses := Seq(("Apache 2", new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))),
-    pomExtra <<= (pomExtra, name, description) {
-      (pom, name, desc) => pom ++ Group(
+    pomExtra <<= (pomExtra) {
+      (pom) => pom ++ Group(
         <scm>
           <url>http://github.com/javaBin/ems-redux</url>
           <connection>scm:git:git://github.com/javaBin/ems-redux.git</connection>
@@ -116,6 +121,8 @@ object Build extends sbt.Build {
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
       "net.databinder" %% "dispatch-http" % "0.8.8"
     )
+
+    lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % "0.6.3")
 
     private lazy val testDeps = Seq(
       "org.specs2" %% "specs2" % "1.11" % "test"
