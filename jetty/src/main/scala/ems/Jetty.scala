@@ -12,15 +12,14 @@ import scala.util.Properties
 object Jetty extends App {
   val port = Properties.envOrElse("PORT", "8081").toInt
 
-  System.setProperty("ems-root", "http://localhost:%s/server".format(port))
+  System.setProperty("ems-root", "http://localhost:%s/server/".format(port))
 
-  unfiltered.jetty.Http(port).context("cake") {
-   _.resources(new File(getRoot, "cake/src/main/webapp").toURL).filter(new Application).filter(EmsProxy)
-  }.context("server"){
+  unfiltered.jetty.Http(port).
+  context("/cake") {
+    _.filter(new Application).filter(EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURL)
+  }.context("/server"){
     _.filter(Resources(JAASAuthenticator))
-  } run(s => {
-    println("Running on port %s".format(port))
-  })
+  } run()
 
   def getRoot: File = {
     var parent = new File(getClass.getProtectionDomain.getCodeSource.getLocation.getFile)

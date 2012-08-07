@@ -9,6 +9,7 @@ import no.java.unfiltered._
 import scala.util.Properties
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
 import unfiltered.filter.request.ContextPath
+import unfiltered.response.{Pass, NotFound}
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator) extends Plan with EventResources with ContactResources with AttachmentHandler with ChangelogResources {
   import auth._
@@ -34,6 +35,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator) exten
     case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil)) => handleSpeakers(eventId, sessionId, req)
     case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil)) => handleSpeakerPhoto(eventId, sessionId, speakerId, req)
     case req@ContextPath(_, Seg("binary" :: id :: Nil)) => handleAttachment(id, req)
+    case _ => Pass
   }
 
   def handleRoot(req: HttpRequest[HttpServletRequest]) = {

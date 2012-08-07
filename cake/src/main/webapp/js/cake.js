@@ -1,9 +1,10 @@
 var cake = {};
 cake.templates = {};
 cake.date = {};
+cake.contextPath = "";
 
 cake.get = function(href, callback) {
-    $.ajax({url: "/ajax?href=" + href}).success(callback);
+    $.ajax({url: cake.contextPath + "/ajax?href=" + href}).success(callback);
 }
 
 cake.date.parse = function(dateString) {
@@ -17,6 +18,9 @@ cake.date.toString = function(date) {
 cake.loadRoot = function() {
     var root = $('head link[rel="nofollow ems"]').attr("href");
     console.log("configured root is: " + root);
+    var cp = $('head link[rel="nofollow contextPath"]').attr("href");
+    console.log("configured context path: " + cp);
+    cake.contextPath = cp;
 
     cake.get(root, function(data) {
         cake.root = data;
@@ -24,7 +28,7 @@ cake.loadRoot = function() {
 }
 
 cake.loadTemplate = function(href, name) {
-    $.ajax({"url": href, dataType: "html"}).success(function(temp) {
+    $.ajax({"url": cake.contextPath + href, dataType: "html"}).success(function(temp) {
         cake.templates[name] = temp;
     });
 }
@@ -71,11 +75,11 @@ $(document).ready(function() {
         crossDomain: true,
         dataType: "json"
     });
+    cake.loadRoot();
+
     cake.loadTemplate("/templates/events.html", "events");
     cake.loadTemplate("/templates/event.html", "event");
     cake.loadTemplate("/templates/session.html", "session");
-
-    cake.loadRoot();
 
     $('#events').click(function() {
         cake.events(fromObject(cake.root).findLinkByRel("event collection").href);

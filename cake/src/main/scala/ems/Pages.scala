@@ -8,7 +8,7 @@ import java.net.URI
  */
 
 object Pages {
-  val login = template(
+  def login(cp: String) = template(cp,
     <form action="/login" method="post">
       <input type="text" name="username"/>
       <input type="password" name="password"/>

@@ -8,7 +8,7 @@ import xml.NodeSeq
 
 object Snippets {
 
-  def template(content: NodeSeq) = {
+  def template(cp: String, content: NodeSeq) = {
     <html lang="en">
       <head>
         <meta charset="utf-8"/>
@@ -18,14 +18,15 @@ object Snippets {
         <meta name="author" content=" "/>
 
         <!-- Le styles -->
-        <link href="/bootstrap-2.0.4/css/bootstrap.css" rel="stylesheet"/>
+        <link href={cp + "/bootstrap-2.0.4/css/bootstrap.css"} rel="stylesheet"/>
         <style>
           {"body {padding-top: 60px;}"}
         </style>
-        <link href="/bootstrap-2.0.4/css/bootstrap-responsive.css" rel="stylesheet"/>
-        <link href="/css/flags.css" rel="stylesheet"/>
+        <link href={cp + "/bootstrap-2.0.4/css/bootstrap-responsive.css"} rel="stylesheet"/>
+        <link href={cp + "/css/flags.css"} rel="stylesheet"/>
 
         <link href={EmsConfig.root.toString} rel="nofollow ems"/>
+        <link href={cp} rel="nofollow contextPath"/>
 
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
@@ -33,7 +34,7 @@ object Snippets {
         <![endif]-->
 
         <!-- Le fav and touch icons -->
-        <link rel="shortcut icon" href="/img/favicon.ico"/>
+        <link rel="shortcut icon" href={cp + "/img/favicon.ico"}/>
       </head>
       <body>
 
@@ -55,7 +56,7 @@ object Snippets {
                     <a id="events" href="#">Events</a>
                   </li>
                   <li>
-                    <a href="/contacts">Contacts</a>
+                    <a id="contacts" href="#">Contacts</a>
                   </li>
                 </ul>
               </div> <!--/.nav-collapse -->
@@ -69,12 +70,12 @@ object Snippets {
 
         <!-- Le javascript -->
         <!-- Placed at the end of the document so the pages load faster -->
-        <script src="/js/jquery-1.7.2.min.js"></script>
-        <script src="/bootstrap-2.0.4/js/bootstrap.min.js"></script>
-        <script src="/js/underscore.js"></script>
-        <script src="/js/collection-json.js"></script>
-        <script src="/js/mustache.js"></script>
-        <script src="/js/cake.js"></script>
+        <script src={cp + "/js/jquery-1.7.2.min.js" }></script>
+        <script src={cp + "/bootstrap-2.0.4/js/bootstrap.min.js" }></script>
+        <script src={cp + "/js/underscore.js"}></script>
+        <script src={cp + "/js/collection-json.js"}></script>
+        <script src={cp + "/js/mustache.js"}></script>
+        <script src={cp + "/js/cake.js"}></script>
 
       </body>
     </html>
