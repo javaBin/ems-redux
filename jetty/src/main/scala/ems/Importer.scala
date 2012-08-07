@@ -1,8 +1,9 @@
-package no.java.ems.storage
+package ems
 
 import java.io.{BufferedReader, FileReader, File}
 import java.util.Locale
 import net.liftweb.json.{DefaultFormats, JsonParser}
+import no.java.ems.storage.{MongoSetting, MongoDBStorage}
 import no.java.ems.{URIAttachment, StreamingAttachment, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
