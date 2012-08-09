@@ -75,7 +75,7 @@ object Importer {
         (c \ "venue").extract[String],
         (c \ "rooms").children.map(o => {
           Room(
-            None,
+            (o \ "id").extractOpt[String],
             (o \ "name").extract[String]
           )
         }),
@@ -92,12 +92,17 @@ object Importer {
 
   def sessions(file: File) = {
     val parsed = JsonParser.parse(new BufferedReader(new FileReader(file)))
-    (parsed \ "sessions").children.map(c =>
+    (parsed \ "sessions").children.map(c => {
+      val eventId = (c \ "eventId").extract[String]
+      val event = storage.getEvent(eventId)
+      val room = event.flatMap(_.rooms.find(_.id == (c \ "room").extractOpt[String]))
+      val slot = event.flatMap(_.slots.find(_.id == (c \ "slot").extractOpt[String]))
+
       Session(
         (c \ "id").extractOpt[String],
         (c \ "eventId").extract[String],
-        (c \ "room").extractOpt[String],
-        (c \ "slot").extractOpt[String],
+        room,
+        slot,
         Abstract(
           Option((c \ "title").extract[String]).getOrElse("No title"),
           (c \ "summary").extractOpt[String],
@@ -133,7 +138,7 @@ object Importer {
         }),
         (c \ "tags").extractOpt[String].map(_.split(",").map(Tag(_)).toSet[Tag]).getOrElse(Set.empty),
         (c \ "keywords").extractOpt[String].map(_.split(",").map(Keyword(_)).toSet[Keyword]).getOrElse(Set.empty)
-      )
+      )}
     )
   }
 }

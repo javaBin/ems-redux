@@ -175,12 +175,16 @@ private[storage] object MongoMapper {
   def toSession(dbo: DBObject, storage: MongoDBStorage) = {
     val m = wrapDBObj(dbo)
     val abs = m.getAs[DBObject]("abstract").map(toAbstract(_, storage)).getOrElse(new Abstract("No Title"))
+    val eventId = m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId"))
+    val event = storage.getEvent(eventId).getOrElse(throw new IllegalArgumentException("No Event"))
+    val slot = event.slots.find(_.id == m.get("slotId").map(_.toString))
+    val room = event.rooms.find(_.id == m.get("roomId").map(_.toString))
 
     Session(
       m.get("_id").map(_.toString),
       m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId")),
-      m.get("slotId").map(_.toString),
-      m.get("roomId").map(_.toString),
+      room,
+      slot,
       abs,
       m.getAs[String]("state").map(State(_)).getOrElse(State.Pending),
       m.getAs[Boolean]("published").getOrElse(false),
@@ -280,8 +284,8 @@ private[storage] object MongoMapper {
       "keywords" -> session.keywords.map(_.name),
       "state" -> session.state.name,
       "attachments" -> session.attachments.map(toMongoDBObject),
-      "roomId" -> session.roomId,
-      "slotId" -> session.slotId,
+      "roomId" -> session.room.flatMap(_.id),
+      "slotId" -> session.slot.flatMap(_.id),
       "last-modified" -> session.lastModified.toDate
     )
   }

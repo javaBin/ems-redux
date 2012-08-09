@@ -38,8 +38,9 @@ object converters {
       val properties = Map(
         "name" -> Some(r.name)
       ).map(toProperty).toList
-      val href = baseBuilder.segments("events", eventId, "rooms", r.id.get).build()
-      Item(href, properties, Nil)
+      val rooms = baseBuilder.segments("events", eventId, "rooms")
+      val href = rooms.segments(r.id.get).build()
+      Item(href, properties, new Link(rooms.build(), "room collection", Some("Rooms")) :: Nil)
     }
   }
 
@@ -75,7 +76,9 @@ object converters {
       val links = List(
         Link(URIBuilder(href).segments("attachments").build(), "collection attachment", Some("Attachments for %s".format(s.abs.title))),
         Link(URIBuilder(href).segments("speakers").build(), "collection speaker", Some("Speakers for %s".format(s.abs.title)))
-      ) ++ s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
+      ) ++ s.attachments.map(a => Link(a.href, getRel(a), Some(a.name))) ++
+        s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "item room", Some(r.name))) ++
+        s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "item slot", Some(slot.start.toString(DateFormat) + "-" + slot.end.toString(DateFormat))))
       Item(href, filtered, links)
     }
   }

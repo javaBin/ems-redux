@@ -40,8 +40,8 @@ case class Abstract(title: String,
 
 case class Session(id: Option[String],
                    eventId: String,
-                   roomId: Option[String],
-                   slotId: Option[String],
+                   room: Option[Room],
+                   slot: Option[Slot],
                    abs: Abstract,
                    state: State,
                    published: Boolean,
@@ -64,6 +64,10 @@ case class Session(id: Option[String],
   def withBody(input: String) = withAbstract(abs.withBody(input))
 
   def withSummary(input: String) = withAbstract(abs.withSummary(input))
+
+  def withRoom(room: Room) = copy(room = Some(room))
+
+  def withSlot(slot: Slot) = copy(slot = Some(slot))
 
   def publish = if (published) this else copy(published = true)
 
