@@ -27,9 +27,13 @@ object converters {
         "start" -> Some(DateFormat.print(e.start)),
         "end" -> Some(DateFormat.print(e.end))
       ).map(toProperty).toList
-      val href = baseBuilder.segments("events", e.id.get).build()
-      val sessions = baseBuilder.segments("events", e.id.get, "sessions").build()
-      Item(href, properties, new Link(sessions, "session collection", Some("Sessions")) :: Nil)
+      val href = baseBuilder.segments("events", e.id.get)
+      val links = List(
+        new Link(href.segments("sessions").build(), "session collection", Some("Sessions")),
+        new Link(href.segments("slots").build(), "slot collection", Some("Slots")),
+        new Link(href.segments("rooms").build(), "room collection", Some("Rooms"))
+      )
+      Item(href.build(), properties, links)
     }
   }
 
@@ -50,8 +54,9 @@ object converters {
         "start" -> Some(DateFormat.print(r.start)),
         "end" -> Some(DateFormat.print(r.end))
       ).map(toProperty).toList
-      val href = baseBuilder.segments("events", eventId, "slots", r.id.get).build()
-      Item(href, properties, Nil)
+      val slots = baseBuilder.segments("events", eventId, "slots")
+      val href = slots.segments(r.id.get).build()
+      Item(href, properties,  new Link(slots.build(), "slot collection", Some("Slots")) :: Nil)
     }
   }
 
