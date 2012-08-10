@@ -34,7 +34,14 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
 
   def emptyParams() = copy(params = Map.empty)
 
-  def queryParam(name: String, value: String) = copy(params = params + (name -> params.get(name).map(x => x ::: List(value)).getOrElse(List(value))))
+  def queryParam(name: String, value: String): URIBuilder = queryParam(name, Some(value))
+
+  def queryParam(name: String, value: Option[String]): URIBuilder = {
+    //TODO: Maybe the None case should remove all values?
+    val values = params.get(name).getOrElse(Nil) ++ value.toList
+
+    if (value.isEmpty) this else copy(params = params + (name -> values))
+  }
 
   def replaceSegments(segments: Segment*) = copy(path = segments.toList)
 
@@ -45,7 +52,7 @@ case class URIBuilder private(scheme: Option[String], host: Option[String], port
       params.map{case (k, v) => v.map(i => "%s=%s".format(k, i)).mkString("&")}.mkString("&")
     }
 
-    val par = if (params.isEmpty) None else Some(mkParamString())
+    val par = if (params.isEmpty) None else Some(mkParamString()).filterNot(_.isEmpty)
     new URI(
       scheme.getOrElse(null),
       null,
