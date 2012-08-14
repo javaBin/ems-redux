@@ -17,6 +17,48 @@ import net.hamnaberg.json.collection._
  */
 
 trait EventResources extends ResourceHelper {
+  def handleSlots(id: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
+        val items = storage.getEvent(id).map(_.slots.map(slotToItem(baseUriBuilder, id))).getOrElse(Nil)
+        val href = baseUriBuilder.segments("events", id, "slots").build()
+        CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
+      }
+/*      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
+        withTemplate(req) {
+          t => {
+            val e = toEvent(None, t)
+            storage.saveEvent(e)
+            NoContent
+          }
+        }
+      }*/
+      case POST(_) => UnsupportedMediaType
+      case _ => MethodNotAllowed
+    }
+  }
+
+  def handleRooms(id: String, request: HttpRequest[HttpServletRequest]) = {
+    request match {
+      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
+        val items = storage.getEvent(id).map(_.rooms.map(roomToItem(baseUriBuilder, id))).getOrElse(Nil)
+        val href = baseUriBuilder.segments("events", id, "rooms").build()
+        CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
+      }
+/*      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
+        withTemplate(req) {
+          t => {
+            val e = toEvent(None, t)
+            storage.saveEvent(e)
+            NoContent
+          }
+        }
+      }*/
+      case POST(_) => UnsupportedMediaType
+      case _ => MethodNotAllowed
+    }
+  }
+
   def handleEventList(request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) => {
