@@ -4,16 +4,15 @@ import storage.MongoDBStorage
 import unfiltered.response.ResponseStreamer
 import java.io.{InputStream, OutputStream}
 import unfilteredx.{DispositionType, ContentDisposition}
-import org.apache.commons.io.IOUtils
 
 object AttachmentStreamer {
   def apply(attachment: Attachment, storage: MongoDBStorage) = {
-    new ResponseStreamer {
+    ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader ~> new ResponseStreamer {
       def stream(os: OutputStream) {
         val stream = storage.getStream(attachment)
         Streaming.copy(stream, os, closeOS = false)
       }
-    } ~> ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader
+    }
   }
 }
 
