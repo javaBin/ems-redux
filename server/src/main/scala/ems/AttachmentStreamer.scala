@@ -20,7 +20,10 @@ object Streaming {
   def copy(is: InputStream, os: OutputStream, closeOS: Boolean = true) {
     try {
       val buffer = new Array[Byte](1024 * 4)
-      Stream.continually(is.read(buffer)).takeWhile(-1 !=).foreach(_ => os.write(buffer))
+      var read = 0
+      while({read = is.read(buffer); read != -1}) {
+        os.write(buffer, 0, read)
+      }
     }
     finally {
       if (is != null) is.close()
