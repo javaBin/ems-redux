@@ -69,7 +69,7 @@ object Snippets {
 
         <script id="event-template" type="text/template">
           <div class="span12">
-            <h2>{"[%=data.name %]"}</h2>
+            <h2>[%=data.name %]</h2>
           </div>
         </script>
 
