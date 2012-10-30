@@ -5,4 +5,4 @@ if [ ! -d mongo ]; then
   mkdir mongo
 fi
 
-$MONGO --journal --dbpath ./mongo
+$MONGO --bind_ip 0.0.0.0 --journal --dbpath ./mongo
