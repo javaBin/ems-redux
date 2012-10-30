@@ -26,7 +26,6 @@ object Snippets {
         <link href={cp + "/css/flags.css"} rel="stylesheet"/>
 
         <link href={EmsConfig.root.toString} rel="nofollow ems"/>
-        <link href={cp} rel="nofollow contextPath"/>
 
         <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
         <!--[if lt IE 9]>
@@ -68,13 +67,22 @@ object Snippets {
           {content}
         </div> <!-- /container -->
 
+        <script id="event-template" type="text/template">
+          <div class="span12">
+            <h2>{"[%=data.name %]"}</h2>
+          </div>
+        </script>
+
         <!-- Le javascript -->
         <!-- Placed at the end of the document so the pages load faster -->
         <script src={cp + "/js/jquery-1.7.2.min.js" }></script>
         <script src={cp + "/bootstrap-2.0.4/js/bootstrap.min.js" }></script>
         <script src={cp + "/js/underscore.js"}></script>
+        <script src={cp + "/js/date.js"}></script>
         <script src={cp + "/js/collection-json.js"}></script>
         <script src={cp + "/js/mustache.js"}></script>
+        <script src={cp + "/js/backbone-min.js"}></script>
+        <script src={cp + "/js/model.js"}></script>
         <script src={cp + "/js/cake.js"}></script>
 
       </body>

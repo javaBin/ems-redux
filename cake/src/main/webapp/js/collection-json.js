@@ -30,7 +30,7 @@ function fixTemplate(t) {
  * Takes any object and make it look like a collection+json collection object.
  */
 function fromObject(root) {
-//  console.log('in ', root);
+  //console.log('in ', root);
 
   root.isCollection = function() {
     return typeof this.collection == 'object';

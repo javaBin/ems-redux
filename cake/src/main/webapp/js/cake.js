@@ -1,11 +1,6 @@
 var cake = {};
-cake.templates = {};
+//cake.templates = {};
 cake.date = {};
-cake.contextPath = "";
-
-cake.get = function(href, callback) {
-    $.ajax({url: cake.contextPath + "/ajax?href=" + href}).success(callback);
-}
 
 cake.date.parse = function(dateString) {
     return Date.parseExact(dateString, 'yyyy-MM-ddTHH:mm:ssZ');
@@ -18,55 +13,19 @@ cake.date.toString = function(date) {
 cake.loadRoot = function() {
     var root = $('head link[rel="nofollow ems"]').attr("href");
     console.log("configured root is: " + root);
-    var cp = $('head link[rel="nofollow contextPath"]').attr("href");
-    console.log("configured context path: " + cp);
-    cake.contextPath = cp;
 
-    cake.get(root, function(data) {
+    $.ajax({"url": root, dataType: "json"}).success(function(data) {
         cake.root = data;
+        //cake.templates.event = _.template($('#event-template').html());
+        var eventHref = fromObject(cake.root).findLinkByRel("event collection").href;
+        console.log(eventHref);
+        var x = new AppView({url: eventHref});
     });
 }
 
 cake.loadTemplate = function(href, name) {
-    $.ajax({"url": cake.contextPath + href, dataType: "html"}).success(function(temp) {
+    $.ajax({"url": href, dataType: "html"}).success(function(temp) {
         cake.templates[name] = temp;
-    });
-}
-
-cake.events = function(href) {
-    cake.get(href, function(data) {
-        var events = _.map(fromObject(data).collection.items, function(item) {
-            var i = item.toObject();
-            i.sessionHref = item.findLinkByRel("session collection").href;
-            i.href = item.href;
-            return i;
-        });
-        var rendered = Mustache.render(cake.templates.events, {events: events});
-        $('#mainContent').html(rendered);
-    });
-}
-
-cake.sessions = function(title, href) {
-    cake.get(href, function(data) {
-        var sessions = _.map(fromObject(data).collection.items, function(item) {
-            var s = item.toObject();
-            s.href = item.href;
-            return s;
-        });
-        var rendered = Mustache.render(cake.templates.event, {title: title, sessions: sessions});
-        $("#mainContent").html(rendered);
-    });
-}
-
-cake.session = function(href) {
-    cake.get(href, function(data) {
-        var session = _.map(fromObject(data).collection.items, function(item) {
-            var s = item.toObject();
-            console.log(s)
-            return s;
-        });
-        var rendered = Mustache.render(cake.templates.session, {session: _.head(session)});
-        $("#mainContent").html(rendered);
     });
 }
 
@@ -77,12 +36,10 @@ $(document).ready(function() {
     });
     cake.loadRoot();
 
-    cake.loadTemplate("/templates/events.html", "events");
-    cake.loadTemplate("/templates/event.html", "event");
-    cake.loadTemplate("/templates/session.html", "session");
-
     $('#events').click(function() {
-        cake.events(fromObject(cake.root).findLinkByRel("event collection").href);
+        var href = fromObject(cake.root).findLinkByRel("event collection").href;
+        console.log(href);
+        cake.events(href);
     });
 
     $("#mainContent").click(function(event) {
