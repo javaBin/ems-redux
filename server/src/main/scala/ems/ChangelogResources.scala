@@ -16,7 +16,7 @@ import net.hamnaberg.json.collection.{ErrorMessage, JsonCollection}
 trait ChangelogResources {
   def storage: MongoDBStorage
 
-  def handleChangelog(req: HttpRequest[HttpServletRequest])(implicit u: Option[User]) = {
+  def handleChangelog(req: HttpRequest[HttpServletRequest])(implicit u: User) = {
     req match {
       case GET(Params(p)) & BaseURIBuilder(b) & RequestURIBuilder(r) => {
         val query = p("type").headOption ->

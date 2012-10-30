@@ -22,7 +22,7 @@ object JAASAuthenticator extends Authenticator {
     })
     try {
       context.login()
-      Right(User(username))
+      Right(AuthenticatedUser(username))
     }
     catch {
       case e: LoginException => Left(e)

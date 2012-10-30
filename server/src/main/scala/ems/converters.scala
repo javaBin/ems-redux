@@ -60,7 +60,7 @@ object converters {
     }
   }
 
-  def sessionToItem(baseBuilder: URIBuilder)(implicit u: Option[User]): (Session) => Item = {
+  def sessionToItem(baseBuilder: URIBuilder)(implicit u: User): (Session) => Item = {
     s => {
       val properties = Map(
         "title" -> Some(s.abs.title),
@@ -74,7 +74,7 @@ object converters {
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
         "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty)
-      ) + u.map(_ => "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty))).getOrElse("tags" -> None)
+      ) + Some(u).filter(_.authenticated).map(_ => "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty))).getOrElse("tags" -> None)
       val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
 
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()

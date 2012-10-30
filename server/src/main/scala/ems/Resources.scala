@@ -17,10 +17,10 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator) exten
   def this() = this(Resources.storage, JAASAuthenticator)
 
   def intent = {
-    case Authenticated(f) => f((u: Option[User]) => pathMapper(u))
+    case Authenticated(f) => f((u: User) => pathMapper(u))
   }
 
-  private def pathMapper(implicit u: Option[User]): Plan.Intent = {
+  private def pathMapper(implicit u: User): Plan.Intent = {
     case req@ContextPath(_, Seg(Nil)) => handleRoot(req)
     case req@ContextPath(_, Seg("changelog" :: Nil)) => handleChangelog(req)
     case req@ContextPath(_, Seg("contacts" :: Nil)) => handleContactList(req)

@@ -10,7 +10,7 @@ import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
  */
 
 trait Authenticator {
-  type UserFunction = (Option[User]) => Plan.Intent
+  type UserFunction = (User) => Plan.Intent
 
   object Authenticated {
     def apply(req: HttpRequest[HttpServletRequest])(f: UserFunction): ResponseFunction[HttpServletResponse] = {
@@ -18,11 +18,11 @@ trait Authenticator {
         case BasicAuth(u, p) => authenticate(u, p).fold(
           err => Unauthorized ~> WWWAuthenticate("Basic realm=\"ems\"") ~> ResponseString(err.getMessage),
           u => {
-            val intent: Plan.Intent = f(Some(u))
+            val intent: Plan.Intent = f(u)
             if (intent.isDefinedAt(req)) intent(req) else Pass
           }
         )
-        case _ => f(None)(req)
+        case _ => f(Anonymous)(req)
       }
     }
 
@@ -32,4 +32,17 @@ trait Authenticator {
   def authenticate(username: String, password: String): Either[Exception, User]
 }
 
-case class User(name: String)
+sealed trait User {
+  def name: String
+
+  def authenticated: Boolean
+}
+
+case class AuthenticatedUser(name: String) extends User {
+  val authenticated = true
+}
+
+object Anonymous extends User {
+  val name = "Anonymous"
+  val authenticated = true
+}

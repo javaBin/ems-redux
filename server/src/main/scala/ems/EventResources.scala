@@ -86,12 +86,12 @@ trait EventResources extends ResourceHelper {
     handleObject(event, request, (t: Template) => toEvent(Some(id), t), eventToItem(base))
   }
 
-  def handleSessionList(eventId: String, request: HttpRequest[HttpServletRequest])(implicit u: Option[User]) = {
+  def handleSessionList(eventId: String, request: HttpRequest[HttpServletRequest])(implicit u: User) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val href = baseUriBuilder.segments("events", eventId, "sessions").build()
         val sessions = p("title").headOption.map(t => storage.getSessionsByTitle(eventId, t)).getOrElse(storage.getSessions(eventId))
-        val filtered = u.map(_ => sessions).getOrElse(sessions.filter(_.published))
+        val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
         val items = filtered.map(sessionToItem(baseUriBuilder))
         val coll = JsonCollection(href, Nil, items).
           addQuery(new Query(href, "search by-title", Some("By Title"), List(ValueProperty("title")))).
@@ -112,7 +112,7 @@ trait EventResources extends ResourceHelper {
     }
   }
 
-  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit u: Option[User]) = {
+  def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit u: User) = {
     val session = storage.getSession(eventId, sessionId)
     val base = BaseURIBuilder.unapply(request).get
     handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), sessionToItem(base))
