@@ -61,8 +61,10 @@ trait EventResources extends ResourceHelper {
 
   def handleEventList(request: HttpRequest[HttpServletRequest]) = {
     request match {
-      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
-        val output = storage.getEvents().map(eventToItem(baseUriBuilder))
+      case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
+        val byName = p("name").headOption
+        val events = byName.map(storage.getEventsByName(_)).getOrElse(storage.getEvents)
+        val output = events.map(eventToItem(baseUriBuilder))
         val href = baseUriBuilder.segments("events").build()
         CollectionJsonResponse(JsonCollection(href, Nil, output))
       }
