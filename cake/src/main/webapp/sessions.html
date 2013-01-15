@@ -1,1 +1,10 @@
 <div class="hero-unit">WINNING!!!</div>
+<h2>Sessions for {{name}}</h2>
+<table class="table">
+    <tr>
+        <th>title</th>
+    </tr>
+  <tr ng-repeat="session in sessions">
+      <td>{{session.data.title}}</td>
+  </tr>
+</table>
