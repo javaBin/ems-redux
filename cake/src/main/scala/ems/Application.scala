@@ -1,9 +1,7 @@
 package ems
 
-import unfiltered.filter.{Planify, Plan}
-import unfiltered.request.Path
-import unfiltered.response.Html5
-import unfiltered.filter.request.ContextPath
+import unfiltered.filter.Plan
+import unfiltered.response._
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -11,7 +9,8 @@ import unfiltered.filter.request.ContextPath
 
 class Application extends Plan {
   def intent = {
-    case ContextPath(cp, "/") => Html5(Snippets.template(cp, <div id="content"><h1>Hello</h1> <p>From EMS</p></div>))
+    case x => Pass
+    //case ContextPath(cp, "/") => (config.getServletContext.getResourceAsStream("/index.html"))
     //case Path("/events") => Html5(Pages.events(URI.create("http://localhost:8081/events")))
   }
 }
