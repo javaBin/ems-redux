@@ -21,6 +21,18 @@ function findLinkByRel(obj, rel) {
     });
 }
 
+function findQueryByRel(obj, rel) {
+    return _.find(obj.queries, function(query) {
+        return rel === query.rel;
+    });
+}
+
+function expandQuery(query, params) {
+    var uri = URI(query.href)
+    uri.addQuery(params);
+    return uri.toString();
+}
+
 function fixTemplate(t) {
   t.toObject = toObject;
   t.data = _.isArray(t.data) ? t.data : [];
@@ -64,6 +76,10 @@ function fromObject(root) {
     c.queries = _.isArray(c.queries) ? c.queries : [];
     _.each(c.queries, function(query) {
       query.data = _.isArray(query.data) ? query.data : [];
+      query.toObject = toObject;
+      query.expand = function(obj) {
+        return expandQuery(query, obj);
+      };
     });
 
     if(_.isObject(c.template)) {
@@ -84,6 +100,9 @@ function fromObject(root) {
   };
   root.findLinkByRel = function(rel) {
     return findLinkByRel(this.collection, rel);
+  }
+  root.findQueryByRel = function(rel) {
+    return findQueryByRel(this.collection, rel);
   }
 
 //  console.log('out', root);

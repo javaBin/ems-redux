@@ -1,10 +1,18 @@
 <div class="hero-unit">WINNING!!!</div>
 <h2>Sessions for {{name}}</h2>
 <table class="table">
+    <thead>
     <tr>
         <th>title</th>
+        <th>json</th>
     </tr>
-  <tr ng-repeat="session in sessions">
-      <td>{{session.data.title}}</td>
+    </thead>
+    <tbody>
+    <tr ng-repeat="session in sessions">
+        <td>{{session.data.title}}</td>
+        <td><pre>{{session.data | json}}</pre>
+        </td>
+    </tbody>
   </tr>
+
 </table>

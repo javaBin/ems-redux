@@ -65,17 +65,16 @@ app.Main = function($scope, $http) {
 }
 
 app.SessionList = function($scope, $routeParams, $http) {
-    var event = _.find(app.events, function(e) {
-        console.log(e.data.name);
-        return e.data.name === $routeParams.name;
-    });
-    if (!event) {
-        app.LoadEvents($scope, $http)
-    }
-    $http.get(event.sessions).success(function(data) {
-        var sessions = _.map(fromObject(data).collection.items, app.mapSession);
-        $scope.sessions = sessions;
-        $scope.name = event.data.name;
+    app.loadRoot($http, function(root) {
+        var query = root.findQueryByRel("event by-name");
+        $http.get(query.expand({"name": $routeParams.name})).success(function(eventCollection){
+            var event = app.mapEvent(_.head(fromObject(eventCollection).collection.items));
+            $http.get(event.sessions).success(function(data) {
+                var sessions = _.map(fromObject(data).collection.items, app.mapSession);
+                $scope.sessions = sessions;
+                $scope.name = event.data.name;
+            });
+        });
     });
 }
 
