@@ -24,15 +24,15 @@ trait MongoDBStorage  {
 
   def db: MongoDB
 
-  def getEvents() = db("event").find().map(toEvent).toList
+  def getEvents() = db("event").find().sort(MongoDBObject("name" -> 1)).map(toEvent).toList
 
   def getEvent(id: String) = db("event").findOneByID(id).map(toEvent)
 
-  def getEventsByName(name: String) = db("event").find(MongoDBObject("name" -> name)).map(toEvent).toList
+  def getEventsByName(name: String) = db("event").find(MongoDBObject("name" -> name)).sort(MongoDBObject("name" -> 1)).map(toEvent).toList
 
   def saveEvent(event: Event) = saveToMongo(event, db("event"))
 
-  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> eventId)).map(toSession(_, this)).toList
+  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> eventId)).sort(MongoDBObject("title" -> 1)).map(toSession(_, this)).toList
 
   def getSessionsByTitle(eventId: String, title: String) = db("session").find(
     MongoDBObject("eventId" -> eventId, "title" -> title)
@@ -46,7 +46,7 @@ trait MongoDBStorage  {
 
   def getContact(id: String) = db("contact").findOneByID(id).map(toContact(_, this))
 
-  def getContacts() = db("contact").find().map(toContact(_, this)).toList
+  def getContacts() = db("contact").find().sort(MongoDBObject("name" -> 1)).map(toContact(_, this)).toList
 
   def saveContact(contact: Contact) = saveToMongo(contact, db("contact"))
 
