@@ -90,5 +90,91 @@ app.mapSession = function(item) {
     var i = app.parseItem(item)
     console.log("Convert session: " + i.data.title);
     console.log(i);
+    var state = i.data.state;
+    var level = i.data.level;
+    i.data.keywordsAsString = toCSV(i.data.keywords);
+    i.data.tagsAsString = toCSV(i.data.tags);
+
+    i.data.state = app.mapState(state);
+    i.data.format = app.mapFormat(i.data.format);
+    i.data.level = app.mapLevel(level);
     return i;
+}
+
+app.mapState = function(state) {
+    var object = {
+        name: state
+    }
+
+    switch(state) {
+        case "approved":
+            object.icon = "icon-thumbs-up";
+            break;
+        case "rejected":
+            object.icon = "icon-thumbs-down";
+            break;
+        case "pending":
+        default:
+            object.icon = "icon-repeat";
+    }
+
+    return object;
+}
+
+app.mapFormat = function(form) {
+    var object = {
+        name: form
+    }
+    console.log(form);
+    switch(form) {
+        case "lightning-talk":
+            object.icon = "icon-bolt";
+            break;
+        case "panel":
+            object.icon = "icon-group";
+            break;
+        case "bof":
+            object.icon = "icon-comments";
+            break;
+        case "presentation":
+        default:
+            object.icon = "icon-comment-alt";
+    }
+
+    return object;
+}
+
+app.mapLevel = function(level) {
+    var object = {
+        name: level
+    }
+
+    switch (level) {
+        case "beginner":
+            object.icons = ["icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty", "icon-star-empty"];
+            break;
+        case "beginner_intermediate":
+            object.icons = ["icon-star", "icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty"]
+            break;
+        case "intermediate":
+            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star-empty", "icon-star-empty"]
+            break;
+        case "intermediate_advanced":
+            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star", "icon-star-empty"]
+            break;
+        case "advanced":
+            object.icons = ["icon-star","icon-star","icon-star","icon-star","icon-star"]
+            break;
+    }
+    return object;
+}
+
+function toCSV(list) {
+    return _.reduce(list, function (agg, i) {
+        var out = agg;
+        if (agg.length > 0) {
+            out = agg + ","
+        }
+        return out + i;
+    }, "");
 }

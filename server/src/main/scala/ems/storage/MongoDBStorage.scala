@@ -12,10 +12,6 @@ import java.io.InputStream
 import org.joda.time.DateTime
 import security.User
 
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
-
 trait MongoDBStorage  {
 
   import MongoMapper._

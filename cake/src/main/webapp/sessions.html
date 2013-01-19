@@ -1,17 +1,23 @@
-<div class="hero-unit">WINNING!!!</div>
 <h2>Sessions for {{name}}</h2>
-<table class="table">
+<table class="table table-hover">
     <thead>
     <tr>
         <th>title</th>
-        <th>json</th>
+        <th>state</th>
+        <th>format</th>
+        <th>level</th>
+        <th>tags</th>
+        <th>keywords</th>
     </tr>
     </thead>
     <tbody>
     <tr ng-repeat="session in sessions">
         <td>{{session.data.title}}</td>
-        <td><pre>{{session.data | json}}</pre>
-        </td>
+        <td><i class="{{session.data.state.icon}}"></i></td>
+        <td><i class="{{session.data.format.icon}}"></i></td>
+        <td><span ng-repeat="icon in session.data.level.icons"><span class="{{icon}}"></span></span></td>
+        <td><div>{{session.data.tagsAsString}}</div></td>
+        <td>{{session.data.keywordsAsString}}</td>
     </tbody>
   </tr>
 
