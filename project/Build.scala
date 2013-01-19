@@ -1,7 +1,5 @@
 import sbt._
 import sbt.Keys._
-import xml.Group
-import aether._
 import com.github.siasia.WebappPlugin._
 
 object Build extends sbt.Build {
@@ -12,14 +10,12 @@ object Build extends sbt.Build {
     organization := "no.java",
     scalaVersion := "2.9.1",
     scalacOptions := Seq("-deprecation"),
-    publishTo <<= (version) apply {
-      (v: String) => if (v.trim().endsWith("SNAPSHOT")) Some(Resolvers.sonatypeNexusSnapshots) else Some(Resolvers.sonatypeNexusStaging)
-    },
     pomIncludeRepository := {
       x => false
     },
+    crossPaths := false,
     credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-  ) ++ Aether.aetherPublishSettings
+  )
 
   //TODO: Sbt should produce a POM artifact with modules for the aggregates
   lazy val root = Project(
@@ -27,18 +23,16 @@ object Build extends sbt.Build {
     base = file("."),
     settings = buildSettings ++ Seq(
       name := "ems"
-    ) ++ mavenCentralFrouFrou
+    )
   ) aggregate(server, cake, jetty)
 
   lazy val server = module("server")(settings = Seq(
-    libraryDependencies := Dependencies.server,
-    manifestSetting
+    libraryDependencies := Dependencies.server
   ) ++ webappSettings)
 
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie",
-    libraryDependencies := Dependencies.cake,
-    manifestSetting
+    libraryDependencies := Dependencies.cake
   ) ++ webappSettings)
 
   lazy val jetty = module("jetty")(settings = Seq(
@@ -68,45 +62,6 @@ object Build extends sbt.Build {
     val sonatypeNexusSnapshots = "Sonatype Nexus Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
     val sonatypeNexusStaging = "Sonatype Nexus Staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"
   }
-
-  lazy val manifestSetting = packageOptions <+= (name, version, organization) map {
-    (title, version, vendor) =>
-      Package.ManifestAttributes(
-        "Created-By" -> "Simple Build Tool",
-        "Built-By" -> System.getProperty("user.name"),
-        "Build-Jdk" -> System.getProperty("java.version"),
-        "Specification-Title" -> title,
-        "Specification-Version" -> version,
-        "Specification-Vendor" -> vendor,
-        "Implementation-Title" -> title,
-        "Implementation-Version" -> version,
-        "Implementation-Vendor-Id" -> vendor,
-        "Implementation-Vendor" -> vendor
-      )
-  }
-
-  // Things we care about primarily because Maven Central demands them
-  lazy val mavenCentralFrouFrou = Seq(
-    homepage := Some(new URL("http://github.com/javaBin/ems-redux")),
-    startYear := Some(2011),
-    licenses := Seq(("Apache 2", new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))),
-    pomExtra <<= (pomExtra) {
-      (pom) => pom ++ Group(
-        <scm>
-          <url>http://github.com/javaBin/ems-redux</url>
-          <connection>scm:git:git://github.com/javaBin/ems-redux.git</connection>
-          <developerConnection>scm:git:git@github.com:javaBin/ems-redux.git</developerConnection>
-        </scm>
-          <developers>
-            <developer>
-              <id>hamnis</id>
-              <name>Erlend Hamnaberg</name>
-              <url>http://twitter.com/hamnis</url>
-            </developer>
-          </developers>
-      )
-    }
-  )
 
   object Dependencies {
 
