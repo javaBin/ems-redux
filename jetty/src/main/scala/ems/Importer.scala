@@ -10,6 +10,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Properties
 import java.net.URI
+import net.liftweb.json.JsonAST.{JString, JArray}
 
 
 object ImportMain extends App {
@@ -28,10 +29,6 @@ object Importer {
 
 
   def execute(baseDir: File = new File("/tmp/ems")) {
-    contacts(new File(baseDir, "contacts.json")).foreach(c => {
-      val written = storage.importEntity[Contact](c)
-      println("Wrote " + c.name + " to DB with id " + written.id.get)
-    })
     events(new File(baseDir, "events.json")).foreach(e => {
       val written = storage.importEntity[Event](e)
       println("Wrote " + e.name + " to DB with id " + written.id.get)
@@ -45,23 +42,6 @@ object Importer {
       }
     })
     storage.shutdown()
-  }
-
-  def contacts(file: File) = {
-    val parsed = JsonParser.parse(new BufferedReader(new FileReader(file)))
-    (parsed \ "contacts").children.map(c =>
-      Contact(
-        (c \ "id").extractOpt[String],
-        (c \ "name").extract[String],
-        (c \ "bio").extractOpt[String],
-        (c \ "emails").extract[List[String]].map(Email(_)),
-        (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
-        (c \ "photo").extractOpt[String].map(f => {
-          val file = new File(f)
-          storage.saveAttachment(StreamingAttachment(file))
-        })
-      )
-    )
   }
 
   def events(file: File) = {
@@ -110,18 +90,22 @@ object Importer {
           (c \ "audience").extractOpt[String],
           (c \ "outline").extractOpt[String],
           (c \ "equipment").extractOpt[String],
-          (c \ "locale").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
+          (c \ "lang").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
           (c \ "level").extractOpt[String].map(Level(_)).getOrElse(Level.Beginner),
           (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation),
           (c \ "speakers").children.map(s =>
             Speaker(
-              (s \ "id").extract[String],
-              (s \ "name").extract[String],
-              (s \ "bio").extractOpt[String],
-              (s \ "photo").extractOpt[String].map(f => {
-                val file = new File(f)
-                storage.saveAttachment(StreamingAttachment(file))
-              })
+            (s \ "id").extract[String],
+            (s \ "name").extract[String],
+            (s \ "email").extract[String],
+            (s \ "bio").extractOpt[String], {
+              val JArray(tags) = (s \ "tags")
+              tags.collect{case JString(t) => Tag(t)}.toSet[Tag]
+            },
+            (s \ "photo").extractOpt[String].map(f => {
+              val file = new File(f)
+              storage.saveAttachment(StreamingAttachment(file))
+            })
             ))
           ),
         (c \ "state").extractOpt[String].map(State(_)).getOrElse(State.Pending),

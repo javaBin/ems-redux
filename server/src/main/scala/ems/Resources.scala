@@ -11,7 +11,7 @@ import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection
 import unfiltered.filter.request.ContextPath
 import unfiltered.response.{Pass, NotFound}
 
-class Resources(override val storage: MongoDBStorage, auth: Authenticator) extends Plan with EventResources with ContactResources with AttachmentHandler with ChangelogResources {
+class Resources(override val storage: MongoDBStorage, auth: Authenticator) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
   import auth._
 
   def this() = this(Resources.storage, JAASAuthenticator)
@@ -23,9 +23,6 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator) exten
   private def pathMapper(implicit u: User): Plan.Intent = {
     case req@ContextPath(_, Seg(Nil)) => handleRoot(req)
     case req@ContextPath(_, Seg("changelog" :: Nil)) => handleChangelog(req)
-    case req@ContextPath(_, Seg("contacts" :: Nil)) => handleContactList(req)
-    case req@ContextPath(_, Seg("contacts" :: id :: Nil)) => handleContact(id, req)
-    case req@ContextPath(_, Seg("contacts" :: id :: "photo" :: Nil)) => handleContactPhoto(id, req)
     case req@ContextPath(_, Seg("events" :: Nil)) => handleEventList(req)
     case req@ContextPath(_, Seg("events" :: id :: Nil)) => handleEvent(id, req)
     case req@ContextPath(_, Seg("events" :: eventId :: "slots" :: Nil)) => handleSlots(eventId, req)

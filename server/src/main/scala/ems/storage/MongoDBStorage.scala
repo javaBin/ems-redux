@@ -10,6 +10,7 @@ import model._
 import java.util.{Date => JDate}
 import java.io.InputStream
 import org.joda.time.DateTime
+import security.User
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -32,7 +33,14 @@ trait MongoDBStorage  {
 
   def saveEvent(event: Event) = saveToMongo(event, db("event"))
 
-  def getSessions(eventId: String) = db("session").find(MongoDBObject("eventId" -> eventId)).sort(MongoDBObject("title" -> 1)).map(toSession(_, this)).toList
+  def getSessions(eventId: String)(user: User) = {
+    val query = MongoDBObject.newBuilder
+    query += "eventId" -> eventId
+    if (!user.authenticated) {
+      query += "published" -> true
+    }
+    db("session").find(query.result()).sort(MongoDBObject("title" -> 1)).map(toSession(_, this)).toList
+  }
 
   def getSessionsByTitle(eventId: String, title: String) = db("session").find(
     MongoDBObject("eventId" -> eventId, "title" -> title)
@@ -44,12 +52,6 @@ trait MongoDBStorage  {
 
   def saveSession(session: Session) = saveToMongo(session, db("session"))
 
-  def getContact(id: String) = db("contact").findOneByID(id).map(toContact(_, this))
-
-  def getContacts() = db("contact").find().sort(MongoDBObject("name" -> 1)).map(toContact(_, this)).toList
-
-  def saveContact(contact: Contact) = saveToMongo(contact, db("contact"))
-
   def getAttachment(id: String): Option[Attachment with Entity] = {
     val fs = GridFS(db)
     fs.findOne(new ObjectId(id)).map(GridFileAttachment)
@@ -57,7 +59,6 @@ trait MongoDBStorage  {
 
   def importEntity[A <: Entity](entity: A): A#T = {
     entity match {
-      case e: Contact => saveToMongo[A](entity, db("contact"), true)
       case e: Event => saveToMongo[A](entity, db("event"), true)
       case e: Session => saveToMongo[A](entity, db("session"), true)
       case _ => throw new IllegalArgumentException("Unknown entity")
@@ -94,11 +95,6 @@ trait MongoDBStorage  {
     db("session").find(q).map(toSession(_, this)).toSeq
   }
 
-  def getChangedContacts(from: DateTime): Seq[Contact] = {
-    val q = "last-modified" $gte from.toDate
-    db("contact").find(q).map(toContact(_, this)).toSeq
-  }
-
   //TODO: Make sure that we remove where its used as well.
   def removeAttachment(id: String) {
     val fs = GridFS(db)
@@ -119,14 +115,12 @@ trait MongoDBStorage  {
   def saveEntity[T <: Entity](entity: T) = entity match {
     case e: Event => saveEvent(e)
     case s: Session => saveSession(s)
-    case c: Contact => saveContact(c)
     case _ => throw new IllegalArgumentException("Usupported entity: " + entity)
   }
 
   private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection, fromImport: Boolean = false): A#T = {
     val stored = withId(entity)
     val toSave = toMongoDBObject(stored)
-
 
     val update = if (fromImport) coll.findOneByID(entity.id.get, MongoDBObject()).isDefined else entity.id.isDefined
     if (update) {
@@ -221,7 +215,9 @@ private[storage] object MongoMapper {
     Speaker(
       m.get("_id").map(_.toString).get,
       m.as[String]("name"),
+      m.as[String]("email"),
       m.getAs[String]("bio"),
+      m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
       m.get("photo").flatMap(i => storage.getAttachment(i.toString))
     )
   }
@@ -235,21 +231,8 @@ private[storage] object MongoMapper {
     URIAttachment(href, name, size, mt)
   }
 
-  def toContact(dbo: DBObject, storage: MongoDBStorage) = {
-    val m = wrapDBObj(dbo)
-    val id = m.get("_id").map(_.toString)
-    val name = m.as[String]("name")
-    val locale = m.getAs[String]("locale").map(l => new Locale(l)).getOrElse(new Locale("no"))
-    val emails = m.getAs[Seq[_]]("emails").getOrElse(Nil).map(e => Email(e.toString)).toList
-    val photo = m.get("photo").flatMap(i => storage.getAttachment(i.toString))
-    val bio = m.getAs[String]("bio")
-    val lm = m.getAsOrElse[JDate]("last-modified", new JDate())
-    Contact(id, name, bio, emails, locale, photo, lm)
-  }
-
   def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
     case s: Session => toMongoDBObject(s)
-    case s: Contact => toMongoDBObject(s)
     case s: Event => toMongoDBObject(s)
     case _ => throw new UnsupportedOperationException("Not supported")
   }
@@ -290,19 +273,6 @@ private[storage] object MongoMapper {
     )
   }
 
-  private def toMongoDBObject(contact: Contact): DBObject = {
-    val obj = MongoDBObject(
-      "_id" -> contact.id.getOrElse(util.UUID.randomUUID().toString),
-      "name" -> contact.name,
-      "bio" -> contact.bio,
-      "photo" -> contact.photo.map(_.id),
-      "locale" -> contact.locale.getLanguage,
-      "emails" -> contact.emails.map(_.address),
-      "last-modified" -> contact.lastModified.toDate
-    )
-    obj
-  }
-
   private def toMongoDBObject(att: URIAttachment): DBObject = {
     MongoDBObject(
       "href" -> att.href.toString,
@@ -328,9 +298,11 @@ private[storage] object MongoMapper {
 
   private def toMongoDBObject(speaker: Speaker): DBObject = {
     MongoDBObject(
-      "_id" -> speaker.contactId,
+      "_id" -> speaker.id,
       "name" -> speaker.name,
+      "email" -> speaker.email,
       "bio" -> speaker.bio,
+      "tags" -> speaker.tags.map(_.name),
       "photo" -> speaker.photo.map(_.id)
     )
   }

@@ -68,12 +68,12 @@ trait EventResources extends ResourceHelper {
         val href = baseUriBuilder.segments("events").build()
         CollectionJsonResponse(JsonCollection(href, Nil, output))
       }
-      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
+      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) & BaseURIBuilder(baseUriBuilder) => {
         withTemplate(req) {
           t => {
             val e = toEvent(None, t)
-            storage.saveEvent(e)
-            NoContent
+            val stored = storage.saveEvent(e)
+            Created ~> Location(baseUriBuilder.segments("events", stored.id.get).build().toString)
           }
         }
       }
@@ -92,7 +92,7 @@ trait EventResources extends ResourceHelper {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val href = baseUriBuilder.segments("events", eventId, "sessions").build()
-        val sessions = p("title").headOption.map(t => storage.getSessionsByTitle(eventId, t)).getOrElse(storage.getSessions(eventId))
+        val sessions = p("title").headOption.map(t => storage.getSessionsByTitle(eventId, t)).getOrElse(storage.getSessions(eventId)(u))
         val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
         val items = filtered.map(sessionToItem(baseUriBuilder))
         val coll = JsonCollection(href, Nil, items).
@@ -158,7 +158,7 @@ trait EventResources extends ResourceHelper {
     case _ => MethodNotAllowed
   }
 
-  def handleSpeakers(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleSpeakers(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
     request match {
       case GET(_) & BaseURIBuilder(builder) & RequestURIBuilder(requestURIBuilder) => {
         val session = storage.getSession(eventId, sessionId)
@@ -168,11 +168,11 @@ trait EventResources extends ResourceHelper {
     }
   }
 
-  def handleSpeaker(eventId: String, sessionId: String, speakerId: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleSpeaker(eventId: String, sessionId: String, speakerId: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
     request match {
       case GET(_) & RequestURIBuilder(requestURIBuilder) & BaseURIBuilder(builder) => {
         val session = storage.getSession(eventId, sessionId)
-        val speaker = session.flatMap(_.speakers.find(_.contactId == speakerId)).map(speakerToItem(builder, eventId, sessionId))
+        val speaker = session.flatMap(_.speakers.find(_.id == speakerId)).map(speakerToItem(builder, eventId, sessionId))
         if (speaker.isDefined) {
           CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, speaker.get))
         }
@@ -189,7 +189,7 @@ trait EventResources extends ResourceHelper {
         request match {
           case RequestContentDisposition(cd) => {
             val session = storage.getSession(eventId, sessionId)
-            val speaker = session.flatMap(_.speakers.find(_.contactId == contactId))
+            val speaker = session.flatMap(_.speakers.find(_.id == contactId))
             if (speaker.isDefined) {
               val binary = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
               val updated = speaker.get.copy(photo = Some(binary))
@@ -215,7 +215,7 @@ trait EventResources extends ResourceHelper {
       case POST(_) => UnsupportedMediaType
       case GET(_) & BaseURIBuilder(b) => {
         val session = storage.getSession(eventId, sessionId)
-        val image = session.flatMap(_.speakers.find(_.contactId == contactId)).flatMap(_.photo.map(i => b.segments("binary", i.id.get).build()))
+        val image = session.flatMap(_.speakers.find(_.id == contactId)).flatMap(_.photo.map(i => b.segments("binary", i.id.get).build()))
         if (image.isDefined) Redirect(image.get.toString) else MethodNotAllowed
       }
       case _ => MethodNotAllowed

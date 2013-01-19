@@ -25,7 +25,6 @@ trait ChangelogResources {
         val items = query match {
           case (Some("event"), Some(dt)) => Right(storage.getChangedEvents(dt).map(converters.eventToItem(b)))
           case (Some("session"), Some(dt)) => Right(storage.getChangedSessions(dt).map(converters.sessionToItem(b)))
-          case (Some("contact"), Some(dt)) => Right(storage.getChangedContacts(dt).map(converters.contactToItem(b)))
           case (Some(_), None) => Left(ErrorMessage("Missing or malformed from date", None, None))
           case (None, Some(_)) => Left(ErrorMessage("Unknown entity", None, None))
           case (None, None) => Left(ErrorMessage("Missing entity and from date", None, None))

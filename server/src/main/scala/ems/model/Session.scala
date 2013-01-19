@@ -77,7 +77,7 @@ case class Session(id: Option[String],
 
   def addOrUpdateSpeaker(speaker: Speaker) = {
     val speakers = Vector(this.speakers : _*)
-    val index = speakers.indexWhere(_.contactId == speaker.contactId)
+    val index = speakers.indexWhere(_.id == speaker.id)
     if (index != -1) {
       withAbstract(abs.withSpeakers(speakers.updated(index, speaker)))
     }
@@ -109,7 +109,7 @@ object Session {
   }
 }
 
-case class Speaker(contactId: String, name: String, bio: Option[String] = None, photo: Option[Attachment with Entity] = None)
+case class Speaker(id: String, name: String, email: String, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity] = None)
 
 
 sealed abstract class Level(val name: String) {

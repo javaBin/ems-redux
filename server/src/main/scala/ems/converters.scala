@@ -9,14 +9,6 @@ import java.util.Locale
 import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
 import security.User
 
-/**
- * Created by IntelliJ IDEA.
- * User: maedhros
- * Date: 11/8/11
- * Time: 10:11 PM
- * To change this template use File | Settings | File Templates.
- */
-
 object converters {
   val DateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZoneUTC()
 
@@ -112,33 +104,20 @@ object converters {
     }
   }
 
-  def speakerToItem(builder: URIBuilder, eventId: String, sessionId: String): (Speaker) => (Item) = {
+  def speakerToItem(builder: URIBuilder, eventId: String, sessionId: String)(implicit user: User): (Speaker) => (Item) = {
     s => {
-      val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.contactId)
+      val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id)
+      val data = List(
+        ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
+        ValueProperty("email", Some("Email"), Some(StringValue(s.name))),
+        ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
+      ) ++ (if (user.authenticated) List(ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq)) else Nil)
+
       Item(
         base.build(),
-        List(
-          ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
-          ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
-        ),
+        data,
         s.photo.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
           List(Link(base.segments("photo").build(), "attach-photo"))
-      )
-    }
-  }
-
-  def contactToItem(baseBuilder: URIBuilder): (Contact) => (Item) = {
-    c => {
-      Item(
-        baseBuilder.segments("contacts", c.id.get).build(),
-        List(
-          ValueProperty("name", Some("Name"), Some(StringValue(c.name))),
-          ValueProperty("bio", Some("Bio"), c.bio.map(StringValue(_))),
-          ValueProperty("locale", Some("Locale"), Some(StringValue(c.locale.getLanguage))),
-          ListProperty("emails", Some("Emails"), c.emails.map(e => StringValue(e.address)))
-        ),
-        c.photo.map(a => Link(baseBuilder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
-          List(Link(baseBuilder.segments("contacts", "photo").build(), "attach-photo"))
       )
     }
   }
@@ -150,17 +129,6 @@ object converters {
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
     Event(id, name, start, end, venue, Nil, Nil)
   }
-
-  def toContact(id: Option[String], template: Template): Contact = {
-    val name = template.getPropertyValue("name").map(_.value.toString).get
-    val bio = template.getPropertyValue("bio").map(_.value.toString)
-
-    val locale = template.getPropertyValue("locale").map(_.value.toString).map(x => new Locale(x)).getOrElse(new Locale("no"))
-    val emails = template.getPropertyAsSeq("emails").map(e => Email(e.value.toString)).toList
-
-    Contact(id, name, bio, emails, locale)
-  }
-
 
   def toSession(eventId: String, id: Option[String], template: Template): Session = {
     val title = template.getPropertyValue("title").get.value.toString
