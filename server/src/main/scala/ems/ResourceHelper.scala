@@ -52,13 +52,16 @@ trait ResourceHelper {
       case RequestContentType(CollectionJsonResponse.contentType) => {
         val template = LiftJsonCollectionParser.parseTemplate(req.inputStream)
         template match {
-          case Left(e) => BadRequest ~>
-            CollectionJsonResponse(
-              JsonCollection(
-                requestUriBuilder.build(),
-                ErrorMessage("Error with request", None, Option(e.getMessage))
+          case Left(e) => {
+            e.printStackTrace()
+            BadRequest ~>
+              CollectionJsonResponse(
+                JsonCollection(
+                  requestUriBuilder.build(),
+                  ErrorMessage("Error with request", None, Option(e.getMessage))
+                )
               )
-            )
+          }
           case Right(t) => {
             f(t)
           }

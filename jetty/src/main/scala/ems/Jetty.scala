@@ -5,10 +5,6 @@ import no.java.ems.Resources
 import no.java.ems.security.JAASAuthenticator
 import scala.util.Properties
 
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
-
 object Jetty extends App {
   val port = Properties.envOrElse("PORT", "8081").toInt
 
@@ -16,7 +12,7 @@ object Jetty extends App {
 
   unfiltered.jetty.Http(port).
   context("/cake") {
-    _.filter(new Application).filter(EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURL)
+    _.filter(new ems.Application).filter(EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURL)
   }.context("/server"){
     _.filter(Resources(JAASAuthenticator))
   } run()

@@ -100,12 +100,14 @@ trait EventResources extends ResourceHelper {
           addQuery(new Query(href, "search by-tags", Some("By Tags"), List(ValueProperty("tags"))))
         CollectionJsonResponse(coll)
       }
-      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
+      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) & BaseURIBuilder(baseUriBuilder) => {
         withTemplate(req) {
           t => {
             val session = toSession(eventId, None, t)
-            storage.saveSession(session)
-            NoContent
+            val saved = storage.saveSession(session)
+            val id = saved.id.get
+            val href = baseUriBuilder.segments("events", eventId, "sessions", id).build()
+            Created ~> Location(href.toString)
           }
         }
       }

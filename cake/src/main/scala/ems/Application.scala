@@ -3,10 +3,6 @@ package ems
 import unfiltered.filter.Plan
 import unfiltered.response._
 
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
-
 class Application extends Plan {
   def intent = {
     case x => Pass
