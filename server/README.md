@@ -69,9 +69,9 @@ represented by the "user.home" System property.
 
 Example file:
 
-ems {
-  com.sun.security.auth.module.LdapLoginModule REQUIRED
-  userProvider="ldap://ldap.java.no"
-  authIdentity="uid={USERNAME},ou=People,dc=java,dc=no"
-  useSSL=false;
-};
+    ems {
+        com.sun.security.auth.module.LdapLoginModule REQUIRED
+        userProvider="ldap://ldap.java.no"
+        authIdentity="uid={USERNAME},ou=People,dc=java,dc=no"
+        useSSL=false;
+    };
