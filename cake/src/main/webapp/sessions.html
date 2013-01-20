@@ -3,6 +3,7 @@
     <thead>
     <tr>
         <th>title</th>
+        <th>speakers</th>
         <th>state</th>
         <th>format</th>
         <th>level</th>
@@ -13,6 +14,7 @@
     <tbody>
     <tr ng-repeat="session in sessions">
         <td>{{session.data.title}}</td>
+        <td><div>{{session.speakersAsString}}</div></td>
         <td><i class="{{session.state.icon}}" title="{{session.state.name}}"></i></td>
         <td><i class="{{session.format.icon}}" title="{{session.format.name}}"></i></td>
         <td><span ng-repeat="icon in session.level.icons" title="{{session.level.name}}"><span class="{{icon}}"></span></span></td>

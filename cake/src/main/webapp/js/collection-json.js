@@ -21,6 +21,12 @@ function findLinkByRel(obj, rel) {
     });
 }
 
+function findLinksByRel(obj, rel) {
+    return _.filter(obj.links, function(link) {
+        return rel === link.rel;
+    });
+}
+
 function findQueryByRel(obj, rel) {
     return _.find(obj.queries, function(query) {
         return rel === query.rel;

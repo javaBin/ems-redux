@@ -1,0 +1,23 @@
+<div class="session">
+    <h2>{{session.data.title}}</h2>
+    <div class="row">
+        <div class="span4">Abstract</div><div class="span4">{{session.data.body}}</div>
+        <div class="span4">Highlight Summary</div><div class="span4">{{session.data.summary}}</div>
+    </div>
+    <div class="row">
+        <div class="span2">State</div>
+        <div class="span1">
+            <i class="{{session.state.icon}}" title="{{session.state.name}}"></i>
+        </div>
+        <div class="span2">Format</div>
+        <div class="span1">
+            <i class="{{session.format.icon}}" title="{{session.format.name}}"></i>
+        </div>
+    </div>
+    <div class="row">
+        <div class="span4">Level</div>
+        <div class="span4"><span ng-repeat="icon in session.level.icons" title="{{session.level.name}}"><span class="{{icon}}"></span></span></div>
+    </div>
+    <td>{{session.keywordsAsString}}</td>
+    <td><div>{{session.tagsAsString}}</div></td>
+</div>

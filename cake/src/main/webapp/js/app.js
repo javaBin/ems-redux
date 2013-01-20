@@ -5,7 +5,8 @@ angular.module('app', []).
     config(function($routeProvider) {
         $routeProvider.
             when('/', {controller:app.Main, templateUrl: 'about.html'}).
-            when('/events/:name', {controller:app.SessionList, templateUrl:'sessions.html'})./*.
+            when('/events/:name', {controller:app.SessionList, templateUrl:'sessions.html'}).
+            when('/events/:eventName/session/:sessionTitle', {controller:app.SingleSession, templateUrl:'single-session.html'})./*.
             when('/edit/:projectId', {controller:EditCtrl, templateUrl:'detail.html'}).
             when('/new', {controller:CreateCtrl, templateUrl:'detail.html'}).*/
             otherwise({redirectTo:'/'});
@@ -78,6 +79,10 @@ app.SessionList = function($scope, $routeParams, $http) {
     });
 }
 
+app.SingleSession = function($scope) {
+
+}
+
 app.mapEvent = function(item) {
     var i = app.parseItem(item)
     i.data.start = app.date.parse(item.data.start);
@@ -88,16 +93,14 @@ app.mapEvent = function(item) {
 
 app.mapSession = function(item) {
     var i = app.parseItem(item)
-    console.log("Convert session: " + i.data.title);
-    console.log(i);
-    var state = i.data.state;
-    var level = i.data.level;
     i.keywordsAsString = toCSV(i.data.keywords);
     i.tagsAsString = toCSV(i.data.tags);
-
-    i.state = app.mapState(state);
+    i.state = app.mapState(i.data.state);
     i.format = app.mapFormat(i.data.format);
-    i.level = app.mapLevel(level);
+    i.level = app.mapLevel(i.data.level);
+    i.speakers = findLinksByRel(i, "speaker item");
+    console.log(i.speakers);
+    i.speakersAsString = toCSV(i.speakers.map(function(i){return i.prompt}));
     return i;
 }
 
