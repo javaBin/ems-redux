@@ -177,7 +177,7 @@ trait EventResources extends ResourceHelper {
           NotFound
         }
         else {
-          withTemplate(req){ t =>
+          withTemplate(request){ t =>
             val session = optionalSession.get
             val speaker = toSpeaker(t)
             val exists = session.speakers.exists(_.email == speaker.email)
@@ -190,7 +190,7 @@ trait EventResources extends ResourceHelper {
                 ex => InternalServerError ~> ResponseString(ex.getMessage),
                 saved => {
                   val id = saved.id.get
-                  val href = baseUriBuilder.segments("events", eventId, "sessions", id, "speakers", speaker.id).build()
+                  val href = builder.segments("events", eventId, "sessions", id, "speakers", speaker.id).build()
                   Created ~> Location(href.toString)
                 }
               )

@@ -46,10 +46,6 @@ trait MongoDBStorage  {
     MongoDBObject("_id" -> id, "eventId" -> eventId)
   ).map(toSession(_, this))
 
-  def getSpeakerByEmail(eventId: String, sessionId: String, email: String): Option[Speaker] = db("session").findOne(
-    getSession(eventId, sessionId).flatMap(_.speakers.find(_.email == email))
-  )
-
   def saveSession(session: Session) = saveToMongo(session, db("session"))
 
   def getAttachment(id: String): Option[Attachment with Entity] = {

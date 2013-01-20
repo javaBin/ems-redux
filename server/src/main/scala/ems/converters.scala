@@ -152,7 +152,7 @@ object converters {
     val name = template.getPropertyValue("name").get.value.toString
     val email = template.getPropertyValue("email").get.value.toString
     val bio = template.getPropertyValue("bio").map(_.value.toString)
-    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
+    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString)).toSet[Tag]
     Speaker(UUID.randomUUID().toString, name, email, bio, tags)
   }
 
