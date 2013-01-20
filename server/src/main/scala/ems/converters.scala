@@ -70,14 +70,24 @@ object converters {
       val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
 
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
-      val links = List(
-        Link(URIBuilder(href).segments("attachments").build(), "collection attachment", Some("Attachments for %s".format(s.abs.title))),
-        Link(URIBuilder(href).segments("speakers").build(), "collection speaker", Some("Speakers for %s".format(s.abs.title)))
-      ) ++ s.attachments.map(a => Link(a.href, getRel(a), Some(a.name))) ++
-        s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "item room", Some(r.name))) ++
-        s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "item slot", Some(slot.start.toString(DateFormat) + "-" + slot.end.toString(DateFormat))))
-      Item(href, filtered, links)
+      Item(href, filtered, createSessionLinks(href, s))
     }
+  }
+
+
+  private def createSessionLinks(href: URI, s: Session): List[Link] = {
+    val links = List.newBuilder[Link]
+
+    links ++= List(
+      Link(URIBuilder(href).segments("attachments").build(), "attachment collection", Some("Attachments for %s".format(s.abs.title))),
+      Link(URIBuilder(href).segments("speakers").build(), "speaker collection", Some("Speakers for %s".format(s.abs.title)))
+    )
+    links ++= s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
+    links ++= s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "room item", Some(r.name)))
+    links ++= s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "slot item", Some(slot.start.toString(DateFormat) + "-" + slot.end.toString(DateFormat))))
+    links ++= s.abs.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id).build(), "speaker item", Some(speaker.name)))
+
+    links.result()
   }
 
   def attachmentToItem(baseURIBuilder: URIBuilder): (URIAttachment) => (Item) = {

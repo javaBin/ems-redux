@@ -287,6 +287,7 @@ private[storage] object MongoMapper {
   private def toMongoDBObject(abs: Abstract): DBObject = {
     MongoDBObject(
       "title" -> abs.title,
+      "body" -> abs.body,
       "summary" -> abs.summary,
       "equipment" -> abs.equipment,
       "outline" -> abs.outline,
