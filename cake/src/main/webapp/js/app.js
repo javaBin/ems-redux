@@ -92,12 +92,12 @@ app.mapSession = function(item) {
     console.log(i);
     var state = i.data.state;
     var level = i.data.level;
-    i.data.keywordsAsString = toCSV(i.data.keywords);
-    i.data.tagsAsString = toCSV(i.data.tags);
+    i.keywordsAsString = toCSV(i.data.keywords);
+    i.tagsAsString = toCSV(i.data.tags);
 
-    i.data.state = app.mapState(state);
-    i.data.format = app.mapFormat(i.data.format);
-    i.data.level = app.mapLevel(level);
+    i.state = app.mapState(state);
+    i.format = app.mapFormat(i.data.format);
+    i.level = app.mapLevel(level);
     return i;
 }
 

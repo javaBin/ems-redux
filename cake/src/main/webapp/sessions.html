@@ -13,11 +13,11 @@
     <tbody>
     <tr ng-repeat="session in sessions">
         <td>{{session.data.title}}</td>
-        <td><i class="{{session.data.state.icon}}"></i></td>
-        <td><i class="{{session.data.format.icon}}"></i></td>
-        <td><span ng-repeat="icon in session.data.level.icons"><span class="{{icon}}"></span></span></td>
-        <td><div>{{session.data.tagsAsString}}</div></td>
-        <td>{{session.data.keywordsAsString}}</td>
+        <td><i class="{{session.state.icon}}" title="{{session.state.name}}"></i></td>
+        <td><i class="{{session.format.icon}}" title="{{session.format.name}}"></i></td>
+        <td><span ng-repeat="icon in session.level.icons" title="{{session.level.name}}"><span class="{{icon}}"></span></span></td>
+        <td><div>{{session.tagsAsString}}</div></td>
+        <td>{{session.keywordsAsString}}</td>
     </tbody>
   </tr>
 
