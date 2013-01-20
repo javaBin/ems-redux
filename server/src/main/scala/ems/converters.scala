@@ -5,7 +5,7 @@ import model._
 import org.joda.time.format.DateTimeFormat
 import net.hamnaberg.json.collection._
 import no.java.util.URIBuilder
-import java.util.Locale
+import java.util.{UUID, Locale}
 import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
 import security.User
 
@@ -146,6 +146,14 @@ object converters {
     val abs = Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
+  }
+
+  def toSpeaker(template: Template): Speaker = {
+    val name = template.getPropertyValue("name").get.value.toString
+    val email = template.getPropertyValue("email").get.value.toString
+    val bio = template.getPropertyValue("bio").map(_.value.toString)
+    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
+    Speaker(UUID.randomUUID().toString, name, email, bio, tags)
   }
 
   def toAttachment(template: Template): URIAttachment = {

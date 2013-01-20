@@ -46,6 +46,10 @@ trait MongoDBStorage  {
     MongoDBObject("_id" -> id, "eventId" -> eventId)
   ).map(toSession(_, this))
 
+  def getSpeakerByEmail(eventId: String, sessionId: String, email: String): Option[Speaker] = db("session").findOne(
+    getSession(eventId, sessionId).flatMap(_.speakers.find(_.email == email))
+  )
+
   def saveSession(session: Session) = saveToMongo(session, db("session"))
 
   def getAttachment(id: String): Option[Attachment with Entity] = {
@@ -53,7 +57,7 @@ trait MongoDBStorage  {
     fs.findOne(new ObjectId(id)).map(GridFileAttachment)
   }
 
-  def importEntity[A <: Entity](entity: A): A#T = {
+  def importEntity[A <: Entity](entity: A): Either[MongoException, A#T] = {
     entity match {
       case e: Event => saveToMongo[A](entity, db("event"), true)
       case e: Session => saveToMongo[A](entity, db("session"), true)
@@ -114,7 +118,7 @@ trait MongoDBStorage  {
     case _ => throw new IllegalArgumentException("Usupported entity: " + entity)
   }
 
-  private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection, fromImport: Boolean = false): A#T = {
+  private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection, fromImport: Boolean = false): Either[MongoException, A#T] = {
     val stored = withId(entity)
     val toSave = toMongoDBObject(stored)
 
@@ -125,7 +129,13 @@ trait MongoDBStorage  {
     else {
       coll.insert(toSave, WriteConcern.Safe)
     }
-    stored
+    val lastError = coll.lastError()
+    if (lastError.ok()) {
+      Right(stored)
+    }
+    else {
+      Left(lastError.getException)
+    }
   }
 
   private def withId[Y <: Entity](entity: Y): Y#T = {

@@ -30,13 +30,13 @@ object Importer {
 
   def execute(baseDir: File = new File("/tmp/ems")) {
     events(new File(baseDir, "events.json")).foreach(e => {
-      val written = storage.importEntity[Event](e)
+      val written = storage.importEntity[Event](e).right.get
       println("Wrote " + e.name + " to DB with id " + written.id.get)
       val id = written.id.getOrElse("")
       val eventDir = new File(baseDir, id)
       if (new File(eventDir, "sessions.json").exists()) {
         sessions(new File(eventDir, "sessions.json")).foreach(s => {
-          val written = storage.importEntity[Session](s)
+          val written = storage.importEntity[Session](s).right.get
           println("Wrote " + s.abs.title + " to DB with id " + written.id.get)
         })
       }

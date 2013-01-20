@@ -72,8 +72,10 @@ trait EventResources extends ResourceHelper {
         withTemplate(req) {
           t => {
             val e = toEvent(None, t)
-            val stored = storage.saveEvent(e)
-            Created ~> Location(baseUriBuilder.segments("events", stored.id.get).build().toString)
+            storage.saveEvent(e).fold(
+              ex => InternalServerError ~> ResponseString(ex.getMessage),
+              stored => Created ~> Location(baseUriBuilder.segments("events", stored.id.get).build().toString)
+            )
           }
         }
       }
@@ -104,10 +106,14 @@ trait EventResources extends ResourceHelper {
         withTemplate(req) {
           t => {
             val session = toSession(eventId, None, t)
-            val saved = storage.saveSession(session)
-            val id = saved.id.get
-            val href = baseUriBuilder.segments("events", eventId, "sessions", id).build()
-            Created ~> Location(href.toString)
+            storage.saveSession(session).fold(
+              ex => InternalServerError ~> ResponseString(ex.getMessage),
+              saved => {
+                val id = saved.id.get
+                val href = baseUriBuilder.segments("events", eventId, "sessions", id).build()
+                Created ~> Location(href.toString)
+              }
+            )
           }
         }
       }
@@ -165,6 +171,34 @@ trait EventResources extends ResourceHelper {
         val items = session.toList.flatMap(sess => sess.speakers.map(speakerToItem(builder, eventId, sessionId)))
         CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items))
       }
+      case POST(_) & BaseURIBuilder(builder) => {
+        val optionalSession = storage.getSession(eventId, sessionId)
+        if (!optionalSession.isDefined) {
+          NotFound
+        }
+        else {
+          withTemplate(req){ t =>
+            val session = optionalSession.get
+            val speaker = toSpeaker(t)
+            val exists = session.speakers.exists(_.email == speaker.email)
+            if (exists) {
+              BadRequest ~> ResponseString("There already exists a speaker with this email")
+            }
+            else {
+              val withSpeaker = session.addOrUpdateSpeaker(speaker)
+              storage.saveSession(withSpeaker).fold(
+                ex => InternalServerError ~> ResponseString(ex.getMessage),
+                saved => {
+                  val id = saved.id.get
+                  val href = baseUriBuilder.segments("events", eventId, "sessions", id, "speakers", speaker.id).build()
+                  Created ~> Location(href.toString)
+                }
+              )
+            }
+          }
+        }
+      }
+      case _ => MethodNotAllowed
     }
   }
 
