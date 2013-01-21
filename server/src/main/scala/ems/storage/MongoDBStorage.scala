@@ -25,7 +25,7 @@ trait MongoDBStorage  {
 
   def getEvent(id: String) = db("event").findOneByID(id).map(toEvent)
 
-  def getEventsByName(name: String) = db("event").find(MongoDBObject("name" -> name)).sort(MongoDBObject("name" -> 1)).map(toEvent).toList
+  def getEventsBySlug(name: String) = db("event").find(MongoDBObject("slug" -> name)).sort(MongoDBObject("name" -> 1)).map(toEvent).toList
 
   def saveEvent(event: Event) = saveToMongo(event, db("event"))
 
@@ -38,9 +38,9 @@ trait MongoDBStorage  {
     db("session").find(query.result()).sort(MongoDBObject("abstract" -> MongoDBObject("title" -> 1))).map(toSession(_, this)).toList
   }
 
-  def getSessionsByTitle(eventId: String, title: String) = db("session").find(
-    MongoDBObject("eventId" -> eventId, "title" -> title)
-  ).map(toSession(_, this)).toList
+  def getSessionsBySlug(eventId: String, slug: String) = db("session").find(
+    MongoDBObject("eventId" -> eventId, "slug" -> slug)
+  ).sort(MongoDBObject("abstract" -> MongoDBObject("title" -> 1))).map(toSession(_, this)).toList
 
   def getSession(eventId: String, id: String) = db("session").findOne(
     MongoDBObject("_id" -> id, "eventId" -> eventId)

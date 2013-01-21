@@ -49,8 +49,8 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator) exten
       List(Query(builder.segments("changelog").build(), "changelog", Some("Changelog"), List(
         ValueProperty("type", Some("Type")),
         ValueProperty("from", Some("From DateTime"))
-      )), Query(builder.segments("events").build(), "event by-name", Some("Event By Name"), List(
-        ValueProperty("name", Some("Name"))
+      )), Query(builder.segments("events").build(), "event by-slug", Some("Event By Slug"), List(
+        ValueProperty("slug", Some("Slug"))
       )))
     ))
   }

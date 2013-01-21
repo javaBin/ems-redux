@@ -41,7 +41,7 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Events <b class="caret"></b></a>
                         <ul id="events" class="dropdown-menu">
                             <li ng-repeat="event in events">
-                                <a href="#/events/{{event.data.name}}">{{event.data.name}}</a>
+                                <a href="#/events/{{event.data.slug}}">{{event.data.name}}</a>
                             </li>
                         </ul>
                     </li>
@@ -70,6 +70,7 @@
 <script src="js/uri.js"></script>
 <script src="js/collection-json.js"></script>
 <script src="js/date.js"></script>
+<script src="js/session.js"></script>
 <script src="js/app.js"></script>
 
 </body>

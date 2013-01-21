@@ -16,6 +16,7 @@ object converters {
     e => {
       val properties = Map(
         "name" -> Some(e.name),
+        "slug" -> Some(e.slug),
         "start" -> Some(DateFormat.print(e.start)),
         "end" -> Some(DateFormat.print(e.end))
       ).map(toProperty).toList
@@ -56,6 +57,7 @@ object converters {
     s => {
       val properties = Map(
         "title" -> Some(s.abs.title),
+        "slug" -> Some(s.slug),
         "body" -> s.abs.body,
         "summary" -> s.abs.summary,
         "audience" -> s.abs.audience,

@@ -62,11 +62,11 @@ trait EventResources extends ResourceHelper {
   def handleEventList(request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
-        val byName = p("name").headOption
-        val events = byName.map(storage.getEventsByName(_)).getOrElse(storage.getEvents)
-        val output = events.map(eventToItem(baseUriBuilder))
+        val byName = p("slug").headOption
+        val events = byName.map(storage.getEventsBySlug(_)).getOrElse(storage.getEvents)
+        val items = events.map(eventToItem(baseUriBuilder))
         val href = baseUriBuilder.segments("events").build()
-        CollectionJsonResponse(JsonCollection(href, Nil, output))
+        CollectionJsonResponse(JsonCollection(href, Nil, items))
       }
       case req@POST(RequestContentType(CollectionJsonResponse.contentType)) & BaseURIBuilder(baseUriBuilder) => {
         withTemplate(req) {
@@ -94,11 +94,12 @@ trait EventResources extends ResourceHelper {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val href = baseUriBuilder.segments("events", eventId, "sessions").build()
-        val sessions = p("title").headOption.map(t => storage.getSessionsByTitle(eventId, t)).getOrElse(storage.getSessions(eventId)(u))
+        val sessions = p("slug").headOption.map(t => storage.getSessionsBySlug(eventId, t)).getOrElse(storage.getSessions(eventId)(u))
         val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
         val items = filtered.map(sessionToItem(baseUriBuilder))
         val coll = JsonCollection(href, Nil, items).
           addQuery(new Query(href, "search by-title", Some("By Title"), List(ValueProperty("title")))).
+          addQuery(new Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug")))).
           addQuery(new Query(href, "search by-tags", Some("By Tags"), List(ValueProperty("tags"))))
         CollectionJsonResponse(coll)
       }
