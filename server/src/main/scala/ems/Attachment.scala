@@ -6,10 +6,6 @@ import java.net.URI
 import javax.activation.{MimetypesFileTypeMap, MimeType}
 import scala.Some
 
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
-
 trait Attachment {
   def name: String
   def size: Option[Long]

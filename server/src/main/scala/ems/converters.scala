@@ -137,7 +137,7 @@ object converters {
     val start = template.getPropertyValue("start").map(x => DateFormat.parseDateTime(x.value.toString)).get
     val end = template.getPropertyValue("end").map(x => DateFormat.parseDateTime(x.value.toString)).get
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
-    Event(id, name, start, end, venue, Nil, Nil)
+    Event(id, name, Slug.makeSlug(name), start, end, venue, Nil, Nil)
   }
 
   def toSession(eventId: String, id: Option[String], template: Template): Session = {

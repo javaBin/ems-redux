@@ -40,14 +40,15 @@ case class Abstract(title: String,
 
 case class Session(id: Option[String],
                    eventId: String,
+                   slug: String,
                    room: Option[Room],
                    slot: Option[Slot],
                    abs: Abstract,
                    state: State,
                    published: Boolean,
-                   attachments: List[URIAttachment],
                    tags: Set[Tag],
                    keywords: Set[Keyword],
+                   attachments: List[URIAttachment] = Nil,
                    lastModified: DateTime = new DateTime()) extends Entity {
 
 
@@ -96,16 +97,16 @@ case class Session(id: Option[String],
 
 object Session {
   def apply(eventId: String, abs: Abstract): Session = {
-    Session(None, eventId, None, None, abs, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, Slug.makeSlug(abs.title), None, None, abs, State.Pending, false, Set(), Set(), Nil)
   }
 
   def apply(eventId: String, abs: Abstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
-    Session(None, eventId, None, None, abs, state, false, Nil, tags, keywords)
+    Session(None, eventId, Slug.makeSlug(abs.title), None, None, abs, state, false, tags, keywords, Nil)
   }
 
   def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
     val ab = Abstract(title, format = format, speakers = speakers)
-    Session(None, eventId, None, None, ab, State.Pending, false, Nil, Set(), Set())
+    Session(None, eventId, Slug.makeSlug(title), None, None, ab, State.Pending, false, Set(), Set(), Nil)
   }
 }
 

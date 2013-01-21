@@ -35,7 +35,7 @@ trait MongoDBStorage  {
     if (!user.authenticated) {
       query += "published" -> true
     }
-    db("session").find(query.result()).sort(MongoDBObject("title" -> 1)).map(toSession(_, this)).toList
+    db("session").find(query.result()).sort(MongoDBObject("abstract" -> MongoDBObject("title" -> 1))).map(toSession(_, this)).toList
   }
 
   def getSessionsByTitle(eventId: String, title: String) = db("session").find(
@@ -153,6 +153,7 @@ private[storage] object MongoMapper {
     Event(
       m.get("_id").map(_.toString),
       m.getAsOrElse("name", "No Name"),
+      m.as[String]("slug"),
       m.getAsOrElse[JDate]("start", new JDate()),
       m.getAsOrElse[JDate]("end", new JDate()),
       m.getAsOrElse("venue", "Unknown"),
@@ -179,14 +180,15 @@ private[storage] object MongoMapper {
     Session(
       m.get("_id").map(_.toString),
       m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId")),
+      m.get("slug").map(_.toString).get,
       room,
       slot,
       abs,
       m.getAs[String]("state").map(State(_)).getOrElse(State.Pending),
       m.getAs[Boolean]("published").getOrElse(false),
-      Nil,
       m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
       m.getAsOrElse[Seq[_]]("keywords", Seq.empty).map(k => Keyword(k.toString)).toSet[Keyword],
+      Nil,
       m.getAsOrElse[JDate]("last-modified", new JDate())
     )
   }
@@ -243,6 +245,7 @@ private[storage] object MongoMapper {
     MongoDBObject(
       "_id" -> event.id.getOrElse(util.UUID.randomUUID().toString),
       "name" -> event.name,
+      "slug" -> event.slug,
       "start" -> event.start.toDate,
       "end" -> event.end.toDate,
       "venue" -> event.venue,
@@ -263,6 +266,7 @@ private[storage] object MongoMapper {
     MongoDBObject(
       "_id" -> session.id.getOrElse(util.UUID.randomUUID().toString),
       "eventId" -> session.eventId,
+      "slug" -> session.slug,
       "abstract" -> toMongoDBObject(session.abs),
       "published" -> session.published,
       "tags" -> session.tags.map(_.name),

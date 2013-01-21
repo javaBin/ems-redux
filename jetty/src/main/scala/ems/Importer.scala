@@ -47,26 +47,30 @@ object Importer {
   def events(file: File) = {
     val parsed = JsonParser.parse(new BufferedReader(new FileReader(file)))
     (parsed \ "events").children.map(c =>
-      Event(
-        (c \ "id").extractOpt[String],
-        (c \ "name").extract[String],
-        (c \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
-        (c \ "end").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(1L)),
-        (c \ "venue").extract[String],
-        (c \ "rooms").children.map(o => {
-          Room(
-            (o \ "id").extractOpt[String],
-            (o \ "name").extract[String]
-          )
-        }),
-        (c \ "timeslots").children.map(o => {
-          Slot(
-            (o \ "id").extractOpt[String],
-            (o \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
-            (o \ "end").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(1L))
-          )
-        })
-      )
+      {
+        val name = (c \ "name").extract[String]
+        Event(
+          (c \ "id").extractOpt[String],
+          name,
+          Slug.makeSlug(name),
+          (c \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
+          (c \ "end").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(1L)),
+          (c \ "venue").extract[String],
+          (c \ "rooms").children.map(o => {
+            Room(
+              (o \ "id").extractOpt[String],
+              (o \ "name").extract[String]
+            )
+          }),
+          (c \ "timeslots").children.map(o => {
+            Slot(
+              (o \ "id").extractOpt[String],
+              (o \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
+              (o \ "end").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(1L))
+            )
+          })
+        )
+      }
     )
   }
 
@@ -78,13 +82,15 @@ object Importer {
       val room = event.flatMap(_.rooms.find(_.id == (c \ "room").extractOpt[String]))
       val slot = event.flatMap(_.slots.find(_.id == (c \ "slot").extractOpt[String]))
 
+      val title = Option((c \ "title").extract[String]).getOrElse("No title")
       Session(
         (c \ "id").extractOpt[String],
         (c \ "eventId").extract[String],
+        Slug.makeSlug(title),
         room,
         slot,
         Abstract(
-          Option((c \ "title").extract[String]).getOrElse("No title"),
+          title,
           (c \ "summary").extractOpt[String],
           (c \ "body").extractOpt[String],
           (c \ "audience").extractOpt[String],
@@ -110,6 +116,8 @@ object Importer {
           ),
         (c \ "state").extractOpt[String].map(State(_)).getOrElse(State.Pending),
         (c \ "published").extractOrElse(false),
+        (c \ "tags").extractOpt[String].map(_.split(",").map(Tag(_)).toSet[Tag]).getOrElse(Set.empty),
+        (c \ "keywords").extractOpt[String].map(_.split(",").map(Keyword(_)).toSet[Keyword]).getOrElse(Set.empty),
         (c \ "attachments").children.map(f => {
           val file = new File(f.values.toString)
           val att: Attachment with Entity = storage.saveAttachment(StreamingAttachment(file))
@@ -119,9 +127,7 @@ object Importer {
             att.size,
             att.mediaType
           )
-        }),
-        (c \ "tags").extractOpt[String].map(_.split(",").map(Tag(_)).toSet[Tag]).getOrElse(Set.empty),
-        (c \ "keywords").extractOpt[String].map(_.split(",").map(Keyword(_)).toSet[Keyword]).getOrElse(Set.empty)
+        })
       )}
     )
   }
