@@ -74,7 +74,7 @@ object Build extends sbt.Build {
     )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
-      "net.databinder" %% "dispatch-http" % "0.8.8"
+      "net.databinder.dispatch" %% "dispatch-core" % "0.9.5"
     )
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % "0.6.3")

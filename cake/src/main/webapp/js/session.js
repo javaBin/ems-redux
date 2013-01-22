@@ -20,12 +20,11 @@ sessionHelpers.mapState = function(state) {
     return object;
 }
 
-sessionHelpers.mapFormat = function(form) {
+sessionHelpers.mapFormat = function(format) {
     var object = {
-        name: form
+        name: format
     }
-    console.log(form);
-    switch(form) {
+    switch(format) {
         case "lightning-talk":
             object.icon = "icon-bolt";
             break;
