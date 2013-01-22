@@ -13,7 +13,7 @@ object Jetty extends App {
 
   unfiltered.jetty.Http(port).
   context("/cake") {
-    _.filter(new ems.Application).filter(EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURL)
+    _.filter(new ems.Application).filter(EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURI.toURL)
   }.context("/server"){
     _.filter(Resources(JAASAuthenticator))
   } run()
