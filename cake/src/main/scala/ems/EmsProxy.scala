@@ -22,7 +22,6 @@ object EmsProxy extends Plan{
     val promise = for {
       res <- Http(url(href) <:< Map("Accept" -> Accept))
     } yield {
-      println(res.getStatusCode)
       ContentType(res.getContentType) ~> new ResponseStreamer {
         def stream(os: OutputStream) {
           Streaming.copy(res.getResponseBodyAsStream, os, false)
