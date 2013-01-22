@@ -121,7 +121,8 @@ object converters {
       val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id)
       val data = List(
         ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
-        ValueProperty("email", Some("Email"), Some(StringValue(s.name))),
+        ValueProperty("email", Some("Email"), Some(StringValue(s.email))),
+        ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue(_))),
         ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
       ) ++ (if (user.authenticated) List(ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq)) else Nil)
 
@@ -164,8 +165,9 @@ object converters {
     val name = template.getPropertyValue("name").get.value.toString
     val email = template.getPropertyValue("email").get.value.toString
     val bio = template.getPropertyValue("bio").map(_.value.toString)
+    val zipCode = template.getPropertyValue("zip-code").map(_.value.toString)
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString)).toSet[Tag]
-    Speaker(UUID.randomUUID().toString, name, email, bio, tags)
+    Speaker(UUID.randomUUID().toString, name, email, zipCode, bio, tags)
   }
 
   def toAttachment(template: Template): URIAttachment = {

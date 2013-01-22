@@ -110,7 +110,7 @@ object Session {
   }
 }
 
-case class Speaker(id: String, name: String, email: String, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity] = None)
+case class Speaker(id: String, name: String, email: String, zipCode: Option[String] = None, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity] = None)
 
 
 sealed abstract class Level(val name: String) {

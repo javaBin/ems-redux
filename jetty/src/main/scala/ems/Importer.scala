@@ -104,6 +104,7 @@ object Importer {
             (s \ "id").extract[String],
             (s \ "name").extract[String],
             (s \ "email").extract[String],
+            (s \ "zip-code").extractOpt[String],
             (s \ "bio").extractOpt[String], {
               val JArray(tags) = (s \ "tags")
               tags.collect{case JString(t) => Tag(t)}.toSet[Tag]
