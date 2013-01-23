@@ -7,6 +7,7 @@ import unfiltered.request._
 import javax.servlet.http.HttpServletRequest
 import net.hamnaberg.json.collection._
 import no.java.unfiltered.RequestURIBuilder
+import unfiltered.{IfUnmodifiedSinceString, DateResponseHeader}
 
 /**
  * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
@@ -20,17 +21,36 @@ trait ResourceHelper {
     request match {
       case GET(req) => {
         req match {
-          case IfModifiedSince(date) if (obj.isDefined && obj.get.lastModified.toDate == date) => {
+          case IfModifiedSince(date) if (obj.isDefined && obj.get.lastModified.withMillisOfSecond(0).toDate == date) => {
             NotModified
           }
           case _ => {
-            obj.map(toItem).map(JsonCollection(_)).map(CollectionJsonResponse(_)).getOrElse(NotFound)
+             obj.map { i =>
+               DateResponseHeader("Last-Modified", i.lastModified.getMillis) ~> CollectionJsonResponse(JsonCollection(toItem(i)))
+             }.getOrElse(NotFound)
           }
         }
       }
       case req@PUT(RequestContentType(CollectionJsonResponse.contentType)) => {
         req match {
-          case IfUnmodifiedSince(date) if (obj.isDefined && obj.get.lastModified.toDate == date) => {
+          case IfUnmodifiedSince(date) => {
+            obj.map{ old =>
+              if (old.lastModified.withMillisOfSecond(0).toDate == date) {
+                withTemplate(req) {
+                  t => {
+                    println(t)
+                    val e = fromTemplate(t)
+                    storage.saveEntity(e)
+                    NoContent
+                  }
+                }
+              }
+              else {
+                PreconditionFailed
+              }
+            }.getOrElse(NotFound)
+          }
+          case IfUnmodifiedSinceString("*") => {
             withTemplate(req) {
               t => {
                 val e = fromTemplate(t)
@@ -39,7 +59,7 @@ trait ResourceHelper {
               }
             }
           }
-          case _ => PreconditionFailed
+          case _ => PreconditionRequired ~> ResponseString("You must include a 'If-Unmodified-Since' header in your request")
         }
       }
       case PUT(_) => UnsupportedMediaType
