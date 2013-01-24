@@ -6,10 +6,6 @@ import java.io.ByteArrayOutputStream
 import java.util.{Scanner, Locale}
 import java.net.URLDecoder
 
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
-
 sealed abstract class DispositionType(val name: String) {
   override def equals(obj: Any) = obj match {
     case DispositionType(n) => n == name
@@ -34,7 +30,7 @@ object DispositionType {
 
 case class CharsetFilename(filename: String, charset: Option[Charset] = None) {
   def format = {
-    charset.map(c => c.name()+ "''" + Rfc3986.encode(filename, c)).getOrElse(filename)
+    charset.map(c => c.name() + "''" + Rfc3986.encode(filename, c)).getOrElse(filename)
   }
 }
 
@@ -50,128 +46,128 @@ object CharsetFilename {
   }
 }
 
+/**
+ * http://tools.ietf.org/html/rfc6266
+ *
+ */
+case class ContentDisposition(dispositionType: DispositionType, filename: Option[String] = None, filenameSTAR: Option[CharsetFilename] = None) {
+  override def toString = {
+    val sb = new StringBuilder()
+    sb.append(dispositionType.name)
+    if (filename.isDefined) {
+      sb.append("; filename=")
+      sb.append('"')
+      sb.append(filename.get)
+      sb.append('"')
+    }
+    if (filenameSTAR.isDefined) {
+      sb.append("; filename*=")
+      sb.append(filenameSTAR.get.format)
+    }
+    sb.toString()
+  }
+
+  def toResponseHeader = ResponseHeader(ContentDisposition.headerName, List(toString))
+}
+
+object ContentDisposition {
+  val headerName = "Content-Disposition"
+
+  private val FilenameStar = """(?sm)(\w+);\s*filename\*=\s*(.*)""".r
+  private val Filename = """(?im)(\w+);\s*filename=\s*"?([a-z0-9\.\s]+)"?""".r
+  private val DT = """(?i)(\w+)""".r
+
+  def apply(s: String): Option[ContentDisposition] = {
+    s match {
+      case Filename(t, f) => Some(ContentDisposition(DispositionType(t), Some(f), None))
+      case FilenameStar(t, f) => {
+        Some(ContentDisposition(DispositionType(t), None, Some(CharsetFilename.decoded(f))))
+      }
+      case DT(t) => Some(ContentDisposition(DispositionType(t), None, None))
+      case ss => None
+    }
+  }
+}
+
+object Rfc3986 {
+
+  def decode(input: String, charset: Charset) = URLDecoder.decode(input, charset.name())
+
+  def encode(input: String, charset: Charset): String = encode(input.getBytes(charset))
+
+  private def encode(source: Array[Byte]): String = {
+    val bos = new ByteArrayOutputStream(source.length);
+
+    source foreach (
+      b => {
+        val byte: Int = if (b < 0) b + 256 else b.toInt
+        if (isAllowed(byte)) {
+          bos.write(byte)
+        }
+        else {
+          bos.write('%')
+
+          val hex1 = Character.toUpperCase(Character.forDigit((byte >> 4) & 0xF, 16));
+          val hex2 = Character.toUpperCase(Character.forDigit(byte & 0xF, 16));
+
+          bos.write(hex1);
+          bos.write(hex2);
+        }
+      }
+      )
+    new String(bos.toByteArray, "US-ASCII")
+  }
+
+  private def isAllowed(c: Int) = isPchar(c.toChar)
+
   /**
-   * http://tools.ietf.org/html/rfc6266
+   * Indicates whether the given character is in the "ALPHA" set.
    *
+   * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
    */
-  case class ContentDisposition(dispositionType: DispositionType, filename: Option[String] = None, filenameSTAR: Option[CharsetFilename] = None) {
-    override def toString = {
-      val sb = new StringBuilder()
-      sb.append(dispositionType.name)
-      if (filename.isDefined) {
-        sb.append("; filename=")
-        sb.append('"')
-        sb.append(filename.get)
-        sb.append('"')
-      }
-      if (filenameSTAR.isDefined) {
-        sb.append("; filename*=")
-        sb.append(filenameSTAR.get.format)
-      }
-      sb.toString()
-    }
+  private def isAlpha(c: Char) = (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')
 
-    def toResponseHeader = ResponseHeader(ContentDisposition.headerName, List(toString))
-  }
+  /**
+   * Indicates whether the given character is in the "DIGIT" set.
+   *
+   * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
+   */
+  private def isDigit(c: Char) = c >= '0' && c <= '9'
 
-  object ContentDisposition {
-    val headerName = "Content-Disposition"
+  /**
+   * Indicates whether the given character is in the "gen-delims" set.
+   *
+   * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
+   */
+  private def isGenericDelimiter(c: Char) = ':' == c || '/' == c || '?' == c || '#' == c || '[' == c || ']' == c || '@' == c
 
-    private val FilenameStar = """(?sm)(\w+);\s*filename\*=\s*(.*)""".r
-    private val Filename = """(?im)(\w+);\s*filename=\s*"?([a-z0-9\.\s]+)"?""".r
-    private val DT = """(?i)(\w+)""".r
+  /**
+   * Indicates whether the given character is in the "sub-delims" set.
+   *
+   * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
+   */
+  private def isSubDelimiter(c: Char) = '!' == c || '$' == c || '&' == c || '\'' == c || '(' == c || ')' == c || '*' == c || '+' == c ||
+    ',' == c || ';' == c || '=' == c
 
-    def apply(s: String): Option[ContentDisposition] = {
-      s match {
-        case Filename(t, f) => Some(ContentDisposition(DispositionType(t), Some(f), None))
-        case FilenameStar(t, f) => {
-          Some(ContentDisposition(DispositionType(t), None, Some(CharsetFilename.decoded(f))))
-        }
-        case DT(t) => Some(ContentDisposition(DispositionType(t), None, None))
-        case ss => None
-      }
-    }
-  }
+  /**
+   * Indicates whether the given character is in the "reserved" set.
+   *
+   * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
+   */
+  private def isReserved(c: Char): Boolean = isGenericDelimiter(c) || isReserved(c)
 
-  object Rfc3986 {
-
-    def decode(input: String, charset: Charset) = URLDecoder.decode(input, charset.name())
-
-    def encode(input: String, charset: Charset): String = encode(input.getBytes(charset))
-
-    private def encode(source: Array[Byte]): String = {
-      val bos = new ByteArrayOutputStream(source.length);
-
-      source foreach (
-        b => {
-          val byte: Int = if (b < 0) b + 256 else b.toInt
-          if (isAllowed(byte)) {
-            bos.write(byte)
-          }
-          else {
-            bos.write('%')
-
-            val hex1 = Character.toUpperCase(Character.forDigit((byte >> 4) & 0xF, 16));
-            val hex2 = Character.toUpperCase(Character.forDigit(byte & 0xF, 16));
-
-            bos.write(hex1);
-            bos.write(hex2);
-          }
-        }
-        )
-      new String(bos.toByteArray, "US-ASCII")
-    }
-
-    private def isAllowed(c: Int) = isPchar(c.toChar)
-
-    /**
-     * Indicates whether the given character is in the "ALPHA" set.
-     *
-     * <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isAlpha(c: Char) = (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')
-
-    /**
-     * Indicates whether the given character is in the "DIGIT" set.
-     *
-     * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isDigit(c: Char) = c >= '0' && c <= '9'
-
-    /**
-     * Indicates whether the given character is in the "gen-delims" set.
-     *
-     * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isGenericDelimiter(c: Char) = ':' == c || '/' == c || '?' == c || '#' == c || '[' == c || ']' == c || '@' == c
-
-    /**
-     * Indicates whether the given character is in the "sub-delims" set.
-     *
-     * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isSubDelimiter(c: Char) = '!' == c || '$' == c || '&' == c || '\'' == c || '(' == c || ')' == c || '*' == c || '+' == c ||
-      ',' == c || ';' == c || '=' == c
-
-    /**
-     * Indicates whether the given character is in the "reserved" set.
-     *
-     * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isReserved(c: Char): Boolean = isGenericDelimiter(c) || isReserved(c)
-
-    /**
-     * Indicates whether the given character is in the "unreserved" set.
-     *
-     * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isUnreserved(c: Char) = isAlpha(c) || isDigit(c) || '-' == c || '.' == c || '_' == c || '~' == c
+  /**
+   * Indicates whether the given character is in the "unreserved" set.
+   *
+   * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
+   */
+  private def isUnreserved(c: Char) = isAlpha(c) || isDigit(c) || '-' == c || '.' == c || '_' == c || '~' == c
 
 
-    /**
-     * Indicates whether the given character is in the "pchar" set.
-     *
-     * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
-     */
-    private def isPchar(c: Char) = isUnreserved(c) || isSubDelimiter(c) || ':' == c || '@' == c
-  }
+  /**
+   * Indicates whether the given character is in the "pchar" set.
+   *
+   * @see <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC 3986, appendix A</a>
+   */
+  private def isPchar(c: Char) = isUnreserved(c) || isSubDelimiter(c) || ':' == c || '@' == c
+}
