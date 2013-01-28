@@ -7,8 +7,9 @@ import scala.util.Properties
 
 object Jetty extends App {
   val port = Properties.envOrElse("PORT", "8081").toInt
-  if (port != 8081) {
-    System.setProperty("ems-server", "http://localhost:%s/server/".format(port))
+
+  if (System.getProperties.contains("ems-server")) {
+    System.setProperty("ems-server", "/server/")
   }
 
   unfiltered.jetty.Http(port).

@@ -25,7 +25,10 @@ app.date.toString = function(date) {
 }
 
 app.wrapAjax = function(url) {
-    return "ajax?href=" + url;
+    var documentLocation = URI(window.location.href);
+    var parsedURI = URI(url);
+    var sameHost = parsedURI.is("relative") || (documentLocation.host() === parsedURI.host() && documentLocation.port() === parsedURI.port())
+    return !sameHost ? ("ajax?href=" + url) : url;
 }
 
 app.loadRoot = function($http, cb) {
@@ -74,8 +77,7 @@ app.SessionList = function($scope, $routeParams, $http) {
         $http.get(app.wrapAjax(query.expand({"slug": $routeParams.slug}))).success(function(eventCollection){
             var event = app.mapEvent(_.head(fromObject(eventCollection).collection.items));
             $http.get(app.wrapAjax(event.sessions)).success(function(data) {
-                var sessions = _.map(fromObject(data).collection.items, app.mapSession);
-                $scope.sessions = sessions;
+                $scope.sessions = _.map(fromObject(data).collection.items, app.mapSession);
                 $scope.name = event.data.name;
                 $scope.eventSlug = event.data.slug;
             });
