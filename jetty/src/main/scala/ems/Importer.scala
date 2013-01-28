@@ -3,14 +3,14 @@ package ems
 import java.io.{BufferedReader, FileReader, File}
 import java.util.Locale
 import net.liftweb.json.{DefaultFormats, JsonParser}
-import no.java.ems.storage.{MongoSetting, MongoDBStorage}
+import no.java.ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
 import no.java.ems.{URIAttachment, StreamingAttachment, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Properties
 import java.net.URI
-import net.liftweb.json.JsonAST.{JString, JArray}
+import net.liftweb.json.JsonAST.{JObject, JString, JArray}
 
 
 object ImportMain extends App {
@@ -110,9 +110,11 @@ object Importer {
               val JArray(tags) = (s \ "tags")
               tags.collect{case JString(t) => Tag(t)}.toSet[Tag]
             },
-            (s \ "photo").extractOpt[String].map(f => {
+            (s \ "photo").extractOpt[JObject].map(photo => {
+              val JString(f) = photo \ "file"
+              val JString(id) = photo \ "id"
               val file = new File(f)
-              storage.saveAttachment(StreamingAttachment(file))
+              storage.saveAttachment(FileAttachment(Some(id), file))
             })
             ))
           ),
@@ -120,9 +122,12 @@ object Importer {
         (c \ "published").extractOrElse(false),
         (c \ "tags").extractOpt[String].map(_.split(",").map(Tag(_)).toSet[Tag]).getOrElse(Set.empty),
         (c \ "keywords").extractOpt[String].map(_.split(",").map(Keyword(_)).toSet[Keyword]).getOrElse(Set.empty),
-        (c \ "attachments").children.map(f => {
-          val file = new File(f.values.toString)
-          val att: Attachment with Entity = storage.saveAttachment(StreamingAttachment(file))
+        (c \ "attachments").children.map(a => {
+          val JString(f) = a \ "file"
+          val JString(id) = a \ "id"
+
+          val file = new File(f)
+          val att: Attachment with Entity = storage.saveAttachment(FileAttachment(Some(id), file))
           URIAttachment(
             URI.create(att.id.get),
             att.name,

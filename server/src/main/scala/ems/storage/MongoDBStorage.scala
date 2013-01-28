@@ -6,11 +6,19 @@ import java.net.URI
 import java.util.Locale
 import no.java.ems._
 import java.util
-import model._
+import _root_.no.java.ems.model._
 import java.util.{Date => JDate}
-import java.io.InputStream
+import java.io.{File, InputStream}
+import model.Abstract
+import model.Event
+import model.Keyword
+import model.Room
+import model.Slot
+import model.Speaker
+import model.Tag
+import no.java.ems.URIAttachment
 import org.joda.time.DateTime
-import security.User
+import _root_.no.java.ems.security.User
 
 trait MongoDBStorage  {
 
@@ -90,7 +98,7 @@ trait MongoDBStorage  {
 
   def getAttachment(id: String): Option[Attachment with Entity] = {
     val fs = GridFS(db)
-    fs.findOne(new ObjectId(id)).map(GridFileAttachment)
+    fs.findOne(MongoDBObject("_id" -> id)).map(GridFileAttachment)
   }
 
   def importEntity[A <: Entity](entity: A): Either[MongoException, A#T] = {
@@ -105,6 +113,15 @@ trait MongoDBStorage  {
     val fs = GridFS(db)
     val file = att match {
       case GridFileAttachment(f) => f
+      case e@FileAttachment(Some(id), _) => fs.findOne(MongoDBObject("_id" -> id)) match {
+        case Some(f) => f
+        case None => {
+          val f = fs.createFile(getStream(e.underlying), e.name)
+          f.put("_id", id)
+          e.mediaType.foreach(mt => f.contentType = mt.toString)
+          f
+        }
+      }
       case a => {
         fs.findOne(att.name) match {
           case Some(f) => f
@@ -409,4 +426,20 @@ case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity
     file.put("_id", id)
     this
   }
+}
+
+case class FileAttachment(id: Option[String], file: File) extends Entity with Attachment {
+  lazy val underlying = StreamingAttachment(file)
+
+  type T = FileAttachment
+
+  def lastModified = underlying.lastModified
+
+  def withId(id: String) = copy(id = Some(id))
+
+  def name = underlying.name
+
+  def size = Some(file.length())
+
+  def mediaType = underlying.mediaType
 }
