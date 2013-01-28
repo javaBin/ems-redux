@@ -6,21 +6,23 @@ import unfiltered.filter.Plan
 import dispatch._
 import unfiltered.filter.request.ContextPath
 import java.io.{InputStream, OutputStream}
+import com.ning.http.client.RequestBuilder
 
 object EmsProxy extends Plan{
   val Accept = "application/vnd.collection+json,*/*;q=0.8"
 
   def intent = {
-    case ContextPath(_, Seg("ajax" :: Nil)) & Params(p) => {
+    case req@ContextPath(_, Seg("ajax" :: Nil)) & Params(p) => {
       p("href").headOption.map { href =>
-        if (href.startsWith(EmsConfig.server.toString)) doRequest(href) else Forbidden
+        if (href.startsWith(EmsConfig.server.toString)) doRequest(req, href) else Forbidden
       }.getOrElse(NotFound)
     }
   }
 
-  private def doRequest[B](href: String): ResponseFunction[B] = {
+  private def doRequest[A, B](req: HttpRequest[A], href: String): ResponseFunction[B] = {
+
     val promise = for {
-      res <- Http(url(href) <:< Map("Accept" -> Accept))
+      res <- Http(makeReq(req, url(href) <:< Map("Accept" -> Accept)))
     } yield {
       Status(res.getStatusCode) ~> ContentType(res.getContentType) ~> new ResponseStreamer {
         def stream(os: OutputStream) {
@@ -29,6 +31,10 @@ object EmsProxy extends Plan{
       }
     }
     promise()
+  }
+
+  private def makeReq[A](req: HttpRequest[A], builder: RequestBuilder) = {
+    builder.setMethod(req.method)
   }
 }
 
