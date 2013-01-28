@@ -38,7 +38,6 @@ trait ResourceHelper {
               if (old.lastModified.withMillisOfSecond(0).toDate == date) {
                 withTemplate(req) {
                   t => {
-                    println(t)
                     val e = fromTemplate(t)
                     storage.saveEntity(e)
                     NoContent

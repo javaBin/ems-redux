@@ -35,7 +35,7 @@ trait MongoDBStorage  {
     if (!user.authenticated) {
       query += "published" -> true
     }
-    db("session").find(query.result()).sort(MongoDBObject("abstract" -> MongoDBObject("title" -> 1))).map(toSession(_, this)).toList
+    db("session").find(query.result()).sort(MongoDBObject("title" -> 1)).map(toSession(_, this)).toList
   }
 
   def getSessionsBySlug(eventId: String, slug: String) = db("session").find(
@@ -47,6 +47,46 @@ trait MongoDBStorage  {
   ).map(toSession(_, this))
 
   def saveSession(session: Session) = saveToMongo(session, db("session"))
+
+  def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = {
+    val update = db("session").findOne(
+      MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers" -> MongoDBObject("_id" -> speaker.id)), MongoDBObject()
+    ).isDefined
+
+    val result = if (update) {
+       db("session").update(
+        MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers" -> MongoDBObject("_id" -> speaker.id)),
+        MongoDBObject("$set" -> toMongoDBObject(speaker))
+      )
+    }
+    else {
+      db("session").update(
+        MongoDBObject("_id" -> sessionId, "eventId" -> eventId),
+        MongoDBObject("$push" -> MongoDBObject("speakers" -> toMongoDBObject(speaker)))
+      )
+    }
+    val error = result.getLastError
+    if (error.ok()) {
+      Right(speaker)
+    }
+    else {
+      Left(error.getException)
+    }
+  }
+
+  def removeSpeaker(eventId: String, sessionId: String, speakerId: String) = {
+    val res = db("session").update(
+      MongoDBObject("_id" -> sessionId, "eventId" -> eventId),
+      MongoDBObject("$pull" -> MongoDBObject("sessions" -> MongoDBObject("_id" -> speakerId)))
+    )
+    val error = res.getLastError
+    if (error.ok()) {
+      Right("OK")
+    }
+    else {
+      Left(error.getException)
+    }
+  }
 
   def getAttachment(id: String): Option[Attachment with Entity] = {
     val fs = GridFS(db)
@@ -116,9 +156,9 @@ trait MongoDBStorage  {
 
   private def saveToMongo[A <: Entity](entity: A, coll: MongoCollection, fromImport: Boolean = false): Either[MongoException, A#T] = {
     val stored = withId(entity)
-    val toSave = toMongoDBObject(stored)
 
-    val update = if (fromImport) coll.findOneByID(entity.id.get, MongoDBObject()).isDefined else entity.id.isDefined
+    val update = if (fromImport) coll.findOne(MongoDBObject("_id" -> entity.id.get), MongoDBObject()).isDefined else entity.id.isDefined
+    val toSave = toMongoDBObject(stored, update)
     if (update) {
       coll.update(MongoDBObject("_id" -> entity.id.get), toSave)
     }
@@ -171,7 +211,7 @@ private[storage] object MongoMapper {
 
   def toSession(dbo: DBObject, storage: MongoDBStorage) = {
     val m = wrapDBObj(dbo)
-    val abs = m.getAs[DBObject]("abstract").map(toAbstract(_, storage)).getOrElse(new Abstract("No Title"))
+    val abs = toAbstract(dbo, storage)
     val eventId = m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId"))
     val event = storage.getEvent(eventId).getOrElse(throw new IllegalArgumentException("No Event"))
     val slot = event.slots.find(_.id == m.get("slotId").map(_.toString))
@@ -236,39 +276,38 @@ private[storage] object MongoMapper {
     URIAttachment(href, name, size, mt)
   }
 
-  def toMongoDBObject[A <: Entity#T](entity: A): DBObject = entity match {
-    case s: Session => toMongoDBObject(s)
-    case s: Event => toMongoDBObject(s)
+  def toMongoDBObject[A <: Entity#T](entity: A, update: Boolean = false): DBObject = entity match {
+    case s: Session => toMongoDBObjectSession(s, update)
+    case s: Event => toMongoDBObjectEvent(s, update)
     case _ => throw new UnsupportedOperationException("Not supported")
   }
 
-  private def toMongoDBObject(event: Event): DBObject = {
-    MongoDBObject(
-      "_id" -> event.id.getOrElse(util.UUID.randomUUID().toString),
+  private def toMongoDBObjectEvent(event: Event, update: Boolean = false): DBObject = {
+    val base = MongoDBObject(
       "name" -> event.name,
       "slug" -> event.slug,
       "start" -> event.start.toDate,
       "end" -> event.end.toDate,
       "venue" -> event.venue,
-      "rooms" -> event.rooms.map(r => MongoDBObject(
-        "_id" -> r.id.getOrElse(util.UUID.randomUUID().toString),
-        "name" -> r.name
-      )),
-      "slots" -> event.slots.map(ts => MongoDBObject(
-        "_id" -> ts.id.getOrElse(util.UUID.randomUUID().toString),
-        "start" -> ts.start.toDate,
-        "end" -> ts.end.toDate
-      )),
       "last-modified" -> event.lastModified.toDate
     )
+    if (update) {
+      MongoDBObject(
+        "$set" -> base
+      )
+    } else {
+      val obj = MongoDBObject(
+        "_id" -> event.id.getOrElse(util.UUID.randomUUID().toString),
+        "rooms" -> event.rooms.map(toRoom),
+        "slots" -> event.slots.map(toSlot)
+      ) ++ base
+      obj
+    }
   }
 
-  private def toMongoDBObject(session: Session): DBObject = {
-    MongoDBObject(
-      "_id" -> session.id.getOrElse(util.UUID.randomUUID().toString),
-      "eventId" -> session.eventId,
+  private def toMongoDBObjectSession(session: Session, update: Boolean): DBObject = {
+    val base = MongoDBObject(
       "slug" -> session.slug,
-      "abstract" -> toMongoDBObject(session.abs),
       "published" -> session.published,
       "tags" -> session.tags.map(_.name),
       "keywords" -> session.keywords.map(_.name),
@@ -277,7 +316,20 @@ private[storage] object MongoMapper {
       "roomId" -> session.room.flatMap(_.id),
       "slotId" -> session.slot.flatMap(_.id),
       "last-modified" -> session.lastModified.toDate
-    )
+    ) ++ toMongoDBObject(session.abs, session.id.isDefined)
+
+    if (update) {
+      MongoDBObject(
+        "$set" -> base
+      )
+    }
+    else {
+      val obj = MongoDBObject(
+        "_id" -> session.id.getOrElse(util.UUID.randomUUID().toString),
+        "eventId" -> session.eventId
+      ) ++ base
+      obj
+    }
   }
 
   private def toMongoDBObject(att: URIAttachment): DBObject = {
@@ -289,8 +341,8 @@ private[storage] object MongoMapper {
     )
   }
 
-  private def toMongoDBObject(abs: Abstract): DBObject = {
-    MongoDBObject(
+  private def toMongoDBObject(abs: Abstract, update: Boolean): DBObject = {
+    val obj = MongoDBObject(
       "title" -> abs.title.trim,
       "body" -> abs.body,
       "summary" -> abs.summary,
@@ -299,12 +351,15 @@ private[storage] object MongoMapper {
       "audience" -> abs.audience,
       "format" -> abs.format.name,
       "level" -> abs.level.name,
-      "language" -> abs.language.getLanguage,
-      "speakers" -> abs.speakers.map(toMongoDBObject)
+      "language" -> abs.language.getLanguage
     )
+    if (!update) {
+      obj.put("speakers", abs.speakers.map(toMongoDBObject(_)))
+    }
+    obj
   }
 
-  private def toMongoDBObject(speaker: Speaker): DBObject = {
+  def toMongoDBObject(speaker: Speaker): DBObject = {
     MongoDBObject(
       "_id" -> speaker.id,
       "name" -> speaker.name,
@@ -313,6 +368,21 @@ private[storage] object MongoMapper {
       "bio" -> speaker.bio,
       "tags" -> speaker.tags.map(_.name),
       "photo" -> speaker.photo.map(_.id)
+    )
+  }
+
+  private val toRoom: (Room) => DBObject = {
+    r => MongoDBObject(
+      "_id" -> r.id.getOrElse(util.UUID.randomUUID().toString),
+      "name" -> r.name
+    )
+  }
+
+  private val toSlot: (Slot) => DBObject = {
+    ts => MongoDBObject(
+      "_id" -> ts.id.getOrElse(util.UUID.randomUUID().toString),
+      "start" -> ts.start.toDate,
+      "end" -> ts.end.toDate
     )
   }
 }

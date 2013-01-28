@@ -186,12 +186,10 @@ trait EventResources extends ResourceHelper {
               BadRequest ~> ResponseString("There already exists a speaker with this email")
             }
             else {
-              val withSpeaker = session.addOrUpdateSpeaker(speaker)
-              storage.saveSession(withSpeaker).fold(
+              storage.saveSpeaker(eventId, sessionId, speaker).fold(
                 ex => InternalServerError ~> ResponseString(ex.getMessage),
                 saved => {
-                  val id = saved.id.get
-                  val href = builder.segments("events", eventId, "sessions", id, "speakers", speaker.id).build()
+                  val href = builder.segments("events", eventId, "sessions", sessionId, "speakers", speaker.id).build()
                   Created ~> Location(href.toString)
                 }
               )
@@ -215,6 +213,24 @@ trait EventResources extends ResourceHelper {
           NotFound
         }
       }
+      case PUT(_) => {
+        withTemplate(request) {
+          t => {
+            val e = toSpeaker(t).copy(id = speakerId)
+            storage.saveSpeaker(eventId, sessionId, e).fold(
+              ex => InternalServerError ~> ResponseString(ex.getMessage),
+              _ => NoContent
+            )
+          }
+        }
+      }
+      case DELETE(_) => {
+        storage.removeSpeaker(eventId, sessionId, speakerId).fold(
+          ex => InternalServerError ~> ResponseString(ex.getMessage),
+          _ => NoContent
+        )
+      }
+      case _ => MethodNotAllowed
     }
   }
 
