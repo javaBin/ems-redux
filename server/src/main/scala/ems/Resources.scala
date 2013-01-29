@@ -32,6 +32,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator) exten
     case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: id :: Nil)) => handleSession(eventId, id, req)
     case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil)) => handleSessionAttachments(eventId, sessionId, req)
     case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil)) => handleSpeakers(eventId, sessionId, req)
+    case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: Nil)) => handleSpeaker(eventId, sessionId, speakerId, req)
     case req@ContextPath(_, Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil)) => handleSpeakerPhoto(eventId, sessionId, speakerId, req)
     case req@ContextPath(_, Seg("binary" :: id :: Nil)) => handleAttachment(id, req)
     case _ => Pass

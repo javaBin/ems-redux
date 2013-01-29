@@ -330,8 +330,6 @@ private[storage] object MongoMapper {
       "keywords" -> session.keywords.map(_.name),
       "state" -> session.state.name,
       "attachments" -> session.attachments.map(toMongoDBObject),
-      "roomId" -> session.room.flatMap(_.id),
-      "slotId" -> session.slot.flatMap(_.id),
       "last-modified" -> session.lastModified.toDate
     ) ++ toMongoDBObject(session.abs, session.id.isDefined)
 
@@ -343,7 +341,10 @@ private[storage] object MongoMapper {
     else {
       val obj = MongoDBObject(
         "_id" -> session.id.getOrElse(util.UUID.randomUUID().toString),
-        "eventId" -> session.eventId
+        "eventId" -> session.eventId,
+        "roomId" -> session.room.flatMap(_.id),
+        "slotId" -> session.slot.flatMap(_.id),
+        "speakers" -> session.speakers.map(toMongoDBObject(_))
       ) ++ base
       obj
     }
