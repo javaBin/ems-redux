@@ -216,7 +216,7 @@ trait EventResources extends ResourceHelper {
       case PUT(_) => {
         withTemplate(request) {
           t => {
-            val e = toSpeaker(t).copy(id = speakerId)
+            val e = toSpeaker(t, Some(speakerId))
             storage.saveSpeaker(eventId, sessionId, e).fold(
               ex => InternalServerError ~> ResponseString(ex.getMessage),
               _ => NoContent

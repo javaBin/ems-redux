@@ -19,6 +19,7 @@ import model.Tag
 import no.java.ems.URIAttachment
 import org.joda.time.DateTime
 import _root_.no.java.ems.security.User
+import com.mongodb.casbah.MongoCollection
 
 trait MongoDBStorage  {
 
@@ -58,13 +59,15 @@ trait MongoDBStorage  {
 
   def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = {
     val update = db("session").findOne(
-      MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers" -> MongoDBObject("_id" -> speaker.id)), MongoDBObject()
+      MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speaker.id), MongoDBObject()
     ).isDefined
 
     val result = if (update) {
-       db("session").update(
-        MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers" -> MongoDBObject("_id" -> speaker.id)),
-        MongoDBObject("$set" -> toMongoDBObject(speaker))
+      val dbObject: MongoDBObject = toMongoDBObject(speaker)
+      val toSave = dbObject.foldLeft(MongoDBObject.newBuilder){case (mongo, (key, value)) => mongo += ("speakers.$." + key -> value) }.result()
+      db("session").update(
+        MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speaker.id),
+        MongoDBObject("$set" -> toSave)
       )
     }
     else {
@@ -73,6 +76,7 @@ trait MongoDBStorage  {
         MongoDBObject("$push" -> MongoDBObject("speakers" -> toMongoDBObject(speaker)))
       )
     }
+
     val error = result.getLastError
     if (error.ok()) {
       Right(speaker)
@@ -271,7 +275,7 @@ private[storage] object MongoMapper {
     )
   }
 
-  private def toSpeaker(dbo: DBObject, storage: MongoDBStorage) = {
+  def toSpeaker(dbo: DBObject, storage: MongoDBStorage) = {
     val m = wrapDBObj(dbo)
     Speaker(
       m.get("_id").map(_.toString).get,

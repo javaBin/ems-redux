@@ -161,13 +161,13 @@ object converters {
     sess.copy(id = id)
   }
 
-  def toSpeaker(template: Template): Speaker = {
+  def toSpeaker(template: Template, id: Option[String] = None): Speaker = {
     val name = template.getPropertyValue("name").get.value.toString
     val email = template.getPropertyValue("email").get.value.toString
     val bio = template.getPropertyValue("bio").map(_.value.toString)
     val zipCode = template.getPropertyValue("zip-code").map(_.value.toString)
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString)).toSet[Tag]
-    Speaker(UUID.randomUUID().toString, name, email, zipCode, bio, tags)
+    Speaker(id.getOrElse(UUID.randomUUID().toString), name, email, zipCode, bio, tags)
   }
 
   def toAttachment(template: Template): URIAttachment = {
