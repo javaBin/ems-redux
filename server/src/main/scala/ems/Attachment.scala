@@ -4,7 +4,7 @@ import org.joda.time.DateTime
 import java.io.{FileInputStream, File, InputStream}
 import java.net.URI
 import javax.activation.{MimetypesFileTypeMap, MimeType}
-import scala.Some
+import com.mongodb.casbah.Imports._
 
 trait Attachment {
   def name: String
@@ -14,6 +14,24 @@ trait Attachment {
 
 case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType]) extends Attachment {
   def data = href.toURL.openStream()
+
+  def toMongo: DBObject = MongoDBObject(
+    "href" -> href.toString,
+    "name" -> name,
+    "mime-type" -> mediaType.map(_.toString),
+    "size" -> size
+  )
+}
+
+object URIAttachment {
+  def apply(dbo: DBObject): URIAttachment = {
+    val m = wrapDBObj(dbo)
+    val href = URI.create(m.getAs[String]("href").get)
+    val mt = m.getAs[String]("mime-type").flatMap(MIMEType(_))
+    val name = m.getAs[String]("name").get
+    val size = m.getAs[Long]("size")
+    URIAttachment(href, name, size, mt)
+  }
 }
 
 case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment

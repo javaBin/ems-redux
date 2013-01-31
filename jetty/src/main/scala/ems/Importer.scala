@@ -4,7 +4,7 @@ import java.io.{BufferedReader, FileReader, File}
 import java.util.Locale
 import net.liftweb.json.{DefaultFormats, JsonParser}
 import no.java.ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
-import no.java.ems.{URIAttachment, StreamingAttachment, Attachment}
+import no.java.ems.{URIAttachment, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -102,7 +102,7 @@ object Importer {
           (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation),
           (c \ "speakers").children.map(s =>
             Speaker(
-            (s \ "id").extract[String],
+            (s \ "id").extractOpt[String],
             (s \ "name").extract[String],
             (s \ "email").extract[String],
             (s \ "zip-code").extractOpt[String],
@@ -127,7 +127,7 @@ object Importer {
           val JString(id) = a \ "id"
 
           val file = new File(f)
-          val att: Attachment with Entity = storage.saveAttachment(FileAttachment(Some(id), file))
+          val att: Attachment with Entity[Attachment] = storage.saveAttachment(FileAttachment(Some(id), file))
           URIAttachment(
             URI.create(att.id.get),
             att.name,

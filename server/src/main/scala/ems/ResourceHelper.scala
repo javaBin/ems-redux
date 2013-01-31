@@ -1,6 +1,7 @@
 package no.java.ems
 
 import model.Entity
+import security.User
 import storage.MongoDBStorage
 import unfiltered.response._
 import unfiltered.request._
@@ -8,16 +9,13 @@ import javax.servlet.http.HttpServletRequest
 import net.hamnaberg.json.collection._
 import no.java.unfiltered.RequestURIBuilder
 import unfiltered.{IfUnmodifiedSinceString, DateResponseHeader}
-
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
+import com.mongodb.MongoException
 
 trait ResourceHelper {
 
   def storage: MongoDBStorage
 
-  private [ems] def handleObject[T <: Entity](obj: Option[T], request: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, toItem: (T) => Item) = {
+  private [ems] def handleObject[T <: Entity[T]](obj: Option[T], request: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[MongoException, T], toItem: (T) => Item)(implicit user: User) = {
     request match {
       case GET(req) => {
         req match {
@@ -32,17 +30,11 @@ trait ResourceHelper {
         }
       }
       case req@PUT(RequestContentType(CollectionJsonResponse.contentType)) => {
-        req match {
+        authenticated(req, user) {
           case IfUnmodifiedSince(date) => {
             obj.map{ old =>
               if (old.lastModified.withMillisOfSecond(0).toDate == date) {
-                withTemplate(req) {
-                  t => {
-                    val e = fromTemplate(t)
-                    storage.saveEntity(e)
-                    NoContent
-                  }
-                }
+                saveFromTemplate(req, fromTemplate, saveEntity)
               }
               else {
                 PreconditionFailed
@@ -50,13 +42,7 @@ trait ResourceHelper {
             }.getOrElse(NotFound)
           }
           case IfUnmodifiedSinceString("*") => {
-            withTemplate(req) {
-              t => {
-                val e = fromTemplate(t)
-                storage.saveEntity(e)
-                NoContent
-              }
-            }
+            saveFromTemplate(req, fromTemplate, saveEntity)
           }
           case _ => PreconditionRequired ~> ResponseString("You must include a 'If-Unmodified-Since' header in your request")
         }
@@ -65,6 +51,19 @@ trait ResourceHelper {
       case _ => MethodNotAllowed
     }
   }
+
+  private def saveFromTemplate[T <: Entity[T]](req: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[MongoException, T]): ResponseFunction[Any] = {
+    withTemplate(req) {
+      t => {
+        val e = fromTemplate(t)
+        saveEntity(e).fold(
+          ex => InternalServerError ~> ResponseString(ex.getMessage),
+          _ => NoContent
+        )
+      }
+    }
+  }
+
   private [ems] def withTemplate[A](req: HttpRequest[HttpServletRequest])(f: (Template) => ResponseFunction[A]) = {
     val requestUriBuilder = RequestURIBuilder.unapply(req).get
     req match {
@@ -88,6 +87,10 @@ trait ResourceHelper {
       }
       case _ => UnsupportedMediaType
     }
+  }
+
+  private [ems] def authenticated[B](req: HttpRequest[HttpServletRequest], user: User)(intent: unfiltered.Cycle.Intent[HttpServletRequest, B]): ResponseFunction[B] = {
+    if (user.authenticated && intent.isDefinedAt(req)) intent(req) else Forbidden
   }
 
 }

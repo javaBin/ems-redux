@@ -53,6 +53,12 @@ object converters {
     }
   }
 
+  def toSlot(template: Template, id: Option[String] = None): Slot = Slot(
+    id,
+    template.getPropertyValue("start").map(v => DateFormat.parseDateTime(v.toString)).get,
+    template.getPropertyValue("end").map(v => DateFormat.parseDateTime(v.toString)).get
+  )
+
   def sessionToItem(baseBuilder: URIBuilder)(implicit u: User): (Session) => Item = {
     s => {
       val properties = Map(
@@ -87,7 +93,7 @@ object converters {
     links ++= s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
     links ++= s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "room item", Some(r.name)))
     links ++= s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "slot item", Some(slot.start.toString(DateFormat) + "-" + slot.end.toString(DateFormat))))
-    links ++= s.abs.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id).build(), "speaker item", Some(speaker.name)))
+    links ++= s.abs.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()
   }
@@ -118,13 +124,21 @@ object converters {
 
   def speakerToItem(builder: URIBuilder, eventId: String, sessionId: String)(implicit user: User): (Speaker) => (Item) = {
     s => {
-      val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id)
+      val auths = if (user.authenticated) {
+        List(
+          ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq),
+          ValueProperty("email", Some("Email"), Some(StringValue(s.email)))
+        )
+      } else {
+        Nil
+      }
+
+      val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id.get)
       val data = List(
         ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
-        ValueProperty("email", Some("Email"), Some(StringValue(s.email))),
         ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue(_))),
         ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
-      ) ++ (if (user.authenticated) List(ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq)) else Nil)
+      ) ++ auths
 
       Item(
         base.build(),
@@ -167,7 +181,7 @@ object converters {
     val bio = template.getPropertyValue("bio").map(_.value.toString)
     val zipCode = template.getPropertyValue("zip-code").map(_.value.toString)
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString)).toSet[Tag]
-    Speaker(id.getOrElse(UUID.randomUUID().toString), name, email, zipCode, bio, tags)
+    Speaker(id, name, email, zipCode, bio, tags)
   }
 
   def toAttachment(template: Template): URIAttachment = {
