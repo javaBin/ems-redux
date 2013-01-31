@@ -59,6 +59,11 @@ object converters {
     template.getPropertyValue("end").map(v => DateFormat.parseDateTime(v.toString)).get
   )
 
+  def toRoom(template: Template, id: Option[String] = None): Room = Room(
+    id,
+    template.getPropertyValue("name").map(_.toString).get
+  )
+
   def sessionToItem(baseBuilder: URIBuilder)(implicit u: User): (Session) => Item = {
     s => {
       val properties = Map(

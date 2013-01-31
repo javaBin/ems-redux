@@ -13,50 +13,60 @@ import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURI
 import net.hamnaberg.json.collection._
 
 trait EventResources extends ResourceHelper with SessionResources with SpeakerResources {
-  def handleSlots(id: String, request: HttpRequest[HttpServletRequest]) = {
+
+  def handleSlots(id: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) => {
         val items = storage.getEvent(id).map(_.slots.map(slotToItem(baseUriBuilder, id))).getOrElse(Nil)
         val href = baseUriBuilder.segments("events", id, "slots").build()
         CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
       }
-      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) & BaseURIBuilder(baseUriBuilder) => {
-        withTemplate(req) {
-          t => {
-            storage.saveSlot(id, toSlot(t, None)).fold(
-              ex => InternalServerError ~> ResponseString(ex.getMessage),
-              stored => Created ~> Location(baseUriBuilder.segments("events", "slots", stored.id.get).build().toString)
-            )
+      case POST(_) => {
+        authenticated(request, user) {
+          case req@RequestContentType(CollectionJsonResponse.contentType) & BaseURIBuilder(baseUriBuilder) => {
+            withTemplate(req) {
+              t => {
+                storage.saveSlot(id, toSlot(t, None)).fold(
+                  ex => InternalServerError ~> ResponseString(ex.getMessage),
+                  stored => Created ~> Location(baseUriBuilder.segments("events", "slots", stored.id.get).build().toString)
+                )
+              }
+            }
           }
+          case _ => UnsupportedMediaType
         }
       }
-      case POST(_) => UnsupportedMediaType
       case _ => MethodNotAllowed
     }
   }
 
-  def handleRooms(id: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleRooms(id: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) => {
         val items = storage.getEvent(id).map(_.rooms.map(roomToItem(baseUriBuilder, id))).getOrElse(Nil)
         val href = baseUriBuilder.segments("events", id, "rooms").build()
         CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
       }
-/*      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
-        withTemplate(req) {
-          t => {
-            val e = toEvent(None, t)
-            storage.saveEvent(e)
-            NoContent
-          }
-        }
-      }*/
-      case POST(_) => UnsupportedMediaType
+     case POST(_) => {
+       authenticated(request, user) {
+         case req@RequestContentType(CollectionJsonResponse.contentType) & BaseURIBuilder(baseUriBuilder) => {
+           withTemplate(req) {
+             t => {
+               storage.saveRoom(id, toRoom(t, None)).fold(
+                 ex => InternalServerError ~> ResponseString(ex.getMessage),
+                 stored => Created ~> Location(baseUriBuilder.segments("events", "slots", stored.id.get).build().toString)
+               )
+             }
+           }
+         }
+         case _ => UnsupportedMediaType
+       }
+      }
       case _ => MethodNotAllowed
     }
   }
 
-  def handleEventList(request: HttpRequest[HttpServletRequest]) = {
+  def handleEventList(request: HttpRequest[HttpServletRequest])(implicit user:User) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val byName = p("slug").headOption
@@ -65,18 +75,22 @@ trait EventResources extends ResourceHelper with SessionResources with SpeakerRe
         val href = baseUriBuilder.segments("events").build()
         CollectionJsonResponse(JsonCollection(href, Nil, items))
       }
-      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) & BaseURIBuilder(baseUriBuilder) => {
-        withTemplate(req) {
-          t => {
-            val e = toEvent(None, t)
-            storage.saveEvent(e).fold(
-              ex => InternalServerError ~> ResponseString(ex.getMessage),
-              stored => Created ~> Location(baseUriBuilder.segments("events", stored.id.get).build().toString)
-            )
+      case POST(_) => {
+        authenticated(request, user) {
+          case req@RequestContentType(CollectionJsonResponse.contentType) & BaseURIBuilder(baseUriBuilder) => {
+            withTemplate(req) {
+              t => {
+                val e = toEvent(None, t)
+                storage.saveEvent(e).fold(
+                  ex => InternalServerError ~> ResponseString(ex.getMessage),
+                  stored => Created ~> Location(baseUriBuilder.segments("events", stored.id.get).build().toString)
+                )
+              }
+            }
           }
+          case _ => UnsupportedMediaType
         }
       }
-      case POST(_) => UnsupportedMediaType
       case _ => MethodNotAllowed
     }
   }

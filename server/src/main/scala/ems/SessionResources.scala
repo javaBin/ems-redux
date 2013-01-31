@@ -76,65 +76,70 @@ trait SessionResources extends ResourceHelper {
   }
 
   def publish(eventId: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = request match {
-    case POST(RequestContentType("text/uri-list")) => {
-      authenticated(request, user) { case x =>
-        val list = URIList.parse(Source.fromInputStream(request.inputStream))
-        if (list.isRight) {
-          publishNow(eventId, list.right.get)
-          NoContent
-        }
-        else {
-          val e = list.left.get
-          e.printStackTrace()
-          BadRequest
-        }
+    case POST(_) => {
+      authenticated(request, user) {
+        case RequestContentType("text/uri-list") =>
+          val list = URIList.parse(Source.fromInputStream(request.inputStream))
+          if (list.isRight) {
+            publishNow(eventId, list.right.get)
+            NoContent
+          }
+          else {
+            val e = list.left.get
+            e.printStackTrace()
+            BadRequest
+          }
+        case _ => UnsupportedMediaType
       }
     }
-    case POST(_)=> UnsupportedMediaType
     case _ => MethodNotAllowed
   }
 
-  def handleSessionAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest]) = {
+  def handleSessionAttachments(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
     request match {
       case GET(_) & RequestURIBuilder(requestURIBuilder) & BaseURIBuilder(baseURIBuilder) => {
         val items = storage.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem(baseURIBuilder))).getOrElse(Nil)
         CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items))
       }
 
-      case req@POST(RequestContentType(CollectionJsonResponse.contentType)) => {
-        val sess = storage.getSession(eventId, sessionId)
-        sess match {
-          case Some(s) => {
-            withTemplate(req) {
-              t => {
-                val attachment = toAttachment(t)
-                val updated = s.addAttachment(attachment)
-                storage.saveSession(updated)
-                NoContent
+      case POST(_) => {
+        authenticated(request, user) {
+          case req@RequestContentType(CollectionJsonResponse.contentType) =>
+            val sess = storage.getSession(eventId, sessionId)
+            sess match {
+              case Some(s) => {
+                withTemplate(req) {
+                  t => {
+                    val attachment = toAttachment(t)
+                    val updated = s.addAttachment(attachment)
+                    storage.saveSession(updated)
+                    NoContent
+                  }
+                }
               }
+              case None => NotFound
             }
-          }
-          case None => NotFound
-        }
-      }
-      case req@POST(RequestContentType(ct)) & RequestURIBuilder(requestURIBuilder) => {
-        val sess = storage.getSession(eventId, sessionId)
-        sess match {
-          case Some(s) => {
-            req match {
-              case RequestContentDisposition(cd) & BaseURIBuilder(baseURIBuilder) => {
-                val att = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), req.inputStream))
-                val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
-                storage.saveSession(attached)
-                NoContent
+          case req@RequestContentType(ct) & RequestURIBuilder(requestURIBuilder) => {
+            val sess = storage.getSession(eventId, sessionId)
+            sess match {
+              case Some(s) => {
+                req match {
+                  case RequestContentDisposition(cd) & BaseURIBuilder(baseURIBuilder) => {
+                    val att = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), req.inputStream))
+                    val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
+                    storage.saveSession(attached)
+                    NoContent
+                  }
+                  case _ => {
+                    val href = requestURIBuilder.build()
+                    BadRequest ~> CollectionJsonResponse(JsonCollection(href, ErrorMessage("Wrong response", None, Some("Missing Content-Disposition header for binary data"))))
+                  }
+                }
               }
-              case _ => {
-                val href = requestURIBuilder.build()
-                BadRequest ~> CollectionJsonResponse(JsonCollection(href, ErrorMessage("Wrong response", None, Some("Missing Content-Disposition header for binary data"))))
-              }
+              case None => NotFound
             }
+
           }
-          case None => NotFound
         }
       }
       case _ => MethodNotAllowed
