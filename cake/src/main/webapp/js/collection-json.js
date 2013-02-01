@@ -51,10 +51,10 @@ function fromObject(root) {
   //console.log('in ', root);
 
   root.isCollection = function() {
-    return typeof this.collection == 'object';
+    return typeof this.collection === 'object';
   }
   root.isTemplate = function() {
-    return typeof this.template == 'object';
+    return typeof this.template === 'object';
   }
 
   if(root.isTemplate()) {

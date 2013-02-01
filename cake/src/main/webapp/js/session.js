@@ -66,3 +66,22 @@ sessionHelpers.mapLevel = function(level) {
     }
     return object;
 }
+
+sessionHelpers.mapLang = function(lang) {
+    var object = {
+        name: lang
+    }
+    switch(lang) {
+        case "en":
+            object.css = "flag flag-gb";
+            object.title = "English";
+            break;
+        case "no":
+        default:
+            object.css = "flag flag-no";
+            object.title = "Norwegian";
+            break;
+    }
+
+    return object;
+}

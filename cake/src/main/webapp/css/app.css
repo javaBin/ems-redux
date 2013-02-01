@@ -6,3 +6,7 @@ body {
 .row-padding {
     padding-bottom: 1em;
 }
+
+.photo {
+    float: left;
+}

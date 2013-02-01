@@ -19,6 +19,11 @@
     <div class="row row-padding">
         <div class="span2">Level</div>
         <div class="span1"><span ng-repeat="icon in session.level.icons" title="{{session.level.name}}"><span class="{{icon}}"></span></span></div>
+        <div class="span2">Lang</div>
+        <div class="span1">
+            <img src="blank.gif" class="{{session.lang.css}}" alt="{{session.lang.title}}" />
+        </div>
+
     </div>
     <div class="row row-padding">
         <div class="span2">Keywords</div>
@@ -27,6 +32,17 @@
     <div class="row row-padding">
         <div class="span2">Tags</div>
         <div class="span4">{{session.tagsAsString}}</div>
+    </div>
+
+    <div ng-repeat="speaker in speakers">
+        <h2>{{speaker.data.name}}</h2>
+        <div class="row row-padding">
+            <div class="span1">
+                <img class="photo" ng-src="{{speaker.photo}}" width="100" height="100"/>
+            </div>
+            <div class="span6">{{speaker.data.bio}}</div>
+        </div>
+
     </div>
 
 </div>

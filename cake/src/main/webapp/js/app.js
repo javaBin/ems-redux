@@ -51,6 +51,7 @@ app.parseItem = function(item) {
     i.data = item.toObject();
     i.href = item.href;
     i.links = item.links;
+    i.findLinkByRel = item.findLinkByRel;
     return i;
 }
 
@@ -95,6 +96,9 @@ app.SingleSession = function($scope, $routeParams, $http) {
             var query = expandQuery({href: event.sessions}, {"slug": slug});
             $http.get(app.wrapAjax(query)).success(function(sessionCollection){
                 var session = app.mapSession(_.head(fromObject(sessionCollection).collection.items));
+                $http.get(app.wrapAjax(findLinkByRel(session, "speaker collection").href)).success(function(speakerCollection){
+                    $scope.speakers = _.map(fromObject(speakerCollection).collection.items, app.mapSpeaker);
+                });
                 $scope.session = session;
             });
         });
@@ -116,16 +120,26 @@ app.mapSession = function(item) {
     i.state = sessionHelpers.mapState(i.data.state);
     i.format = sessionHelpers.mapFormat(i.data.format);
     i.level = sessionHelpers.mapLevel(i.data.level);
+    i.lang = sessionHelpers.mapLang(i.data.lang);
     i.speakers = findLinksByRel(i, "speaker item");
     i.speakersAsString = toCSV(i.speakers.map(function(i){return i.prompt}));
     return i;
+}
+
+app.mapSpeaker = function(item) {
+    var obj = app.parseItem(item);
+    var photo = findLinkByRel(obj, "photo");
+    if (photo && ("image" === photo.render)) {
+        obj.photo = photo.href;
+    }
+    return obj;
 }
 
 function toCSV(list) {
     return _.reduce(list, function (agg, i) {
         var out = agg;
         if (agg.length > 0) {
-            out = agg + ","
+            out = agg + ", "
         }
         return out + i;
     }, "");
