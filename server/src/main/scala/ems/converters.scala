@@ -74,7 +74,7 @@ object converters {
         "audience" -> s.abs.audience,
         "outline" -> s.abs.outline,
         "equipment" -> s.abs.equipment,
-        "locale" -> Some(s.abs.language.getLanguage),
+        "lang" -> Some(s.abs.language.getLanguage),
         "format" -> Some(s.abs.format.toString),
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
@@ -154,7 +154,7 @@ object converters {
     }
   }
 
-  def toEvent(id: Option[String], template: Template): Event = {
+  def toEvent(template: Template, id: Option[String] = None): Event = {
     val name = template.getPropertyValue("name").map(_.value.toString).get
     val start = template.getPropertyValue("start").map(x => DateFormat.parseDateTime(x.value.toString)).get
     val end = template.getPropertyValue("end").map(x => DateFormat.parseDateTime(x.value.toString)).get

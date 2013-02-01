@@ -4,14 +4,15 @@ import security.{JAASAuthenticator, User, Authenticator}
 import storage.{MongoSetting, MongoDBStorage}
 import unfiltered.request._
 import unfiltered.filter.Plan
-import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import no.java.unfiltered._
 import scala.util.Properties
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
 import unfiltered.filter.request.ContextPath
 import unfiltered.response.{Pass, NotFound}
+import unfiltered.Cycle
 
-class Resources(override val storage: MongoDBStorage, auth: Authenticator) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
+class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
   import auth._
 
   def this() = this(Resources.storage, JAASAuthenticator)
@@ -20,7 +21,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator) exten
     case Authenticated(f) => f((u: User) => pathMapper(u))
   }
 
-  private def pathMapper(implicit u: User): Plan.Intent = {
+  private def pathMapper(implicit u: User): Cycle.Intent[HttpServletRequest, HttpServletResponse] = {
     case req@ContextPath(_, Seg(Nil)) => handleRoot(req)
     case req@ContextPath(_, Seg("changelog" :: Nil)) => handleChangelog(req)
     case req@ContextPath(_, Seg("events" :: Nil)) => handleEventList(req)
@@ -62,6 +63,6 @@ object Resources {
     val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
   }
 
-  def apply(authenticator: Authenticator) = new Resources(storage, authenticator)
+  def apply(authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)
 
 }

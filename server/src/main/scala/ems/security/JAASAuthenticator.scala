@@ -4,12 +4,9 @@ import javax.security.auth.login.{LoginException, LoginContext}
 import javax.security.auth.callback._
 import scala.Left
 import scala.Right
+import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
-
-object JAASAuthenticator extends Authenticator {
+object JAASAuthenticator extends Authenticator[HttpServletRequest, HttpServletResponse] {
   def authenticate(username: String, password: String) = {
     val context = new LoginContext("ems", new CallbackHandler {
       def handle(callbacks: Array[Callback]) {

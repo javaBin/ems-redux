@@ -5,7 +5,7 @@ import com.mongodb.casbah.Imports._
 import no.java.ems._
 import security.User
 import java.util
-import java.util.{Date => JDate}
+import util.{Date => JDate, UUID}
 import java.io.InputStream
 import model._
 import no.java.ems.URIAttachment
@@ -25,7 +25,7 @@ trait MongoDBStorage  {
 
   def getEventsBySlug(name: String) = db("event").find(MongoDBObject("slug" -> name)).sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
 
-  def saveEvent(event: Event): Either[MongoException, Event] = saveOrUpdate(event, event.toMongo, db("event"))
+  def saveEvent(event: Event): Either[Exception, Event] = saveOrUpdate(event, (e: Event, update) => e.toMongo(update), db("event"))
 
   def getSlots(eventId: String): Seq[Slot] = getEvent(eventId).map(_.slots).getOrElse(Nil)
 
@@ -90,7 +90,7 @@ trait MongoDBStorage  {
     MongoDBObject("_id" -> id, "eventId" -> eventId)
   ).map(Session(_, this))
 
-  def saveSession(session: Session) = saveOrUpdate(session, session.toMongo, db("session"))
+  def saveSession(session: Session) = saveOrUpdate(session, (s: Session, update) => s.toMongo(update), db("session"))
 
   def getSpeaker(eventId: String, sessionId: String, speakerId: String) = db("session").findOne(
     MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
@@ -162,12 +162,12 @@ trait MongoDBStorage  {
     fs.findOne(MongoDBObject("_id" -> id)).map(GridFileAttachment)
   }
 
-  def importEntity[A <: Entity[A]](entity: A): Either[MongoException, A] = {
-    entity match {
-      case e: Event => saveOrUpdate[A](entity, e.toMongo, db("event"), true)
-      case e: Session => saveOrUpdate[A](entity, e.toMongo, db("session"), true)
-      case _ => throw new IllegalArgumentException("Unknown entity")
-    }
+  def importSession(session: Session): Either[Exception, Session] = {
+    saveOrUpdate(session, (o: Session, update) => o.toMongo(update), db("session"), fromImport = true)
+  }
+
+  def importEvent(event: Event): Either[Exception, Event] = {
+    saveOrUpdate(event, (o: Event, update) => o.toMongo(update), db("event"), fromImport = true)
   }
 
   def saveAttachment(att: Attachment) = {
@@ -226,9 +226,10 @@ trait MongoDBStorage  {
     db.underlying.getMongo.close()
   }
 
-  private def saveOrUpdate[A <: Entity[A]](entity: A, toMongoDBObject: (Boolean) => DBObject, coll: MongoCollection, fromImport: Boolean = false): Either[MongoException, A] = {
+  private def saveOrUpdate[A <: Entity[A]](entity: A, toMongoDBObject: (A, Boolean) => DBObject, coll: MongoCollection, fromImport: Boolean = false): Either[Exception, A] = {
+    val objectWithId = withId(entity)
     val update = if (fromImport) coll.findOne(MongoDBObject("_id" -> entity.id.get), MongoDBObject()).isDefined else entity.id.isDefined
-    val toSave = toMongoDBObject(update)
+    val toSave = toMongoDBObject(objectWithId, update)
     if (update) {
       coll.update(MongoDBObject("_id" -> entity.id.get), toSave)
     }
@@ -237,10 +238,14 @@ trait MongoDBStorage  {
     }
     val lastError = coll.lastError()
     if (lastError.ok()) {
-      Right(entity)
+      Right(objectWithId)
     }
     else {
       Left(lastError.getException)
     }
+  }
+
+  private def withId[A <: Entity[A]](entity: A): A = {
+    if (entity.id.isDefined) entity else entity.withId(UUID.randomUUID().toString)
   }
 }

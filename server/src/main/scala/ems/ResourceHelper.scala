@@ -1,21 +1,43 @@
 package no.java.ems
 
 import model.Entity
+import no.java.ems.converters._
 import security.User
 import storage.MongoDBStorage
 import unfiltered.response._
 import unfiltered.request._
 import javax.servlet.http.HttpServletRequest
 import net.hamnaberg.json.collection._
-import no.java.unfiltered.RequestURIBuilder
+import no.java.unfiltered.{BaseURIBuilder, RequestURIBuilder}
 import unfiltered.{IfUnmodifiedSinceString, DateResponseHeader}
 import com.mongodb.MongoException
+import scala.Left
+import net.hamnaberg.json.collection.ErrorMessage
+import unfiltered.DateResponseHeader
+import scala.Right
+import net.hamnaberg.json.collection.Template
+import unfiltered.response.ResponseString
+import net.hamnaberg.json.collection.Item
+import scala.Left
+import net.hamnaberg.json.collection.ErrorMessage
+import unfiltered.DateResponseHeader
+import scala.Right
+import net.hamnaberg.json.collection.Template
+import unfiltered.response.ResponseString
+import net.hamnaberg.json.collection.Item
+import scala.Left
+import net.hamnaberg.json.collection.ErrorMessage
+import unfiltered.DateResponseHeader
+import scala.Right
+import net.hamnaberg.json.collection.Template
+import unfiltered.response.ResponseString
+import net.hamnaberg.json.collection.Item
 
 trait ResourceHelper {
 
   def storage: MongoDBStorage
 
-  private [ems] def handleObject[T <: Entity[T]](obj: Option[T], request: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[MongoException, T], toItem: (T) => Item)(implicit user: User) = {
+  private [ems] def handleObject[T <: Entity[T]](obj: Option[T], request: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[Exception, T], toItem: (T) => Item)(implicit user: User) = {
     request match {
       case GET(req) => {
         req match {
@@ -52,7 +74,7 @@ trait ResourceHelper {
     }
   }
 
-  private def saveFromTemplate[T <: Entity[T]](req: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[MongoException, T]): ResponseFunction[Any] = {
+  private def saveFromTemplate[T <: Entity[T]](req: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[Exception, T]): ResponseFunction[Any] = {
     withTemplate(req) {
       t => {
         val e = fromTemplate(t)
@@ -88,6 +110,29 @@ trait ResourceHelper {
       case _ => UnsupportedMediaType
     }
   }
+
+
+  private [ems] def createObject[A](request: HttpRequest[HttpServletRequest],
+                      fromT: (Template) => A,
+                      saveObject: (A) => Either[Exception, A],
+                      segments: (A) => Seq[String])
+                     (implicit user: User) = {
+    authenticated(request, user) {
+      case req@RequestContentType(CollectionJsonResponse.contentType) & BaseURIBuilder(baseUriBuilder) => {
+        withTemplate(req) {
+          t => {
+            val e = fromT(t)
+            saveObject(e).fold(
+              ex => InternalServerError ~> ResponseString(ex.getMessage),
+              stored => Created ~> Location(baseUriBuilder.segments(segments(stored) : _*).build().toString)
+            )
+          }
+        }
+      }
+      case _ => UnsupportedMediaType
+    }
+  }
+
 
   private [ems] def authenticated[B](req: HttpRequest[HttpServletRequest], user: User)(intent: unfiltered.Cycle.Intent[HttpServletRequest, B]): ResponseFunction[B] = {
     if (user.authenticated && intent.isDefinedAt(req)) intent(req) else Forbidden
