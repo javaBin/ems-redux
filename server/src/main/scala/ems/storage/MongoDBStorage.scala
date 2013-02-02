@@ -1,6 +1,6 @@
 package no.java.ems.storage
 
-import com.mongodb.casbah.gridfs.GridFS
+import com.mongodb.casbah.gridfs.{GenericGridFSDBFile, GridFS}
 import com.mongodb.casbah.Imports._
 import no.java.ems._
 import security.User
@@ -171,33 +171,29 @@ trait MongoDBStorage  {
     saveOrUpdate(event, (o: Event, update) => o.toMongo(update), db("event"), fromImport = true)
   }
 
+
   def saveAttachment(att: Attachment) = {
     val fs = GridFS(db)
+
     val file = att match {
-      case GridFileAttachment(f) => f
-      case e@FileAttachment(Some(id), _) => fs.findOne(MongoDBObject("_id" -> id)) match {
-        case Some(f) => f
-        case None => {
-          val f = fs.createFile(getStream(e.underlying), e.name)
-          f.put("_id", id)
-          e.mediaType.foreach(mt => f.contentType = mt.toString)
-          f
-        }
-      }
-      case a => {
-        fs.findOne(att.name) match {
-          case Some(f) => f
-          case None => {
-            val f = fs.createFile(getStream(a), a.name)
-            a.mediaType.foreach(mt => f.contentType = mt.toString)
-            f
-          }
-        }
-      }
+      case GridFileAttachment(f) => Some(f)
+      case a@FileAttachment(Some(id), _) =>
+        fs.findOne(MongoDBObject("_id" -> id)).orElse(createInputFromAttachment(a))
+      case a =>
+        fs.findOne(att.name).orElse(createInputFromAttachment(a))
     }
-    file.metaData = MongoDBObject("last-modified" -> new JDate())
-    file.save()
-    getAttachment(file.id.toString).getOrElse(throw new IllegalArgumentException("Failed to save"))
+
+    def createInputFromAttachment(a: Attachment): Option[GenericGridFSDBFile] = {
+      val id = fs(getStream(a)) { f =>
+        f.filename = a.name
+        a.mediaType.foreach(mt => f.contentType = mt.toString)
+        f.underlying.setId(UUID.randomUUID().toString)
+        f.metaData = MongoDBObject("last-modified" -> new JDate())
+      }
+      fs.findOne(MongoDBObject("_id" -> id.get))
+    }
+
+    GridFileAttachment(file.get)
   }
 
   def getChangedEvents(from: DateTime): Seq[Event] = {

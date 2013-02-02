@@ -1,13 +1,13 @@
 package no.java.ems.storage
 
-import com.mongodb.casbah.gridfs.GridFSDBFile
+import com.mongodb.casbah.gridfs.GenericGridFSDBFile
 import no.java.ems.{MIMEType, Attachment}
 import no.java.ems.model.Entity
 import java.util.{Date => JDate}
 import com.mongodb.casbah.Imports._
 import org.joda.time.DateTime
 
-case class GridFileAttachment(file: GridFSDBFile) extends Attachment with Entity[Attachment] {
+case class GridFileAttachment(file: GenericGridFSDBFile) extends Attachment with Entity[Attachment] {
 
   def data = file.inputStream
 

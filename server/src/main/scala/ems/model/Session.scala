@@ -227,7 +227,8 @@ object Speaker {
       m.getAs[String]("zip-code"),
       m.getAs[String]("bio"),
       m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
-      m.get("photo").flatMap(i => storage.getAttachment(i.toString))
+      m.get("photo").flatMap(i => storage.getAttachment(i.toString)),
+      new DateTime(m.getAs[JDate]("last-modified").getOrElse(new JDate()))
     )
   }
 }
