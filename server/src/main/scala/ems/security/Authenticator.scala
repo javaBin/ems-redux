@@ -39,5 +39,5 @@ case class AuthenticatedUser(name: String) extends User {
 
 object Anonymous extends User {
   val name = "Anonymous"
-  val authenticated = true
+  val authenticated = false
 }
