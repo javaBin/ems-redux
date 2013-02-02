@@ -95,15 +95,16 @@ trait MongoDBStorage  {
   def getSpeaker(eventId: String, sessionId: String, speakerId: String) = db("session").findOne(
     MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
     MongoDBObject("speakers" -> 1)
-  ).flatMap(_.getAs[MongoDBList]("speakers").headOption.map(_.asInstanceOf[DBObject])).map(Speaker(_, this))
+  ).flatMap(_.getAs[MongoDBList]("speakers").flatMap(_.headOption).map(_.asInstanceOf[DBObject])).map(Speaker(_, this))
 
   def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = {
-    val speakerId = speaker.id.getOrElse(util.UUID.randomUUID().toString)
+    val withId = if (speaker.id.isDefined) speaker else speaker.withId(util.UUID.randomUUID().toString)
+    val speakerId = withId.id.get
     val update = db("session").findOne(
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId), MongoDBObject()
     ).isDefined
 
-    val dbObject: MongoDBObject = speaker.toMongo
+    val dbObject: MongoDBObject = withId.toMongo
     val result = if (update) {
       val toSave = dbObject.foldLeft(MongoDBObject.newBuilder){case (mongo, (key, value)) => mongo += ("speakers.$." + key -> value) }.result()
       db("session").update(
@@ -120,7 +121,7 @@ trait MongoDBStorage  {
 
     val error = result.getLastError
     if (error.ok()) {
-      Right(speaker)
+      Right(withId)
     }
     else {
       Left(error.getException)

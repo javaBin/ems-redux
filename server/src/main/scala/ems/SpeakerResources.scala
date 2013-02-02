@@ -38,7 +38,7 @@ trait SpeakerResources extends ResourceHelper {
                     storage.saveSpeaker(eventId, sessionId, speaker).fold(
                       ex => InternalServerError ~> ResponseString(ex.getMessage),
                       saved => {
-                        val href = builder.segments("events", eventId, "sessions", sessionId, "speakers", speaker.id.get).build()
+                        val href = builder.segments("events", eventId, "sessions", sessionId, "speakers", saved.id.get).build()
                         Created ~> Location(href.toString)
                       }
                     )
@@ -73,9 +73,10 @@ trait SpeakerResources extends ResourceHelper {
               case RequestContentDisposition(cd) => {
                 val speaker = storage.getSpeaker(eventId, sessionId, speakerId)
                 speaker.map{ sp =>
-                  val existingBinary = sp.photo.flatMap(_.id)
-                  existingBinary.foreach(id => storage.removeAttachment(id))
+                  sp.photo.foreach(ph => storage.removeAttachment(ph.id.get))
+
                   val binary = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), request.inputStream))
+                  println(binary.name)
                   storage.updateSpeakerWithPhoto(eventId, sessionId, speakerId, binary).fold(ex =>
                     InternalServerError ~> ResponseString(ex.getMessage),
                     _ => Created ~> Location(base.segments("binary", binary.id.get).toString())
