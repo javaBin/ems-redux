@@ -177,20 +177,8 @@ trait MongoDBStorage  {
 
     val file = att match {
       case GridFileAttachment(f) => Some(f)
-      case a@FileAttachment(Some(id), _) =>
-        fs.findOne(MongoDBObject("_id" -> id)).orElse(createInputFromAttachment(a))
-      case a =>
-        fs.findOne(att.name).orElse(createInputFromAttachment(a))
-    }
-
-    def createInputFromAttachment(a: Attachment): Option[GenericGridFSDBFile] = {
-      val id = fs(getStream(a)) { f =>
-        f.filename = a.name
-        a.mediaType.foreach(mt => f.contentType = mt.toString)
-        f.underlying.setId(UUID.randomUUID().toString)
-        f.metaData = MongoDBObject("last-modified" -> new JDate())
-      }
-      fs.findOne(MongoDBObject("_id" -> id.get))
+      case a@FileAttachment(Some(id), _) => fs.findOne(MongoDBObject("_id" -> id)).orElse(createInputFromAttachment(a))
+      case a => fs.findOne(att.name).orElse(createInputFromAttachment(a))
     }
 
     GridFileAttachment(file.get)
@@ -245,4 +233,16 @@ trait MongoDBStorage  {
   private def withId[A <: Entity[A]](entity: A): A = {
     if (entity.id.isDefined) entity else entity.withId(UUID.randomUUID().toString)
   }
+
+  private def createInputFromAttachment(a: Attachment): Option[GenericGridFSDBFile] = {
+    val fs = GridFS(db)
+    val id = fs(getStream(a)) { f =>
+      f.filename = a.name
+      a.mediaType.foreach(mt => f.contentType = mt.toString)
+      f.underlying.setId(UUID.randomUUID().toString)
+      f.metaData = MongoDBObject("last-modified" -> new JDate())
+    }
+    fs.findOne(MongoDBObject("_id" -> id.get))
+  }
+
 }
