@@ -73,9 +73,9 @@ trait SpeakerResources extends ResourceHelper {
               case RequestContentDisposition(cd) => {
                 val speaker = storage.getSpeaker(eventId, sessionId, speakerId)
                 speaker.map{ sp =>
-                  sp.photo.foreach(ph => storage.removeAttachment(ph.id.get))
+                  sp.photo.foreach(ph => storage.binary.removeAttachment(ph.id.get))
 
-                  val binary = storage.saveAttachment(StreamingAttachment(cd.filename.orElse(cd.filenameSTAR.map(_.filename)).get, None, MIMEType(ct), request.inputStream))
+                  val binary = storage.binary.saveAttachment(StreamingAttachment(cd.filename.orElse(cd.filenameSTAR.map(_.filename)).get, None, MIMEType(ct), request.inputStream))
                   storage.updateSpeakerWithPhoto(eventId, sessionId, speakerId, binary).fold(ex =>
                     InternalServerError ~> ResponseString(ex.getMessage),
                     _ => Created ~> Location(base.segments("binary", binary.id.get).toString())

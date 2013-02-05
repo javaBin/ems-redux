@@ -7,6 +7,7 @@ import com.mongodb.casbah.Imports._
 import java.util
 import util.Locale
 import util.{Date => JDate}
+import ems.storage.BinaryStorage
 
 case class Abstract(title: String,
                     summary: Option[String] = None,
@@ -54,13 +55,13 @@ case class Abstract(title: String,
 }
 
 object Abstract {
-  def apply(dbo: DBObject, storage: MongoDBStorage): Abstract = {
+  def apply(dbo: DBObject, binaryStorage: BinaryStorage): Abstract = {
     val m = wrapDBObj(dbo)
     val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
     val level = m.getAs[String]("level").map(Level(_)).getOrElse(Level.Beginner)
     val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
       case x: DBObject => x
-    }.map(Speaker(_, storage))
+    }.map(Speaker(_, binaryStorage))
     Abstract(
       m.getAsOrElse("title", "No Title"),
       m.getAs[String]("summary"),
@@ -177,7 +178,7 @@ object Session {
 
   def apply(dbo: DBObject, storage: MongoDBStorage): Session = {
     val m = wrapDBObj(dbo)
-    val abs = Abstract(dbo, storage)
+    val abs = Abstract(dbo, storage.binary)
     val eventId = m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId"))
     val event = storage.getEvent(eventId).getOrElse(throw new IllegalArgumentException("No Event"))
     val slot = event.slots.find(_.id == m.get("slotId").map(_.toString))
@@ -218,7 +219,7 @@ case class Speaker(id: Option[String], name: String, email: String, zipCode: Opt
 }
 
 object Speaker {
-  def apply(dbo: DBObject, storage: MongoDBStorage): Speaker = {
+  def apply(dbo: DBObject, binaryStorage: BinaryStorage): Speaker = {
     val m = wrapDBObj(dbo)
     Speaker(
       m.get("_id").map(_.toString),
@@ -227,7 +228,7 @@ object Speaker {
       m.getAs[String]("zip-code"),
       m.getAs[String]("bio"),
       m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
-      m.get("photo").flatMap(i => storage.getAttachment(i.toString)),
+      m.get("photo").flatMap(i => binaryStorage.getAttachment(i.toString)),
       new DateTime(m.getAs[JDate]("last-modified").getOrElse(new JDate()))
     )
   }

@@ -11,6 +11,8 @@ import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection
 import unfiltered.filter.request.ContextPath
 import unfiltered.response.{Pass, NotFound}
 import unfiltered.Cycle
+import ems.storage.{FilesystemBinaryStorage, BinaryStorage}
+import java.io.File
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
   import auth._
@@ -61,6 +63,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
 object Resources {
   object storage extends MongoDBStorage {
     val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
+    val binary = new FilesystemBinaryStorage(Properties.envOrNone("ems-binary-storage").map(s => new File(s)).getOrElse(new File("binary")))
   }
 
   def apply(authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)

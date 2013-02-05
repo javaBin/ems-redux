@@ -125,7 +125,7 @@ trait SessionResources extends ResourceHelper {
               case Some(s) => {
                 req match {
                   case RequestContentDisposition(cd) & BaseURIBuilder(baseURIBuilder) => {
-                    val att = storage.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), req.inputStream))
+                    val att = storage.binary.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), req.inputStream))
                     val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
                     storage.saveSession(attached)
                     NoContent

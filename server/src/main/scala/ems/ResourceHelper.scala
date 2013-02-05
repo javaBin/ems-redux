@@ -32,6 +32,7 @@ import scala.Right
 import net.hamnaberg.json.collection.Template
 import unfiltered.response.ResponseString
 import net.hamnaberg.json.collection.Item
+import ems.storage.BinaryStorage
 
 trait ResourceHelper {
 

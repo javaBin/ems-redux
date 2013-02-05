@@ -4,10 +4,7 @@ import javax.servlet.http.HttpServletRequest
 import storage.MongoDBStorage
 import unfiltered.response.{MethodNotAllowed, NotFound, NoContent}
 import unfiltered.request._
-
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
+import ems.storage.BinaryStorage
 
 trait AttachmentHandler {
 
@@ -16,13 +13,13 @@ trait AttachmentHandler {
   def handleAttachment(id: String, request: HttpRequest[HttpServletRequest]) = {
     request match {
       case GET(_) => {
-        storage.getAttachment(id) match {
-          case Some(a) => AttachmentStreamer(a, storage)
+        storage.binary.getAttachment(id) match {
+          case Some(a) => AttachmentStreamer(a, storage.binary)
           case None => NotFound
         }
       }
       case DELETE(_) => {
-        storage.removeAttachment(id)
+        storage.binary.removeAttachment(id)
         NoContent
       }
       case _ => MethodNotAllowed

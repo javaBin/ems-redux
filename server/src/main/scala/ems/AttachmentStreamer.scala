@@ -1,12 +1,12 @@
 package no.java.ems
 
-import storage.MongoDBStorage
 import unfiltered.response.ResponseStreamer
 import java.io.{InputStream, OutputStream}
 import unfilteredx.{DispositionType, ContentDisposition}
+import ems.storage.BinaryStorage
 
 object AttachmentStreamer {
-  def apply(attachment: Attachment, storage: MongoDBStorage) = {
+  def apply(attachment: Attachment, storage: BinaryStorage) = {
     ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader ~> new ResponseStreamer {
       def stream(os: OutputStream) {
         val stream = storage.getStream(attachment)

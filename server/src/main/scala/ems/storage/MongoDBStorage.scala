@@ -1,23 +1,23 @@
 package no.java.ems.storage
 
-import com.mongodb.casbah.gridfs.{GenericGridFSDBFile, GridFS}
 import com.mongodb.casbah.Imports._
 import no.java.ems._
 import security.User
 import java.util
-import util.{Date => JDate, UUID}
-import java.io.InputStream
+import util.UUID
 import model._
-import no.java.ems.URIAttachment
 import org.joda.time.DateTime
+import ems.storage.BinaryStorage
 
-trait MongoDBStorage  {
+trait MongoDBStorage {
 
   import com.mongodb.casbah.commons.conversions.scala._
 
   DeregisterJodaTimeConversionHelpers()
 
   def db: MongoDB
+
+  def binary: BinaryStorage
 
   def getEvents() = db("event").find().sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
 
@@ -95,7 +95,7 @@ trait MongoDBStorage  {
   def getSpeaker(eventId: String, sessionId: String, speakerId: String) = db("session").findOne(
     MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
     MongoDBObject("speakers" -> 1)
-  ).flatMap(_.getAs[MongoDBList]("speakers").flatMap(_.headOption).map(_.asInstanceOf[DBObject])).map(Speaker(_, this))
+  ).flatMap(_.getAs[MongoDBList]("speakers").flatMap(_.headOption).map(_.asInstanceOf[DBObject])).map(Speaker(_, binary))
 
   def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = {
     val withId = if (speaker.id.isDefined) speaker else speaker.withId(util.UUID.randomUUID().toString)
@@ -134,6 +134,7 @@ trait MongoDBStorage  {
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
       MongoDBObject("$set" -> toSave)
     )
+    println("Wrote updated image?")
 
     val error = result.getLastError
     if (error.ok()) {
@@ -158,35 +159,17 @@ trait MongoDBStorage  {
     }
   }
 
-  def getAttachment(id: String): Option[Attachment with Entity[Attachment]] = {
-    val fs = GridFS(db)
-    fs.findOne(MongoDBObject("_id" -> id)).map(GridFileAttachment)
-  }
-
   def importSession(session: Session): Either[Exception, Session] = {
-    saveOrUpdate(session, (o: Session, update) => o.toMongo(update), db("session"), fromImport = true)
+    val either = saveOrUpdate(session, (o: Session, update) => o.toMongo(update), db("session"), fromImport = true)
+    session.speakers.foreach(sp => sp.photo.foreach(ph => updateSpeakerWithPhoto(session.eventId, session.id.get, sp.id.get, ph).fold(
+      ex => throw ex,
+      _ => ()
+    )))
+    either
   }
 
   def importEvent(event: Event): Either[Exception, Event] = {
     saveOrUpdate(event, (o: Event, update) => o.toMongo(update), db("event"), fromImport = true)
-  }
-
-
-  def saveAttachment(att: Attachment) = {
-    val fs = GridFS(db)
-
-    val file = att match {
-      case GridFileAttachment(f) => Some(f)
-      case a@FileAttachment(Some(id), _) => fs.findOne(MongoDBObject("_id" -> id)).orElse(createInputFromAttachment(a))
-      case a => fs.findOne(att.name).orElse(createInputFromAttachment(a))
-    }
-
-    GridFileAttachment(file.get)
-  }
-
-  def getChangedEvents(from: DateTime): Seq[Event] = {
-    val q = "last-modified" $gte from.toDate
-    db("event").find(q).map(Event.apply).toSeq
   }
 
   def getChangedSessions(from: DateTime): Seq[Session] = {
@@ -194,18 +177,11 @@ trait MongoDBStorage  {
     db("session").find(q).map(Session(_, this)).toSeq
   }
 
-  //TODO: Make sure that we remove where its used as well.
-  def removeAttachment(id: String) {
-    val fs = GridFS(db)
-    fs.remove(id)
+  def getChangedEvents(from: DateTime): Seq[Event] = {
+    val q = "last-modified" $gte from.toDate
+    db("event").find(q).map(Event.apply).toSeq
   }
 
-  def getStream(att: Attachment): InputStream = att match {
-    case u: URIAttachment => u.data
-    case u: GridFileAttachment => u.data
-    case u: StreamingAttachment => u.data
-    case _ => throw new IllegalArgumentException("No stream available for %s".format(att.getClass.getName))
-  }
 
   def shutdown() {
     db.underlying.getMongo.close()
@@ -232,17 +208,6 @@ trait MongoDBStorage  {
 
   private def withId[A <: Entity[A]](entity: A): A = {
     if (entity.id.isDefined) entity else entity.withId(UUID.randomUUID().toString)
-  }
-
-  private def createInputFromAttachment(a: Attachment): Option[GenericGridFSDBFile] = {
-    val fs = GridFS(db)
-    val id = fs(getStream(a)) { f =>
-      f.filename = a.name
-      a.mediaType.foreach(mt => f.contentType = mt.toString)
-      f.underlying.setId(UUID.randomUUID().toString)
-      f.metaData = MongoDBObject("last-modified" -> new JDate())
-    }
-    fs.findOne(MongoDBObject("_id" -> id.get))
   }
 
 }

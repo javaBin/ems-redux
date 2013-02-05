@@ -1,21 +1,17 @@
 package no.java.ems.storage
 
-import java.io.File
-import no.java.ems.{StreamingAttachment, Attachment}
+import java.io.{FileInputStream, File}
+import no.java.ems.{MIMEType, StreamingAttachment, Attachment}
 import no.java.ems.model.Entity
+import org.joda.time.DateTime
 
-case class FileAttachment(id: Option[String], file: File) extends Entity[Attachment] with Attachment {
-  lazy val underlying = StreamingAttachment(file)
+case class FileAttachment(id: Option[String], file: File, name: String, mediaType: Option[MIMEType]) extends Entity[Attachment] with Attachment {
 
-  type T = FileAttachment
-
-  def lastModified = underlying.lastModified
+  def lastModified = new DateTime(file.lastModified)
 
   def withId(id: String) = copy(id = Some(id))
 
-  def name = underlying.name
-
   def size = Some(file.length())
 
-  def mediaType = underlying.mediaType
+  def data = new FileInputStream(file)
 }

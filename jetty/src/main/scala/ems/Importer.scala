@@ -4,13 +4,15 @@ import java.io.{BufferedReader, FileReader, File}
 import java.util.Locale
 import net.liftweb.json.{DefaultFormats, JsonParser}
 import no.java.ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
-import no.java.ems.{URIAttachment, Attachment}
+import no.java.ems.{MIMEType, URIAttachment, Attachment}
 import no.java.ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Properties
 import java.net.URI
 import net.liftweb.json.JsonAST.{JObject, JString, JArray}
+import javax.activation.MimetypesFileTypeMap
+import storage.FilesystemBinaryStorage
 
 
 object ImportMain extends App {
@@ -21,11 +23,14 @@ object ImportMain extends App {
 object Importer {
   object storage extends MongoDBStorage {
     val MongoSetting(db) = Properties.envOrNone("MONGOLAB_URI")
+    val binary = new FilesystemBinaryStorage(Properties.envOrNone("ems-binary-storage").map(s => new File(s)).getOrElse(new File("binary")))
   }
 
   implicit val Formats = DefaultFormats
 
   val isoDF = ISODateTimeFormat.basicDateTimeNoMillis
+
+  val MimetypeMap = new MimetypesFileTypeMap(getClass.getResourceAsStream("/META-INF/mime.types"))
 
 
   def execute(baseDir: File = new File("/tmp/ems")) {
@@ -114,7 +119,9 @@ object Importer {
               val JString(f) = photo \ "file"
               val JString(id) = photo \ "id"
               val file = new File(f)
-              storage.saveAttachment(FileAttachment(Some(id), file))
+              val att = storage.binary.saveAttachment(FileAttachment(Some(id), file, file.getName, MIMEType(MimetypeMap.getContentType(file))))
+              println(att)
+              att
             })
             ))
           ),
@@ -127,7 +134,9 @@ object Importer {
           val JString(id) = a \ "id"
 
           val file = new File(f)
-          val att: Attachment with Entity[Attachment] = storage.saveAttachment(FileAttachment(Some(id), file))
+          val att: Attachment with Entity[Attachment] = storage.binary.saveAttachment(
+            FileAttachment(Some(id), file, file.getName, MIMEType(MimetypeMap.getContentType(file)))
+          )
           URIAttachment(
             URI.create(att.id.get),
             att.name,
