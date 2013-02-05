@@ -92,6 +92,53 @@ trait MongoDBStorage {
 
   def saveSession(session: Session) = saveOrUpdate(session, (s: Session, update) => s.toMongo(update), db("session"))
 
+  def saveAttachment(eventId: String, sessionId: String, attachment: URIAttachment) = {
+    val withId = if (attachment.id.isDefined) attachment else attachment.withId(util.UUID.randomUUID().toString)
+    val speakerId = withId.id.get
+    val update = db("session").findOne(
+      MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "attachments._id" -> speakerId), MongoDBObject()
+    ).isDefined
+
+    val dbObject: MongoDBObject = withId.toMongo
+    val result = if (update) {
+      val toSave = dbObject.foldLeft(MongoDBObject.newBuilder){case (mongo, (key, value)) => mongo += ("attachments.$." + key -> value) }.result()
+      db("session").update(
+        MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "attachments._id" -> speakerId),
+        MongoDBObject("$set" -> toSave)
+      )
+    }
+    else {
+      db("session").update(
+        MongoDBObject("_id" -> sessionId, "eventId" -> eventId),
+        MongoDBObject("$push" -> MongoDBObject("attachments" -> dbObject))
+      )
+    }
+
+    val error = result.getLastError
+    if (error.ok()) {
+      Right(withId)
+    }
+    else {
+      Left(error.getException)
+    }
+  }
+
+  def removeAttachment(eventId: String, sessionId: String, id: String) = {
+    val result = db("session").update(
+      MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "attachments._id" -> id),
+      MongoDBObject("$pull" -> MongoDBObject("attachments.$._id" -> id))
+    )
+
+    val error = result.getLastError
+
+    if (error.ok()) {
+      Right("OK")
+    }
+    else {
+      Left(error.getException)
+    }
+  }
+
   def getSpeaker(eventId: String, sessionId: String, speakerId: String) = db("session").findOne(
     MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
     MongoDBObject("speakers" -> 1)
@@ -134,8 +181,6 @@ trait MongoDBStorage {
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
       MongoDBObject("$set" -> toSave)
     )
-    println("Wrote updated image?")
-
     val error = result.getLastError
     if (error.ok()) {
       Right(photo)

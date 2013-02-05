@@ -189,7 +189,7 @@ object converters {
     Speaker(id, name, email, zipCode, bio, tags)
   }
 
-  def toAttachment(template: Template): URIAttachment = {
+  def toAttachment(template: Template, id: Option[String] = None): URIAttachment = {
     val href = template.getPropertyValue("href").map(x => URI.create(x.value.toString)).get
     val name = template.getPropertyValue("name").get.value.toString
     val sizeFilter: PartialFunction[Value[_], Long] = {
@@ -197,7 +197,7 @@ object converters {
     }
     val size = template.getPropertyValue("size").map(sizeFilter)
     val mediaType = template.getPropertyValue("type").flatMap(x => MIMEType(x.value.toString))
-    URIAttachment(href, name, size, mediaType)
+    URIAttachment(id, href, name, size, mediaType)
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {

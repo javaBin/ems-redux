@@ -1,7 +1,7 @@
 package ems
 
 import java.io.{BufferedReader, FileReader, File}
-import java.util.Locale
+import java.util.{UUID, Locale}
 import net.liftweb.json.{DefaultFormats, JsonParser}
 import no.java.ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
 import no.java.ems.{MIMEType, URIAttachment, Attachment}
@@ -120,7 +120,6 @@ object Importer {
               val JString(id) = photo \ "id"
               val file = new File(f)
               val att = storage.binary.saveAttachment(FileAttachment(Some(id), file, file.getName, MIMEType(MimetypeMap.getContentType(file))))
-              println(att)
               att
             })
             ))
@@ -132,12 +131,12 @@ object Importer {
         (c \ "attachments").children.map(a => {
           val JString(f) = a \ "file"
           val JString(id) = a \ "id"
-
           val file = new File(f)
           val att: Attachment with Entity[Attachment] = storage.binary.saveAttachment(
             FileAttachment(Some(id), file, file.getName, MIMEType(MimetypeMap.getContentType(file)))
           )
           URIAttachment(
+            Some(id),
             URI.create(att.id.get),
             att.name,
             att.size,

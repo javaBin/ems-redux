@@ -1,8 +1,10 @@
 package no.java.ems
 
+import model.Entity
 import org.joda.time.DateTime
 import java.io.{FileInputStream, File, InputStream}
 import java.net.URI
+import java.util.{Date => JDate}
 import javax.activation.{MimetypesFileTypeMap, MimeType}
 import com.mongodb.casbah.Imports._
 
@@ -12,38 +14,35 @@ trait Attachment {
   def mediaType: Option[MIMEType]
 }
 
-case class URIAttachment(href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType]) extends Attachment {
+case class URIAttachment(id: Option[String], href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment with Entity[Attachment] {
   def data = href.toURL.openStream()
 
   def toMongo: DBObject = MongoDBObject(
+    "_id" -> id.get,
     "href" -> href.toString,
     "name" -> name,
     "mime-type" -> mediaType.map(_.toString),
-    "size" -> size
+    "size" -> size,
+    "last-modified" -> lastModified.toDate
   )
+
+  def withId(id: String) = copy(id = Some(id))
 }
 
 object URIAttachment {
   def apply(dbo: DBObject): URIAttachment = {
     val m = wrapDBObj(dbo)
+    val id = m.getAs[String]("_id")
     val href = URI.create(m.getAs[String]("href").get)
     val mt = m.getAs[String]("mime-type").flatMap(MIMEType(_))
     val name = m.getAs[String]("name").get
     val size = m.getAs[Long]("size")
-    URIAttachment(href, name, size, mt)
+    val lastModified = m.as[JDate]("last-modified")
+    URIAttachment(id, href, name, size, mt, new DateTime(lastModified))
   }
 }
 
 case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment
-
-object StreamingAttachment {
-  def apply(file: File): StreamingAttachment = StreamingAttachment(
-    file.getName,
-    Some(file.length()),
-    MIMEType.fromFilename(file.getName),
-    new FileInputStream(file)
-  )
-}
 
 case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty) {
   def includes(mt: MIMEType): Boolean = {

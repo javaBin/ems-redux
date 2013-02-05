@@ -111,9 +111,10 @@ trait SessionResources extends ResourceHelper {
                 withTemplate(req) {
                   t => {
                     val attachment = toAttachment(t)
-                    val updated = s.addAttachment(attachment)
-                    storage.saveSession(updated)
-                    NoContent
+                    storage.saveAttachment(eventId, sessionId, attachment).fold(
+                      ex => InternalServerError ~> ResponseString(ex.getMessage),
+                      _ => NoContent
+                    )
                   }
                 }
               }
@@ -126,9 +127,10 @@ trait SessionResources extends ResourceHelper {
                 req match {
                   case RequestContentDisposition(cd) & BaseURIBuilder(baseURIBuilder) => {
                     val att = storage.binary.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), req.inputStream))
-                    val attached = s.addAttachment(toURIAttachment(baseURIBuilder.segments("binary"), att))
-                    storage.saveSession(attached)
-                    NoContent
+                    storage.saveAttachment(eventId, sessionId, toURIAttachment(baseURIBuilder.segments("binary"), att)).fold(
+                      ex => InternalServerError ~> ResponseString(ex.getMessage),
+                      _ => NoContent
+                    )
                   }
                   case _ => {
                     val href = requestURIBuilder.build()
@@ -150,6 +152,6 @@ trait SessionResources extends ResourceHelper {
     if (!attachment.id.isDefined) {
       throw new IllegalStateException("Tried to convert an unsaved Attachment; Failure")
     }
-    URIAttachment(base.segments(attachment.id.get).build(), attachment.name, attachment.size, attachment.mediaType)
+    URIAttachment(None, base.segments(attachment.id.get).build(), attachment.name, attachment.size, attachment.mediaType)
   }
 }
