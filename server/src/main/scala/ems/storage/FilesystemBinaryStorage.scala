@@ -8,7 +8,7 @@ import org.apache.commons.io.IOUtils
 
 class FilesystemBinaryStorage(val baseDirectory: File) extends BinaryStorage {
   if (!baseDirectory.exists && !baseDirectory.mkdirs()) {
-    throw new IllegalStateException("Unable to create directory")
+    throw new IllegalStateException(baseDirectory.getAbsolutePath + " did not exist, and we were unable to create it. ")
   }
 
   def getAttachment(id: String) = {
