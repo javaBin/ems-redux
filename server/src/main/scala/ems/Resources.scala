@@ -62,8 +62,8 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
 
 object Resources {
   object storage extends MongoDBStorage {
-    val MongoSetting(db) = Properties.propOrElse("MONGOLAB_URI")
-    val binary = new FilesystemBinaryStorage(Properties.propOrElse("ems-binary-storage").map(s => new File(s)).getOrElse(new File("binary")))
+    val MongoSetting(db) = Properties.propOrNone("MONGOLAB_URI")
+    val binary = new FilesystemBinaryStorage(Properties.propOrNone("ems-binary-storage").map(s => new File(s)).getOrElse(new File("binary")))
   }
 
   def apply(authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)
