@@ -30,11 +30,13 @@ class FilesystemBinaryStorage(val baseDirectory: File) extends BinaryStorage {
       throw new IllegalStateException("Failed to create folder for parent")
     }
     val output = new FileOutputStream(file)
+    val stream = getStream(att)
     try {
-      IOUtils.copy(getStream(att), output)
+      IOUtils.copy(stream, output)
       saveMetadata(att, getMetadataFile(id))
     }
     finally {
+      IOUtils.closeQuietly(stream)
       IOUtils.closeQuietly(output)
     }
     getAttachment(id).get
