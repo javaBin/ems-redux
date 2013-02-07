@@ -61,7 +61,7 @@ trait SpeakerResources extends ResourceHelper {
       (t: Template) => toSpeaker(t, Some(speakerId)),
       storage.saveSpeaker(eventId, sessionId, _: Speaker),
       speakerToItem(base, eventId, sessionId)
-    )
+    )(identity)
   }
 
   def handleSpeakerPhoto(eventId: String, sessionId: String, speakerId: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {

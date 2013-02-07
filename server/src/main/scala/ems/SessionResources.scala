@@ -18,14 +18,20 @@ trait SessionResources extends ResourceHelper {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
         val href = baseUriBuilder.segments("events", eventId, "sessions").build()
-        val sessions = p("slug").headOption.map(t => storage.getSessionsBySlug(eventId, t)).getOrElse(storage.getSessions(eventId)(u))
-        val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
-        val items = filtered.map(sessionToItem(baseUriBuilder))
-        val coll = JsonCollection(href, Nil, items).
-          addQuery(new Query(href, "search by-title", Some("By Title"), List(ValueProperty("title")))).
-          addQuery(new Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug")))).
-          addQuery(new Query(href, "search by-tags", Some("By Tags"), List(ValueProperty("tags"))))
-        CollectionJsonResponse(coll)
+        p("slug").headOption match {
+          case Some(s) => storage.getSessionsBySlug(eventId, s).headOption.map(sess => Found ~> Location(URIBuilder(href).segments(sess.id.get).toString)).getOrElse(NotFound)
+          case None => {
+            val sessions = storage.getSessions(eventId)(u)
+            val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
+            val items = filtered.map(sessionToItem(baseUriBuilder))
+            val coll = JsonCollection(href, Nil, items, List(
+              new Query(href, "session by-title", Some("By Title"), List(ValueProperty("title"))),
+              new Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
+              new Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
+            ))
+            CollectionJsonResponse(coll)
+          }
+        }
       }
       case POST(RequestContentType(CollectionJsonResponse.contentType)) & BaseURIBuilder(baseUriBuilder) => {
         authenticated(request, u) { case req =>
@@ -53,7 +59,11 @@ trait SessionResources extends ResourceHelper {
   def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit u: User) = {
     val session = storage.getSession(eventId, sessionId)
     val base = BaseURIBuilder.unapply(request).get
-    handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base))
+    handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)){
+      c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", Some("Speaker by Email"), List(
+        ValueProperty("email")
+      )))
+    }
   }
 
   private def getValidURIForPublish(eventId: String, u: URI) = {

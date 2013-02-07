@@ -92,15 +92,17 @@ app.SingleSession = function($scope, $routeParams, $http) {
     app.loadRoot($http, function(root) {
         var query = root.findQueryByRel("event by-slug");
         $http.get(app.wrapAjax(query.expand({"slug": eventSlug}))).success(function(eventCollection){
-            var event = app.mapEvent(_.head(fromObject(eventCollection).collection.items));
-            var query = expandQuery({href: event.sessions}, {"slug": slug});
-            $http.get(app.wrapAjax(query)).success(function(sessionCollection){
-                var session = app.mapSession(_.head(fromObject(sessionCollection).collection.items));
-                $http.get(app.wrapAjax(findLinkByRel(session, "speaker collection").href)).success(function(speakerCollection){
-                    $scope.speakers = _.map(fromObject(speakerCollection).collection.items, app.mapSpeaker);
+            var query = fromObject(eventCollection).findQueryByRel("session by-slug");
+            if (query) {
+                $http.get(app.wrapAjax(query.expand({"slug": slug}))).success(function(sessionCollection){
+                    var session = app.mapSession(_.head(fromObject(sessionCollection).collection.items));
+                    $http.get(app.wrapAjax(findLinkByRel(session, "speaker collection").href)).success(function(speakerCollection){
+                        $scope.speakers = _.map(fromObject(speakerCollection).collection.items, app.mapSpeaker);
+                    });
+                    $scope.session = session;
                 });
-                $scope.session = session;
-            });
+
+            }
         });
     });
 }

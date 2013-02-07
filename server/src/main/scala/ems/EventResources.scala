@@ -43,11 +43,15 @@ trait EventResources extends ResourceHelper with SessionResources with SpeakerRe
   def handleEventList(request: HttpRequest[HttpServletRequest])(implicit user:User) = {
     request match {
       case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
-        val byName = p("slug").headOption
-        val events = byName.map(storage.getEventsBySlug(_)).getOrElse(storage.getEvents())
-        val items = events.map(eventToItem(baseUriBuilder))
-        val href = baseUriBuilder.segments("events").build()
-        CollectionJsonResponse(JsonCollection(href, Nil, items))
+        p("slug").headOption match {
+          case Some(s) => storage.getEventsBySlug(s).headOption.map(e => Found ~> Location(baseUriBuilder.segments("events", e.id.get).toString)).getOrElse(NotFound)
+          case None => {
+            val events = storage.getEvents()
+            val items = events.map(eventToItem(baseUriBuilder))
+            val href = baseUriBuilder.segments("events").build()
+            CollectionJsonResponse(JsonCollection(href, Nil, items))
+          }
+        }
       }
       case POST(_) => createObject[Event](request, toEvent(_: Template, None), storage.saveEvent, e => List("events", e.id.get))
       case _ => MethodNotAllowed
@@ -57,6 +61,10 @@ trait EventResources extends ResourceHelper with SessionResources with SpeakerRe
   def handleEvent(id: String, request: HttpRequest[HttpServletRequest])(implicit user:User) = {
     val event = storage.getEvent(id)
     val base = BaseURIBuilder.unapply(request).get
-    handleObject(event, request, (t: Template) => toEvent(t, Some(id)), storage.saveEvent, eventToItem(base))
+    handleObject(event, request, (t: Template) => toEvent(t, Some(id)), storage.saveEvent, eventToItem(base)) {
+      c => c.addQuery(Query(URIBuilder(c.href).segments("sessions").build(), "session by-slug", Some("Session by Slug"), List(
+         ValueProperty("slug")
+      )))
+    }
   }
 }

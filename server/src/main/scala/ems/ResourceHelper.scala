@@ -38,7 +38,11 @@ trait ResourceHelper {
 
   def storage: MongoDBStorage
 
-  private [ems] def handleObject[T <: Entity[T]](obj: Option[T], request: HttpRequest[HttpServletRequest], fromTemplate: (Template) => T, saveEntity: (T) => Either[Exception, T], toItem: (T) => Item)(implicit user: User) = {
+  private [ems] def handleObject[T <: Entity[T]](obj: Option[T],
+                                                 request: HttpRequest[HttpServletRequest],
+                                                 fromTemplate: (Template) => T,
+                                                 saveEntity: (T) => Either[Exception, T],
+                                                 toItem: (T) => Item)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User) = {
     request match {
       case GET(req) => {
         req match {
@@ -47,7 +51,7 @@ trait ResourceHelper {
           }
           case _ => {
              obj.map { i =>
-               DateResponseHeader("Last-Modified", i.lastModified.getMillis) ~> CollectionJsonResponse(JsonCollection(toItem(i)))
+               DateResponseHeader("Last-Modified", i.lastModified.getMillis) ~> CollectionJsonResponse(enrich(JsonCollection(toItem(i))))
              }.getOrElse(NotFound)
           }
         }
