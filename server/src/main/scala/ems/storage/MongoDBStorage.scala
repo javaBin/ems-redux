@@ -217,9 +217,13 @@ trait MongoDBStorage {
     saveOrUpdate(event, (o: Event, update) => o.toMongo(update), db("event"), fromImport = true)
   }
 
-  def getChangedSessions(from: DateTime): Seq[Session] = {
-    val q = "last-modified" $gte from.toDate
-    db("session").find(q).map(Session(_, this)).toSeq
+  def getChangedSessions(from: DateTime)(implicit u: User): Seq[Session] = {
+    val builder = MongoDBObject.newBuilder
+    builder ++= ("last-modified" $gte from.toDate)
+    if (!u.authenticated) {
+      builder += "published" -> true
+    }
+    db("session").find(builder.result()).map(Session(_, this)).toSeq
   }
 
   def getChangedEvents(from: DateTime): Seq[Event] = {

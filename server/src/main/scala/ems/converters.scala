@@ -2,23 +2,22 @@ package no.java.ems
 
 import java.net.URI
 import model._
-import org.joda.time.format.DateTimeFormat
 import net.hamnaberg.json.collection._
 import no.java.util.URIBuilder
-import java.util.{UUID, Locale}
+import java.util.Locale
 import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
 import security.User
+import util.RFC3339
 
 object converters {
-  val DateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZoneUTC()
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
       val properties = Map(
         "name" -> Some(e.name),
         "slug" -> Some(e.slug),
-        "start" -> Some(DateFormat.print(e.start)),
-        "end" -> Some(DateFormat.print(e.end))
+        "start" -> Some(RFC3339.format(e.start)),
+        "end" -> Some(RFC3339.format(e.end))
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", e.id.get)
       val links = List(
@@ -44,8 +43,8 @@ object converters {
   def slotToItem(baseBuilder: URIBuilder, eventId: String): (Slot) => Item = {
     r => {
       val properties = Map(
-        "start" -> Some(DateFormat.print(r.start)),
-        "end" -> Some(DateFormat.print(r.end))
+        "start" -> Some(RFC3339.format(r.start)),
+        "end" -> Some(RFC3339.format(r.end))
       ).map(toProperty).toList
       val slots = baseBuilder.segments("events", eventId, "slots")
       val href = slots.segments(r.id.get).build()
@@ -55,8 +54,8 @@ object converters {
 
   def toSlot(template: Template, id: Option[String] = None): Slot = Slot(
     id,
-    template.getPropertyValue("start").map(v => DateFormat.parseDateTime(v.toString)).get,
-    template.getPropertyValue("end").map(v => DateFormat.parseDateTime(v.toString)).get
+    template.getPropertyValue("start").map(v => RFC3339.parseDateTime(v.toString).right.get).get,
+    template.getPropertyValue("end").map(v => RFC3339.parseDateTime(v.toString).right.get).get
   )
 
   def toRoom(template: Template, id: Option[String] = None): Room = Room(
@@ -97,7 +96,7 @@ object converters {
     )
     links ++= s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
     links ++= s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "room item", Some(r.name)))
-    links ++= s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "slot item", Some(slot.start.toString(DateFormat) + "-" + slot.end.toString(DateFormat))))
+    links ++= s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "slot item", Some(RFC3339.format(slot.start) + "-" + RFC3339.format(slot.end))))
     links ++= s.abs.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()
@@ -156,8 +155,8 @@ object converters {
 
   def toEvent(template: Template, id: Option[String] = None): Event = {
     val name = template.getPropertyValue("name").map(_.value.toString).get
-    val start = template.getPropertyValue("start").map(x => DateFormat.parseDateTime(x.value.toString)).get
-    val end = template.getPropertyValue("end").map(x => DateFormat.parseDateTime(x.value.toString)).get
+    val start = template.getPropertyValue("start").map(x => RFC3339.parseDateTime(x.value.toString).right.get).get
+    val end = template.getPropertyValue("end").map(x => RFC3339.parseDateTime(x.value.toString).right.get).get
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
     Event(id, name, Slug.makeSlug(name), start, end, venue, Nil, Nil)
   }
