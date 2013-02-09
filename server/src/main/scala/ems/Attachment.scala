@@ -66,7 +66,7 @@ object MIMEType {
   val Jpeg = MIMEType("image", "jpeg")
   val OctetStream = MIMEType("application", "octet-stream")
 
-  def apply(mimeType: String): Option[MIMEType] = util.control.Exception.allCatch.opt{
+  def apply(mimeType: String): Option[MIMEType] = scala.util.control.Exception.allCatch.opt{
     val mime = new MimeType(mimeType)
     import collection.JavaConverters._
     val keys = mime.getParameters.getNames.asInstanceOf[java.util.Enumeration[String]].asScala
