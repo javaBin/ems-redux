@@ -1,10 +1,10 @@
 <div class="session">
-    <h2>{{session.data.title}}</h2>
+    <h2>{{session.object.title}}</h2>
     <div class="row row-padding">
-        <div class="span2">Highlight Summary</div><div class="span4">{{session.data.summary}}</div>
+        <div class="span2">Highlight Summary</div><div class="span4" ng-bind-html-unsafe="session.object.summary_html"></div>
     </div>
-    <div class="row row-padding">
-        <div class="span2">Abstract</div><div class="span4">{{session.data.body}}</div>
+    <div class="row row-padding abstract">
+        <div class="span2">Abstract</div><div class="span4" ng-bind-html-unsafe="session.object.body_html"></div>
     </div>
     <div class="row row-padding">
         <div class="span2">State</div>
@@ -35,12 +35,12 @@
     </div>
 
     <div ng-repeat="speaker in speakers">
-        <h2>{{speaker.data.name}}</h2>
+        <h2>{{speaker.object.name}}</h2>
         <div class="row row-padding">
             <div class="span1">
                 <img class="photo" ng-src="{{speaker.photo}}" width="100" height="100"/>
             </div>
-            <div class="span6">{{speaker.data.bio}}</div>
+            <div class="span6">{{speaker.object.bio}}</div>
         </div>
 
     </div>

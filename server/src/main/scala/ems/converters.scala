@@ -8,6 +8,7 @@ import java.util.Locale
 import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
 import security.User
 import util.RFC3339
+import wiki.{DefaultHtmlWikiSink, DefaultWikiEngine}
 
 object converters {
 
@@ -69,9 +70,12 @@ object converters {
         "title" -> Some(s.abs.title),
         "slug" -> Some(s.slug),
         "body" -> s.abs.body,
+        "body_html" -> s.abs.body.map(toHTML),
         "summary" -> s.abs.summary,
+        "summary_html" -> s.abs.summary.map(toHTML),
         "audience" -> s.abs.audience,
         "outline" -> s.abs.outline,
+        "outline_html" -> s.abs.outline.map(toHTML),
         "equipment" -> s.abs.equipment,
         "lang" -> Some(s.abs.language.getLanguage),
         "format" -> Some(s.abs.format.toString),
@@ -86,6 +90,11 @@ object converters {
     }
   }
 
+  private def toHTML(input: String) = {
+    val engine = new DefaultWikiEngine(new DefaultHtmlWikiSink())
+    engine.transform(input)
+    engine.getSink.toString
+  }
 
   private def createSessionLinks(href: URI, s: Session): List[Link] = {
     val links = List.newBuilder[Link]

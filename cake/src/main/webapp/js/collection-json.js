@@ -1,60 +1,62 @@
 
-function toObject() {
-  return _.reduce(this.data, function(map, field) {
+function toObject(data) {
+  return function() {
+    return _.reduce(data, function(map, field) {
       if (_.isArray(field.array)) {
-          map[field.name] = field.array;
+        map[field.name] = field.array;
       }
       else if (_.isObject(field.object)) {
-          map[field.name] = field.object;
+        map[field.name] = field.object;
       }
       else {
-          map[field.name] = field.value;
+        map[field.name] = field.value;
       }
 
-    return map;
-  }, {});
+      return map;
+    }, {});
+  }
 }
 
 function findLinkByRel(obj, rel) {
-    return _.find(obj.links, function(link) {
-        return rel === link.rel;
-    });
+  return _.find(obj.links, function(link) {
+    return rel === link.rel;
+  });
 }
 
 function findLinksByRel(obj, rel) {
-    return _.filter(obj.links, function(link) {
-        return rel === link.rel;
-    });
+  return _.filter(obj.links, function(link) {
+    return rel === link.rel;
+  });
 }
 
 function findQueryByRel(obj, rel) {
-    return _.find(obj.queries, function(query) {
-        return rel === query.rel;
-    });
+  return _.find(obj.queries, function(query) {
+    return rel === query.rel;
+  });
 }
 
 function expandQuery(query, params) {
-    var uri = URI(query.href)
-    uri.addQuery(params);
-    return uri.toString();
+  var uri = URI(query.href)
+  uri.addQuery(params);
+  return uri.toString();
 }
 
 function fixTemplate(t) {
-  t.toObject = toObject;
   t.data = _.isArray(t.data) ? t.data : [];
+  t.toObject = toObject(t.data);
 }
 
 /**
  * Takes any object and make it look like a collection+json collection object.
  */
-function fromObject(root) {
+function toCollection(root) {
   //console.log('in ', root);
 
   root.isCollection = function() {
-    return typeof this.collection === 'object';
+    return _.isObject(this.collection);
   }
   root.isTemplate = function() {
-    return typeof this.template === 'object';
+    return _.isObject(this.template);
   }
 
   if(root.isTemplate()) {
@@ -70,11 +72,16 @@ function fromObject(root) {
     c.version = _.isString(c.version) ? c.version : "1.0";
     c.items = _.isArray(c.items) ? c.items : [];
     _.each(c.items, function(item) {
+      item.data = _.isArray(item.data) ? item.data : [];
       item.links = _.isArray(item.links) ? item.links : [];
-      item.toObject = toObject;
+      item.toObject = toObject(item.data);
       item.findLinkByRel = function(rel) {
-          return findLinkByRel(item, rel);
+        return findLinkByRel(item, rel);
       };
+      item.findLinksByRel = function(rel) {
+        return findLinksByRel(item, rel);
+      };
+
     });
 
     c.links = _.isArray(c.links) ? c.links : [];
@@ -82,7 +89,7 @@ function fromObject(root) {
     c.queries = _.isArray(c.queries) ? c.queries : [];
     _.each(c.queries, function(query) {
       query.data = _.isArray(query.data) ? query.data : [];
-      query.toObject = toObject;
+      query.toObject = toObject(query.data);
       query.expand = function(obj) {
         return expandQuery(query, obj);
       };
@@ -96,33 +103,23 @@ function fromObject(root) {
     }
   }
 
-  // c.templates = _.isArray(c.templates) ? c.templates : [];
-
-  // TODO: make un-enumerable
   root.mapItems = function(f) {
     return _.map(this.collection.items, function(item) {
-      return f(item.toObject());
+      return f(item);
     });
-  };
-  root.findLinkByRel = function(rel) {
-    return findLinkByRel(this.collection, rel);
-  }
-  root.findQueryByRel = function(rel) {
-    return findQueryByRel(this.collection, rel);
   }
 
-//  console.log('out', root);
+  root.findLinkByRel = function(rel) {
+    return findLinkByRel(c, rel);
+  }
+
+  root.findQueryByRel = function(rel) {
+    return findQueryByRel(c, rel);
+  }
+
+  root.headItem = function() {
+    return _.head(c.items)
+  }
+
   return root;
 }
-//module.exports.fromObject = fromObject;
-
-function fromString(s) {
-  var object = {};
-  try {
-    object = JSON.parse(s);
-  }
-  catch(ex) {
-  }
-  return fromObject(object);
-}
-//module.exports.fromString = fromString;

@@ -14,7 +14,7 @@
     </thead>
     <tbody>
         <tr ng-repeat="session in sessions">
-            <td><a href="#/events/{{eventSlug}}/sessions/{{session.data.slug}}">{{session.data.title}}</a></td>
+            <td><a href="#/events/{{eventSlug}}/sessions/{{session.object.slug}}">{{session.object.title}}</a></td>
             <td>{{session.speakersAsString}}</td>
             <td><i class="{{session.state.icon}}" title="{{session.state.name}}"></i></td>
             <td><i class="{{session.format.icon}}" title="{{session.format.name}}"></i></td>

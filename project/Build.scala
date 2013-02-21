@@ -24,11 +24,16 @@ object Build extends sbt.Build {
     settings = buildSettings ++ Seq(
       name := "ems"
     )
-  ) aggregate(server, cake, jetty)
+  ) aggregate(wiki, server, cake, jetty)
+
+  lazy val wiki = module("wiki")(settings = Seq(
+    libraryDependencies := Dependencies.wiki,
+    javacOptions += Seq("-source", "1.6", "-target", "1.6")
+  ))
 
   lazy val server = module("server")(settings = Seq(
-    libraryDependencies := Dependencies.server
-  ) ++ webappSettings)
+    libraryDependencies ++= Dependencies.server
+  ) ++ webappSettings).dependsOn(wiki)
 
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie",
@@ -36,7 +41,7 @@ object Build extends sbt.Build {
   ) ++ webappSettings)
 
   lazy val jetty = module("jetty")(settings = Seq(
-    libraryDependencies := Dependencies.jetty
+    libraryDependencies ++= Dependencies.jetty
   )).dependsOn(cake, server)
 
   private def module(moduleName: String)(
@@ -68,9 +73,9 @@ object Build extends sbt.Build {
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
       "net.hamnaberg.rest" %% "scala-json-collection" % "1.1.1",
       "commons-io" % "commons-io" % "2.3",
-      "org.mongodb" %% "casbah-core" % "2.4.0",
-      "org.mongodb" %% "casbah-gridfs" % "2.4.0",
-      "org.mongodb" %% "casbah-query" % "2.4.0"
+      "org.mongodb" %% "casbah-core" % "2.5.0",
+      "org.mongodb" %% "casbah-gridfs" % "2.5.0",
+      "org.mongodb" %% "casbah-query" % "2.5.0"
     )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
@@ -79,8 +84,10 @@ object Build extends sbt.Build {
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % "0.6.3")
 
+    lazy val wiki = Seq("commons-io" % "commons-io" % "2.3", "junit" % "junit" % "4.11" % "test")
+
     private lazy val testDeps = Seq(
-      "org.specs2" %% "specs2" % "1.11" % "test"
+      "org.specs2" %% "specs2" % "1.12.3" % "test"
     )
 
     private lazy val joda = Seq(

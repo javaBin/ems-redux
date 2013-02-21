@@ -10,3 +10,7 @@ body {
 .photo {
     float: left;
 }
+
+div.paragraph {
+    margin-bottom: 1em;
+}
