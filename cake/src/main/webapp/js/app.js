@@ -1,6 +1,6 @@
 var app = {};
 
-angular.module('app', []).
+angular.module('app', ['ngSanitize']).
     config(function ($routeProvider) {
       $routeProvider.
           when('/', {controller: app.Main, templateUrl: 'about.html'}).

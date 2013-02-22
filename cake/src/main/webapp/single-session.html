@@ -1,10 +1,10 @@
 <div class="session">
     <h2>{{session.object.title}}</h2>
     <div class="row row-padding">
-        <div class="span2">Highlight Summary</div><div class="span4" ng-bind-html-unsafe="session.object.summary_html"></div>
+        <div class="span2">Highlight Summary</div><div class="span4" ng-bind-html="session.object.summary_html"></div>
     </div>
     <div class="row row-padding abstract">
-        <div class="span2">Abstract</div><div class="span4" ng-bind-html-unsafe="session.object.body_html"></div>
+        <div class="span2">Abstract</div><div class="span4" ng-bind-html="session.object.body_html"></div>
     </div>
     <div class="row row-padding">
         <div class="span2">State</div>
