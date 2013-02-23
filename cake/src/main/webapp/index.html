@@ -47,10 +47,22 @@
                         </ul>
                     </li>
                 </ul>
-                <form class="navbar-form pull-right">
-                    <input class="span2" type="text" placeholder="Email">
-                    <input class="span2" type="password" placeholder="Password">
-                    <button type="submit" class="btn">Sign in</button>
+                <form class="navbar-form pull-right" ng-controller="app.Login">
+                    <ul ng-show="signedIn" class="nav">
+                        <li class="dropdown" ng-show="signedIn">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{username}} <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a ng-click="signOut()" href="#">Sign Out</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <span class="nav" ng-hide="signedIn">
+                        <input class="span2" type="text" placeholder="Username" id="username">
+                        <input class="span2" type="password" placeholder="Password" id="password">
+                        <button ng-click="signIn()" type="button" class="btn">Sign in</button>
+                    </span>
                 </form>
             </div><!--/.nav-collapse -->
         </div>
@@ -66,6 +78,7 @@
 <!-- Placed at the end of the document so the pages load faster -->
 <script src="js/vendor/angular.min-1.0.5.js"></script>
 <script src="js/vendor/angular-sanitize.min-1.0.5.js"></script>
+<script src="js/vendor/angular-cookies.min-1.0.5.js"></script>
 <script src="js/vendor/jquery-1.7.2.min.js"></script>
 <script src="bootstrap-2.2.2/js/bootstrap.min.js"></script>
 <script src="js/vendor/underscore.js"></script>

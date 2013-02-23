@@ -1,24 +1,24 @@
 var app = {};
 
-angular.module('app', ['ngSanitize']).
-    config(function ($routeProvider) {
-      $routeProvider.
-          when('/', {controller: app.Main, templateUrl: 'about.html'}).
-          when('/events/:slug', {controller: app.SessionList, templateUrl: 'sessions.html'}).
-          when('/events/:eventSlug/sessions/:slug', {controller: app.SingleSession, templateUrl: 'single-session.html'}).
-          otherwise({redirectTo: '/'});
-    }).
-    run(function ($http) {
-      app.loadRoot($http, function (root) {
+angular.module('app', ['ngSanitize', 'ngCookies']).
+  config(function ($routeProvider) {
+    $routeProvider.
+      when('/', {controller: app.Main, templateUrl: 'about.html'}).
+      when('/events/:slug', {controller: app.SessionList, templateUrl: 'sessions.html'}).
+      when('/events/:eventSlug/sessions/:slug', {controller: app.SingleSession, templateUrl: 'single-session.html'}).
+      otherwise({redirectTo: '/'});
+  }).
+  run(function ($http) {
+    app.loadRoot($http, function (root) {
 
-      });
     });
+  });
 
 app.wrapAjax = function (url) {
   var documentLocation = URI(window.location.href);
   var parsedURI = URI(url);
-  var sameHost = parsedURI.is("relative") || (documentLocation.host() === parsedURI.host() && documentLocation.port() === parsedURI.port())
-  return !sameHost ? ("ajax?href=" + url) : url;
+  var actual = parsedURI.is("relative") ? parsedURI.absoluteTo(documentLocation) : parsedURI;
+  return "ajax?href=" + actual;
 }
 
 app.loadRoot = function ($http, cb) {
@@ -47,6 +47,48 @@ app.LoadEvents = function ($scope, $http) {
       });
     });
   }
+}
+
+app.Login = function ($scope, $http, $cookies, $window) {
+  console.log($);
+  var signIn = function () {
+    if (!$scope.signedIn) {
+      var username = $("#username").val();
+      var password = $("#password").val();
+      var postData = "username=" + username + "&password=" + password;
+      $http({
+        url: "login",
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        data: postData
+      }).success(function () {
+        $scope.signedIn = ((typeof $scope.username) !== "undefined");
+          $window.location.reload();
+      }).error(function () {
+          if ($cookies.username) {
+            delete $cookie.username
+          }
+        });
+    }
+  }
+
+  var signOut = function () {
+    $scope.signedIn = false;
+    if ($cookies.username) {
+      delete $cookies.username;
+    }
+    $http.post("logout").success(function () {
+      console.log("Successfully logged out");
+    }).error(function () {
+        console.log("Failed logged out");
+      });
+  }
+
+  $scope.signIn = signIn;
+  $scope.signOut = signOut;
+  $scope.username = $cookies.username;
+  $scope.signedIn = ((typeof $scope.username) !== "undefined");
+  console.log($scope)
 }
 
 app.Main = function ($scope, $http) {

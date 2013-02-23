@@ -1,6 +1,6 @@
 package no.java.ems.security
 
-import unfiltered.request.{BasicAuth, HttpRequest}
+import unfiltered.request.{QueryParams, BasicAuth, HttpRequest}
 import unfiltered.response._
 import unfiltered.Cycle
 
@@ -17,7 +17,11 @@ trait Authenticator[A,B] {
             if (intent.isDefinedAt(req)) intent(req) else Pass
           }
         )
-        case _ => f(Anonymous)(req)
+        case QueryParams(p) => {
+          if (p.contains("auth")) {
+            Unauthorized ~> WWWAuthenticate("Basic realm=\"ems\"")
+          } else f(Anonymous)(req)
+        }
       }
     }
 
