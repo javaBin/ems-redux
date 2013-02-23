@@ -25,9 +25,9 @@ trait SessionResources extends ResourceHelper {
             val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
             val items = filtered.map(sessionToItem(baseUriBuilder))
             val coll = JsonCollection(href, Nil, items, List(
-              new Query(href, "session by-title", Some("By Title"), List(ValueProperty("title"))),
-              new Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
-              new Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
+              Query(href, "session by-title", Some("By Title"), List(ValueProperty("title"))),
+              Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
+              Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
             ))
             CollectionJsonResponse(coll)
           }
@@ -144,7 +144,7 @@ trait SessionResources extends ResourceHelper {
                   }
                   case _ => {
                     val href = requestURIBuilder.build()
-                    BadRequest ~> CollectionJsonResponse(JsonCollection(href, ErrorMessage("Wrong response", None, Some("Missing Content-Disposition header for binary data"))))
+                    BadRequest ~> CollectionJsonResponse(JsonCollection(href, Error("Wrong response", None, Some("Missing Content-Disposition header for binary data"))))
                   }
                 }
               }

@@ -1,7 +1,7 @@
 package unfilteredx
 
 import org.specs2.mutable.Specification
-import io.Codec
+import java.nio.charset.Charset
 
 class ContentDispositionSpec extends Specification {
   "Content Disposition" should {
@@ -35,7 +35,7 @@ class ContentDispositionSpec extends Specification {
       val expected = ContentDisposition(
         DispositionType.ATTACHMENT,
         None,
-        Some(CharsetFilename("€ rates", Some(Codec.UTF8)))
+        Some(CharsetFilename("€ rates", Some(Charset.forName("UTF-8"))))
       )
 
       ContentDisposition(input) must be equalTo(Some(expected))

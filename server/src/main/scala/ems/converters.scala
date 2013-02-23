@@ -1,14 +1,15 @@
 package no.java.ems
 
+import wiki.{DefaultHtmlWikiSink, DefaultWikiEngine}
 import java.net.URI
 import model._
 import net.hamnaberg.json.collection._
 import no.java.util.URIBuilder
 import java.util.Locale
-import net.hamnaberg.json.collection.Value.{NullValue, BooleanValue, StringValue, NumberValue}
+import net.hamnaberg.json.collection.Value._
 import security.User
 import util.RFC3339
-import wiki.{DefaultHtmlWikiSink, DefaultWikiEngine}
+
 
 object converters {
 
@@ -22,9 +23,9 @@ object converters {
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", e.id.get)
       val links = List(
-        new Link(href.segments("sessions").build(), "session collection", Some("Sessions")),
-        new Link(href.segments("slots").build(), "slot collection", Some("Slots")),
-        new Link(href.segments("rooms").build(), "room collection", Some("Rooms"))
+        Link(href.segments("sessions").build(), "session collection", Some("Sessions")),
+        Link(href.segments("slots").build(), "slot collection", Some("Slots")),
+        Link(href.segments("rooms").build(), "room collection", Some("Rooms"))
       )
       Item(href.build(), properties, links)
     }
@@ -37,7 +38,7 @@ object converters {
       ).map(toProperty).toList
       val rooms = baseBuilder.segments("events", eventId, "rooms")
       val href = rooms.segments(r.id.get).build()
-      Item(href, properties, new Link(rooms.build(), "room collection", Some("Rooms")) :: Nil)
+      Item(href, properties, Link(rooms.build(), "room collection", Some("Rooms")) :: Nil)
     }
   }
 
@@ -49,7 +50,7 @@ object converters {
       ).map(toProperty).toList
       val slots = baseBuilder.segments("events", eventId, "slots")
       val href = slots.segments(r.id.get).build()
-      Item(href, properties,  new Link(slots.build(), "slot collection", Some("Slots")) :: Nil)
+      Item(href, properties,  Link(slots.build(), "slot collection", Some("Slots")) :: Nil)
     }
   }
 

@@ -6,8 +6,7 @@ import storage.MongoDBStorage
 import unfiltered.request._
 import unfiltered.response._
 import javax.servlet.http.HttpServletRequest
-import scala.util.control.Exception._
-import net.hamnaberg.json.collection.{ErrorMessage, JsonCollection}
+import net.hamnaberg.json.collection.{Error, JsonCollection}
 import util.RFC3339
 
 
@@ -23,9 +22,9 @@ trait ChangelogResources {
         val items = query match {
           case (Some("event"), Right(dt)) => Right(storage.getChangedEvents(dt).map(converters.eventToItem(b)))
           case (Some("session"), Right(dt)) => Right(storage.getChangedSessions(dt).map(converters.sessionToItem(b)))
-          case (Some(_), Left(e)) => Left(ErrorMessage(e, None, None))
-          case (None, Right(_)) => Left(ErrorMessage("Unknown entity", None, None))
-          case (None, Left(e)) => Left(ErrorMessage("Missing entity and " + e, None, None))
+          case (Some(_), Left(e)) => Left(Error(e, None, None))
+          case (None, Right(_)) => Left(Error("Unknown entity", None, None))
+          case (None, Left(e)) => Left(Error("Missing entity and " + e, None, None))
         }
         items.fold(
           msg => BadRequest ~> CollectionJsonResponse(JsonCollection(r.build(), msg)),

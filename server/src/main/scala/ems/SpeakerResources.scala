@@ -88,7 +88,7 @@ trait SpeakerResources extends ResourceHelper {
                 BadRequest ~> CollectionJsonResponse(
                   JsonCollection(
                     builder.build(),
-                    ErrorMessage("Missing Content Disposition", None, Some("You need to add a Content-Disposition header."))
+                    Error("Missing Content Disposition", None, Some("You need to add a Content-Disposition header."))
                   )
                 )
               }

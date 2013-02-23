@@ -2,7 +2,9 @@ package ems
 
 import java.io.{BufferedReader, FileReader, File}
 import java.util.{UUID, Locale}
-import net.liftweb.json.{DefaultFormats, JsonParser}
+import org.json4s.DefaultFormats
+import org.json4s.native.JsonParser
+import org.json4s.JsonAST._
 import no.java.ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
 import no.java.ems.{MIMEType, URIAttachment, Attachment}
 import no.java.ems.model._
@@ -10,7 +12,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Properties
 import java.net.URI
-import net.liftweb.json.JsonAST.{JObject, JString, JArray}
+
 import javax.activation.MimetypesFileTypeMap
 import storage.FilesystemBinaryStorage
 

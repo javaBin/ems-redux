@@ -8,11 +8,12 @@ object Build extends sbt.Build {
 
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "no.java",
-    scalaVersion := "2.9.1",
+    scalaVersion := "2.10.0",
     scalacOptions := Seq("-deprecation"),
     pomIncludeRepository := {
       x => false
     },
+    resolvers += Resolvers.sonatypeNexusSnapshots,
     crossPaths := false,
     credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
   )
@@ -28,7 +29,7 @@ object Build extends sbt.Build {
 
   lazy val wiki = module("wiki")(settings = Seq(
     libraryDependencies := Dependencies.wiki,
-    javacOptions += Seq("-source", "1.6", "-target", "1.6")
+    javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
   ))
 
   lazy val server = module("server")(settings = Seq(
@@ -69,9 +70,11 @@ object Build extends sbt.Build {
   }
 
   object Dependencies {
+    val unfilteredVersion = "0.6.7"
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
-      "net.hamnaberg.rest" %% "scala-json-collection" % "1.1.1",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "2.0-SNAPSHOT",
+     // "net.databinder" %% "unfiltered-oauth2" % unfilteredVersion,
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",
       "org.mongodb" %% "casbah-gridfs" % "2.5.0",
@@ -79,10 +82,11 @@ object Build extends sbt.Build {
     )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
-      "net.databinder.dispatch" %% "dispatch-core" % "0.9.5"
+      "net.databinder.dispatch" %% "dispatch-core" % "0.9.5",
+      "commons-codec" % "commons-codec" % "1.7"
     )
 
-    lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % "0.6.3")
+    lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % unfilteredVersion)
 
     lazy val wiki = Seq("commons-io" % "commons-io" % "2.3", "junit" % "junit" % "4.11" % "test")
 
@@ -92,13 +96,12 @@ object Build extends sbt.Build {
 
     private lazy val joda = Seq(
       "joda-time" % "joda-time" % "2.1",
-      "org.joda" % "joda-convert" % "1.1"
+      "org.joda" % "joda-convert" % "1.2"
     )
 
     private lazy val unfiltered = Seq(
-      "net.databinder" %% "unfiltered-filter" % "0.6.3",
-      "javax.servlet" % "servlet-api" % "2.5" % "provided",
-      "net.databinder" %% "unfiltered-jetty" % "0.6.3" % "test"
+      "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
+      "javax.servlet" % "servlet-api" % "2.5" % "provided"
     )
   }
 }

@@ -9,9 +9,9 @@ import no.java.unfiltered._
 import scala.util.Properties
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
 import unfiltered.filter.request.ContextPath
-import unfiltered.response.{Pass, NotFound}
+import unfiltered.response._
 import unfiltered.Cycle
-import ems.storage.{FilesystemBinaryStorage, BinaryStorage}
+import ems.storage.FilesystemBinaryStorage
 import java.io.File
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
@@ -46,7 +46,6 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     CollectionJsonResponse(JsonCollection(
       RequestURIBuilder.getBuilder(req).emptyParams().build(),
       List(
-        Link(builder.segments("contacts").build(), "contact collection"),
         Link(builder.segments("events").build(), "event collection")
       ),
       Nil,
