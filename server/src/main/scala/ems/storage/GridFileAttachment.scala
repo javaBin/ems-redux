@@ -1,8 +1,8 @@
-package no.java.ems.storage
+package ems.storage
 
 import com.mongodb.casbah.gridfs.GenericGridFSDBFile
-import no.java.ems.{MIMEType, Attachment}
-import no.java.ems.model.Entity
+import ems.{MIMEType, Attachment}
+import ems.model.Entity
 import java.util.{Date => JDate}
 import com.mongodb.casbah.Imports._
 import org.joda.time.DateTime

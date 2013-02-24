@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import java.io.File
 import org.constretto.ConstrettoBuilder

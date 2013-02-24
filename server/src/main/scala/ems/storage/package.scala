@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import org.joda.time.DateTime
 

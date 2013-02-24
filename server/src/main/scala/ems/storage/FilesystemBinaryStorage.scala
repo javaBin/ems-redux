@@ -1,7 +1,6 @@
 package ems.storage
 
-import no.java.ems.storage.FileAttachment
-import no.java.ems.{MIMEType, Attachment}
+import ems.{MIMEType, Attachment}
 import java.io.{FileOutputStream, FileInputStream, File}
 import java.util.{UUID, Properties}
 import org.apache.commons.io.IOUtils

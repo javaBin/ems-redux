@@ -1,8 +1,8 @@
-package no.java.ems.model
+package ems.model
 
-import no.java.ems.storage.MongoDBStorage
+import ems.storage.MongoDBStorage
 import org.joda.time.DateTime
-import no.java.ems.{Attachment, URIAttachment}
+import ems.{Attachment, URIAttachment}
 import com.mongodb.casbah.Imports._
 import java.util
 import util.Locale

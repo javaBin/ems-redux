@@ -1,10 +1,9 @@
 package ems.storage
 
-import no.java.ems.{StreamingAttachment, URIAttachment, Attachment}
-import no.java.ems.model.Entity
+import ems.{StreamingAttachment, URIAttachment, Attachment}
+import ems.model.Entity
 import com.mongodb.casbah.gridfs.{GenericGridFSDBFile, GridFS}
 import com.mongodb.casbah.Imports._
-import no.java.ems.storage.{FileAttachment, GridFileAttachment}
 import java.io.InputStream
 import java.util.{Date => JDate, UUID}
 

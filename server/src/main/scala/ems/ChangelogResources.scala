@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import no.java.unfiltered.{RequestURIBuilder, BaseURIBuilder}
 import security.User

@@ -1,6 +1,6 @@
-package no.java.ems
+package ems
 
-import wiki.{DefaultHtmlWikiSink, DefaultWikiEngine}
+import no.java.ems.wiki.{DefaultHtmlWikiSink, DefaultWikiEngine}
 import java.net.URI
 import model._
 import net.hamnaberg.json.collection._

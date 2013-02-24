@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import net.hamnaberg.json.collection.JsonCollection
 import unfiltered.response.{ResponseString, ContentType, ComposeResponse}

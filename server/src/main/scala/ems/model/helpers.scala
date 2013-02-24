@@ -1,4 +1,4 @@
-package no.java.ems.model
+package ems.model
 
 case class Email(address: String)
 

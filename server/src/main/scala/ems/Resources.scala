@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import security.{JAASAuthenticator, User, Authenticator}
 import storage.{MongoSetting, MongoDBStorage}

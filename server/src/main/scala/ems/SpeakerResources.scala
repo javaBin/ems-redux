@@ -1,8 +1,8 @@
-package no.java.ems
+package ems
 
 import javax.servlet.http.HttpServletRequest
 import model.Speaker
-import no.java.ems.converters._
+import ems.converters._
 import security.User
 import unfiltered.response._
 import unfiltered.request._

@@ -5,9 +5,8 @@ import java.util.{UUID, Locale}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonParser
 import org.json4s.JsonAST._
-import no.java.ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
-import no.java.ems.{MIMEType, URIAttachment, Attachment}
-import no.java.ems.model._
+import ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
+import ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Properties

@@ -1,8 +1,6 @@
 package ems
 
 import java.io.File
-import no.java.ems.Resources
-import no.java.ems.security.JAASAuthenticator
 import scala.util.Properties
 
 object Jetty extends App {
@@ -16,7 +14,7 @@ object Jetty extends App {
   context("/cake") {
     _.filter(new ems.Application).filter(EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURI.toURL)
   }.context("/server"){
-    _.filter(Resources(JAASAuthenticator))
+    _.filter(Resources(ems.security.JAASAuthenticator))
   } run()
 
   def getRoot: File = {

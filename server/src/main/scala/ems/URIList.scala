@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import java.net.URI
 import java.io._

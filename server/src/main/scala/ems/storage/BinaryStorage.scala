@@ -1,8 +1,7 @@
 package ems.storage
 
-import no.java.ems.storage.FileAttachment
-import no.java.ems.{StreamingAttachment, URIAttachment, Attachment}
-import no.java.ems.model.Entity
+import ems.{StreamingAttachment, URIAttachment, Attachment}
+import ems.model.Entity
 import java.io.InputStream
 
 trait BinaryStorage {

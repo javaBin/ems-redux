@@ -1,13 +1,12 @@
-package no.java.ems.storage
+package ems.storage
 
 import com.mongodb.casbah.Imports._
-import no.java.ems._
+import ems._
 import security.User
 import java.util
 import util.UUID
 import model._
 import org.joda.time.DateTime
-import ems.storage.BinaryStorage
 
 trait MongoDBStorage {
 

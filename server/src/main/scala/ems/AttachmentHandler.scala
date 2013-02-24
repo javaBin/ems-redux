@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import javax.servlet.http.HttpServletRequest
 import storage.MongoDBStorage

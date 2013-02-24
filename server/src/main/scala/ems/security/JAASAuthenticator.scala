@@ -1,4 +1,4 @@
-package no.java.ems.security
+package ems.security
 
 import javax.security.auth.login.{LoginException, LoginContext}
 import javax.security.auth.callback._

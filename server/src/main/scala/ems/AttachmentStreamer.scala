@@ -1,4 +1,4 @@
-package no.java.ems
+package ems
 
 import unfiltered.response.{ContentType, ResponseStreamer}
 import java.io.{InputStream, OutputStream}

@@ -1,4 +1,4 @@
-package no.java.ems.security
+package ems.security
 
 import unfiltered.request.{QueryParams, BasicAuth, HttpRequest}
 import unfiltered.response._

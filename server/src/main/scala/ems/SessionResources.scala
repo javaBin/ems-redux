@@ -1,8 +1,8 @@
-package no.java.ems
+package ems
 
 import javax.servlet.http.HttpServletRequest
 import model.Entity
-import no.java.ems.converters._
+import ems.converters._
 import java.net.URI
 import no.java.util.URIBuilder
 import security.User

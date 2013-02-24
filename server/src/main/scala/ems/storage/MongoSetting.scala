@@ -1,4 +1,4 @@
-package no.java.ems.storage
+package ems.storage
 
 import com.mongodb.casbah.{MongoDB, MongoConnection}
 
