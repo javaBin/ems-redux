@@ -23,6 +23,7 @@ trait ChangelogResources {
           case (Some("event"), Right(dt)) => Right(storage.getChangedEvents(dt).map(converters.eventToItem(b)))
           case (Some("session"), Right(dt)) => Right(storage.getChangedSessions(dt).map(converters.sessionToItem(b)))
           case (Some(_), Left(e)) => Left(Error(e, None, None))
+          case (Some(_), Right(e)) => Left(Error("Unknown entity", None, None))
           case (None, Right(_)) => Left(Error("Unknown entity", None, None))
           case (None, Left(e)) => Left(Error("Missing entity and " + e, None, None))
         }

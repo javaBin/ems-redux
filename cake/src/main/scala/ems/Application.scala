@@ -16,24 +16,24 @@ class Application extends Plan {
   def intent = {
     case ContextPath(cp, "/") => {
       val index = Source.fromInputStream(config.getServletContext.getResourceAsStream("/index.html")).getLines().mkString
-      HtmlContent ~> ResponseString(index.replace("[EMS_SERVER]", EmsConfig.server.toString))
+      HtmlContent ~> ResponseString(index.replace("[EMS_SERVER]", Config.default.server.toString))
     }
 
     case req@ContextPath(_, Seg("login" :: Nil)) & UserAndPassword(u, p) & HostPort(h, port) => {
       val host = if (h == "localhost") None else Some(h)
-      val hasHost = EmsConfig.server.getHost != null
+      val hasHost = Config.default.server.getHost != null
       val href = if (!hasHost) {
-        URI.create(req.underlying.getRequestURL.toString).resolve(EmsConfig.server)
+        URI.create(req.underlying.getRequestURL.toString).resolve(Config.default.server)
       }
       else {
-        EmsConfig.server
+        Config.default.server
       }
       val response = Http(url(href.toString + "?auth=true") as(u, p))()
 
       if (response.getStatusCode == 200) {
        Ok ~> SetCookies(
           Cookie("username", u, host, maxAge = Some(24 * 3600), httpOnly = false),
-          Cookie("login", Base64.encodeBase64String(DES.encrypt(s"$u:$p".getBytes("UTF-8"), EmsConfig.password)).trim, host, maxAge = Some(24 * 3600), httpOnly = true)
+          Cookie("login", Base64.encodeBase64String(DES.encrypt(s"$u:$p".getBytes("UTF-8"), Config.default.password)).trim, host, maxAge = Some(24 * 3600), httpOnly = true)
         )
       }
       else {

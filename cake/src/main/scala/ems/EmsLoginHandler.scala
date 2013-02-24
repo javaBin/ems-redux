@@ -18,7 +18,7 @@ case class User(username: String, password: String)
 
 object User {
   def create(input: String): Option[User] = {
-    val decrypted = new String(DES.decrypt(Base64.decodeBase64(input), EmsConfig.password))
+    val decrypted = new String(DES.decrypt(Base64.decodeBase64(input), Config.default.password))
     decrypted.split(":") match {
       case Array(u, p) => Some(User(u, p))
       case _ => None

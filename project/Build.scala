@@ -79,29 +79,34 @@ object Build extends sbt.Build {
       "org.mongodb" %% "casbah-core" % "2.5.0",
       "org.mongodb" %% "casbah-gridfs" % "2.5.0",
       "org.mongodb" %% "casbah-query" % "2.5.0"
-    )
+    ) ++ constretto
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
       "net.databinder.dispatch" %% "dispatch-core" % "0.9.5",
       "commons-codec" % "commons-codec" % "1.7"
-    )
+    ) ++ constretto
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % unfilteredVersion)
 
     lazy val wiki = Seq("commons-io" % "commons-io" % "2.3", "junit" % "junit" % "4.11" % "test")
 
-    private lazy val testDeps = Seq(
+    private val testDeps = Seq(
       "org.specs2" %% "specs2" % "1.12.3" % "test"
     )
 
-    private lazy val joda = Seq(
+    private val joda = Seq(
       "joda-time" % "joda-time" % "2.1",
       "org.joda" % "joda-convert" % "1.2"
     )
 
-    private lazy val unfiltered = Seq(
+    private val unfiltered = Seq(
       "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
       "javax.servlet" % "servlet-api" % "2.5" % "provided"
+    )
+
+    private val constretto = Seq(
+      "org.constretto" % "constretto-core" % "2.0.3",
+      "org.ini4j" % "ini4j" % "0.5.2"
     )
   }
 }

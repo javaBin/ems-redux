@@ -16,7 +16,7 @@ object EmsProxy extends Plan{
   def intent = {
     case req@ContextPath(_, Seg("ajax" :: Nil)) & Params(p) => {
       p("href").headOption.map { href =>
-        if (href.contains(EmsConfig.server.toString)) doRequest(req, href) else Forbidden
+        if (href.contains(Config.default.server.toString)) doRequest(req, href) else Forbidden
       }.getOrElse(NotFound)
     }
   }
