@@ -63,10 +63,10 @@ app.Login = function ($scope, $http, $cookies, $window) {
         data: postData
       }).success(function () {
         $scope.signedIn = ((typeof $scope.username) !== "undefined");
-          $window.location.reload();
+        $window.location.reload();
       }).error(function () {
           if ($cookies.username) {
-            delete $cookie.username
+            delete $cookies.username
           }
         });
     }
