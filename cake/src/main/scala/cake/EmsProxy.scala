@@ -11,7 +11,7 @@ import com.ning.http.client.Request.EntityWriter
 import org.apache.commons.codec.binary.Base64
 import ems.Config
 
-object EmsProxy extends Plan{
+class EmsProxy extends Plan{
   val Accept = "application/vnd.collection+json,*/*;q=0.8"
 
   def intent = {
