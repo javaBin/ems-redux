@@ -13,7 +13,7 @@ object Build extends sbt.Build {
     pomIncludeRepository := {
       x => false
     },
-    resolvers += Resolvers.sonatypeNexusSnapshots,
+    //resolvers += Resolvers.sonatypeNexusSnapshots,
     crossPaths := false,
     credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
   )
@@ -77,7 +77,7 @@ object Build extends sbt.Build {
     val unfilteredVersion = "0.6.7"
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
-      "net.hamnaberg.rest" %% "scala-json-collection" % "2.0-SNAPSHOT",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "2.0",
      // "net.databinder" %% "unfiltered-oauth2" % unfilteredVersion,
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",
