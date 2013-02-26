@@ -3,7 +3,7 @@
          version="2.5">
     <filter>
         <filter-name>resources</filter-name>
-        <filter-class>no.java.ems.Resources</filter-class>
+        <filter-class>ems.Resources</filter-class>
     </filter>
 
     <filter-mapping>
