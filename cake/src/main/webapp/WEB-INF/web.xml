@@ -4,11 +4,21 @@
 
     <filter>
         <filter-name>application</filter-name>
-        <filter-class>ems.Application</filter-class>
+        <filter-class>cake.Application</filter-class>
+    </filter>
+
+    <filter>
+        <filter-name>login</filter-name>
+        <filter-class>cake.LoginPlan</filter-class>
     </filter>
 
     <filter-mapping>
         <filter-name>application</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>login</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 </web-app>

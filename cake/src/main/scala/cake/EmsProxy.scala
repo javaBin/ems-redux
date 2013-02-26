@@ -1,4 +1,4 @@
-package ems
+package cake
 
 import unfiltered.request._
 import unfiltered.response._
@@ -9,6 +9,7 @@ import java.io.{InputStream, OutputStream}
 import com.ning.http.client.RequestBuilder
 import com.ning.http.client.Request.EntityWriter
 import org.apache.commons.codec.binary.Base64
+import ems.Config
 
 object EmsProxy extends Plan{
   val Accept = "application/vnd.collection+json,*/*;q=0.8"

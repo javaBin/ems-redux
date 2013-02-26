@@ -32,14 +32,18 @@ object Build extends sbt.Build {
     javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
   ))
 
+  lazy val config = module("config")(settings = Seq(
+    libraryDependencies ++= Dependencies.config
+  ) ++ webappSettings)
+
   lazy val server = module("server")(settings = Seq(
     libraryDependencies ++= Dependencies.server
-  ) ++ webappSettings).dependsOn(wiki)
+  ) ++ webappSettings).dependsOn(wiki, config)
 
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie",
     libraryDependencies := Dependencies.cake
-  ) ++ webappSettings)
+  ) ++ webappSettings).dependsOn(config)
 
   lazy val jetty = module("jetty")(settings = Seq(
     libraryDependencies ++= Dependencies.jetty
@@ -79,16 +83,21 @@ object Build extends sbt.Build {
       "org.mongodb" %% "casbah-core" % "2.5.0",
       "org.mongodb" %% "casbah-gridfs" % "2.5.0",
       "org.mongodb" %% "casbah-query" % "2.5.0"
-    ) ++ constretto
+    )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
       "net.databinder.dispatch" %% "dispatch-core" % "0.9.5",
       "commons-codec" % "commons-codec" % "1.7"
-    ) ++ constretto
+    )
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % unfilteredVersion)
 
     lazy val wiki = Seq("commons-io" % "commons-io" % "2.3", "junit" % "junit" % "4.11" % "test")
+
+    val config = Seq(
+      "org.constretto" % "constretto-core" % "2.0.3",
+      "org.ini4j" % "ini4j" % "0.5.2"
+    )
 
     private val testDeps = Seq(
       "org.specs2" %% "specs2" % "1.12.3" % "test"
@@ -102,11 +111,6 @@ object Build extends sbt.Build {
     private val unfiltered = Seq(
       "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
       "javax.servlet" % "servlet-api" % "2.5" % "provided"
-    )
-
-    private val constretto = Seq(
-      "org.constretto" % "constretto-core" % "2.0.3",
-      "org.ini4j" % "ini4j" % "0.5.2"
     )
   }
 }
