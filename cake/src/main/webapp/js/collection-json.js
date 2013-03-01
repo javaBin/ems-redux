@@ -1,7 +1,7 @@
 
 function toObject(data) {
   return function() {
-    return _.reduce(data, function(map, field) {
+    var obj = _.reduce(data, function(map, field) {
       if (_.isArray(field.array)) {
         map[field.name] = field.array;
       }
@@ -14,6 +14,31 @@ function toObject(data) {
 
       return map;
     }, {});
+    obj.toTemplate = toTemplate(obj);
+    return obj;
+  }
+}
+
+function toTemplate(object) {
+  return function() {
+    var dt = _.reduce(_.pairs(object), function(arr, pair) {
+      var n = pair[0];
+      var v = pair[1];
+      if (_.isArray(v)) {
+        arr.push({ name: n, array: v})
+      }
+      else if (_.isObject(v) && !_.isFunction(v)) {
+        arr.push({ name: n, object: v})
+      }
+      else if (!_.isFunction(v)) {
+        arr.push({ name: n, value: v})
+      }
+      return arr;
+    }, []);
+
+    return {
+      data: dt
+    }
   }
 }
 

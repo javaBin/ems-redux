@@ -3,7 +3,8 @@ var app = {};
 angular.module('app', ['ngSanitize', 'ngCookies']).
   config(function ($routeProvider) {
     $routeProvider.
-      when('/', {controller: app.Main, templateUrl: 'about.html'}).
+      when('/', {controller: app.Main, templateUrl: 'main.html'}).
+      when('/about', {controller: app.About, templateUrl: 'about.html'}).
       when('/events/:slug', {controller: app.SessionList, templateUrl: 'sessions.html'}).
       when('/events/:eventSlug/sessions/:slug', {controller: app.SingleSession, templateUrl: 'single-session.html'}).
       otherwise({redirectTo: '/'});
@@ -49,8 +50,21 @@ app.LoadEvents = function ($scope, $http) {
   }
 }
 
+app.Navigation = function($scope, $location) {
+  $scope.isRoot = function() {
+    return $location.path() === '/' ? "active" : "inactive";
+  }
+  $scope.isAbout = function() {
+    return $location.path() === '/about' ? "active" : "inactive";
+  }
+  $scope.isEventOrSession = function() {
+    return $location.path().indexOf('/events/') !== -1 ? "active" : "inactive";
+  }
+  $scope.Login = app.Login;
+  $scope.LoadEvents = app.LoadEvents;
+}
+
 app.Login = function ($scope, $http, $cookies, $window) {
-  console.log($);
   var signIn = function () {
     if (!$scope.signedIn) {
       var username = $("#username").val();
@@ -88,11 +102,12 @@ app.Login = function ($scope, $http, $cookies, $window) {
   $scope.signOut = signOut;
   $scope.username = $cookies.username;
   $scope.signedIn = ((typeof $scope.username) !== "undefined");
-  console.log($scope)
 }
 
-app.Main = function ($scope, $http) {
-  console.log("Main called" + $scope);
+app.Main = function ($scope) {
+}
+
+app.About = function ($scope) {
 }
 
 app.SessionList = function ($scope, $routeParams, $http) {
@@ -119,12 +134,16 @@ app.SingleSession = function ($scope, $routeParams, $http) {
       if (query) {
         $http.get(app.wrapAjax(query.expand({"slug": slug}, {cache: true}))).success(function (sessionCollection) {
           var session = EmsSession(toCollection(sessionCollection).headItem());
+          console.log(session.object.toTemplate());
           var speakerLink = session.item.findLinkByRel("speaker collection");
           $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
             $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
           });
           $scope.session = session;
         });
+      }
+      else {
+        console.log("WARN: missing session slug query!")
       }
     });
   });
