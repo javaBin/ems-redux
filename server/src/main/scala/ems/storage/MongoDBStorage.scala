@@ -138,10 +138,9 @@ trait MongoDBStorage {
     }
   }
 
-  def getSpeaker(eventId: String, sessionId: String, speakerId: String) = db("session").findOne(
-    MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
-    MongoDBObject("speakers" -> 1)
-  ).flatMap(_.getAs[MongoDBList]("speakers").flatMap(_.headOption).map(_.asInstanceOf[DBObject])).map(Speaker(_, binary))
+  def getSpeaker(eventId: String, sessionId: String, speakerId: String) = {
+    getSession(eventId, sessionId).flatMap(_.speakers.find(_.id.exists(_ == speakerId)))
+  }
 
   def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = {
     val withId = if (speaker.id.isDefined) speaker else speaker.withId(util.UUID.randomUUID().toString)
