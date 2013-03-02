@@ -122,6 +122,16 @@ app.SessionList = function ($scope, $routeParams, $http) {
       });
     });
   });
+
+  $scope.sortSessionBy = "speaker";
+
+  $scope.orderSessionsFunction = function(asession) {
+    if ($scope.sortSessionBy === "speaker") {
+      return asession.speakersAsString;
+    } else {
+      return asession.object.title;
+    }
+  };
 }
 
 app.SingleSession = function ($scope, $routeParams, $http) {
