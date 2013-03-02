@@ -78,7 +78,7 @@ object Build extends sbt.Build {
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
       "net.hamnaberg.rest" %% "scala-json-collection" % "2.0.1",
-     // "net.databinder" %% "unfiltered-oauth2" % unfilteredVersion,
+      "org.jsoup" % "jsoup" % "1.7.2",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",
       "org.mongodb" %% "casbah-gridfs" % "2.5.0",
@@ -96,6 +96,7 @@ object Build extends sbt.Build {
 
     val config = Seq(
       "org.constretto" % "constretto-core" % "2.0.3",
+      "org.constretto" %% "constretto-scala" % "1.0",
       "org.ini4j" % "ini4j" % "0.5.2"
     )
 

@@ -1,6 +1,6 @@
 package cake
 
-import crypto.DES
+import crypto.JavaCryptoEncryption
 import unfiltered.request._
 import org.apache.commons.codec.binary.Base64
 import javax.servlet.http.HttpServletRequest
@@ -10,19 +10,19 @@ import java.net.URI
 import dispatch._
 import unfiltered.response.{SetCookies, Ok}
 import unfiltered.Cookie
-import ems.Config
+import ems.config.Config
 
 
 class LoginPlan extends Plan {
   def intent = {
     case req@ContextPath(_, Seg("login" :: Nil)) & UserExtractor(u) & HostPort(h, port) => {
       val host = if (h == "localhost") None else Some(h)
-      val hasHost = Config.default.server.getHost != null
+      val hasHost = Config.server.root.getHost != null
       val href = if (!hasHost) {
-        URI.create(req.underlying.getRequestURL.toString).resolve(Config.default.server)
+        URI.create(req.underlying.getRequestURL.toString).resolve(Config.server.root)
       }
       else {
-        Config.default.server
+        Config.server.root
       }
       val response = Http(url(href.toString + "?auth=true") as(u.username, u.password))()
 
@@ -54,13 +54,13 @@ object EmsLoginHandler {
 }
 
 case class User(username: String, password: String) {
-  def encrypted = Base64.encodeBase64String(DES.encrypt(s"$username:$password".getBytes("UTF-8"), Config.default.password)).trim
+  def encrypted = Base64.encodeBase64String(new JavaCryptoEncryption(Config.crypt.algorithm).encrypt(s"$username:$password".getBytes("UTF-8"), Config.crypt.password)).trim
 }
 
 object User {
   def create(input: String): Option[User] = {
     try {
-      val decrypted = new String(DES.decrypt(Base64.decodeBase64(input), Config.default.password))
+      val decrypted = new String(new JavaCryptoEncryption(Config.crypt.algorithm).decrypt(Base64.decodeBase64(input), Config.crypt.password))
       decrypted.split(":") match {
         case Array(u, p) => Some(User(u, p))
         case _ => None

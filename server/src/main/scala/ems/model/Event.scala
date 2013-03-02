@@ -12,7 +12,7 @@ case class Room(id: Option[String], name: String, lastModified: DateTime = new D
 
   def toMongo: DBObject = MongoDBObject(
     "_id" -> id.getOrElse(util.UUID.randomUUID().toString),
-    "name" -> name,
+    "name" -> name.noHtml,
     "last-modified" -> lastModified.toDate
   )
 }
@@ -63,11 +63,11 @@ case class Event(id: Option[String], name: String, slug: String, start: DateTime
 
   def toMongo(update: Boolean): DBObject = {
     val base = MongoDBObject(
-      "name" -> name,
+      "name" -> name.noHtml,
       "slug" -> slug,
       "start" -> start.toDate,
       "end" -> end.toDate,
-      "venue" -> venue,
+      "venue" -> venue.noHtml,
       "last-modified" -> lastModified.toDate
     )
     if (update) {

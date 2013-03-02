@@ -9,7 +9,7 @@ import java.io.{InputStream, OutputStream}
 import com.ning.http.client.RequestBuilder
 import com.ning.http.client.Request.EntityWriter
 import org.apache.commons.codec.binary.Base64
-import ems.Config
+import ems.config.Config
 
 class EmsProxy extends Plan{
   val Accept = "application/vnd.collection+json,*/*;q=0.8"
@@ -17,7 +17,7 @@ class EmsProxy extends Plan{
   def intent = {
     case req@ContextPath(_, Seg("ajax" :: Nil)) & Params(p) => {
       p("href").headOption.map { href =>
-        if (href.contains(Config.default.server.toString)) doRequest(req, href) else Forbidden
+        if (href.contains(Config.server.root.toString)) doRequest(req, href) else Forbidden
       }.getOrElse(NotFound)
     }
   }

@@ -13,6 +13,7 @@ import unfiltered.response._
 import unfiltered.Cycle
 import ems.storage.FilesystemBinaryStorage
 import java.io.File
+import ems.config.Config
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
   import auth._
@@ -61,8 +62,8 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
 
 object Resources {
   object storage extends MongoDBStorage {
-    val MongoSetting(db) = Some(Config.default.mongoUrl)
-    val binary = new FilesystemBinaryStorage(Config.default.binaryStorage)
+    val MongoSetting(db) = Some(Config.server.mongo)
+    val binary = new FilesystemBinaryStorage(Config.server.binary)
   }
 
   def apply(authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)

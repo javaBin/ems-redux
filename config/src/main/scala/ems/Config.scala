@@ -1,28 +1,33 @@
-package ems
+package ems.config
 
 import java.io.File
-import org.constretto.ConstrettoBuilder
-import org.constretto.model.Resource
 import java.net.URI
+import org.constretto._
+import Constretto._
 
-case class Config(binaryStorage: File,
-                  mongoUrl: String,
-                  server: URI,
-                  password: String)
+case class ServerConfig(binary: File, mongo: String, root: URI)
+
+case class CryptConfig(algorithm: String = "DES", password: String = "changeme")
+
+case class CacheConfig(events: Int = 30, sessions: Int = 30)
 
 object Config {
-  lazy val default = {
-    val c = new ConstrettoBuilder().
-      createIniFileConfigurationStore().
-      addResource(Resource.create("classpath:config.ini")).
-      addResource(Resource.create("file:/opt/jb/ems-redux/config.ini")).
-      done().
-      createSystemPropertiesStore().getConfiguration
-    Config(
-      new File(c.evaluateToString("binary-storage")),
-      c.evaluateToString("mongo-url"),
-      URI.create(c.evaluateToString("server")),
-      c.evaluateToString("password")
-    )
+  private val constretto = {
+    Constretto(List(
+      inis("classpath:config.ini", "file:/opt/jb/ems-redux/config.ini")
+    ))
   }
+
+  val server: ServerConfig = ServerConfig(
+    constretto[File]("server.binary"),
+    constretto[String]("server.mongo"),
+    constretto.get[String]("server.root").map(URI.create(_)).getOrElse(throw new IllegalArgumentException("Missing server root"))
+  )
+  val crypt: CryptConfig = CryptConfig(
+    constretto[String]("crypt.algorithm"), constretto[String]("crypt.password")
+  )
+
+  val cache: CacheConfig = CacheConfig(
+    constretto[Int]("cache.events"), constretto[Int]("cache.sessions")
+  )
 }

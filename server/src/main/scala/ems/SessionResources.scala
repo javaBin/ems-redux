@@ -11,6 +11,7 @@ import unfiltered.response._
 import unfiltered.request._
 import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
 import net.hamnaberg.json.collection._
+import ems.config.Config
 
 trait SessionResources extends ResourceHelper {
 
@@ -29,7 +30,7 @@ trait SessionResources extends ResourceHelper {
               Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
               Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
             ))
-            CollectionJsonResponse(coll)
+            CacheControl("max-age" + Config.cache.sessions) ~>  CollectionJsonResponse(coll)
           }
         }
       }

@@ -3,16 +3,14 @@ package ems
 import javax.servlet.http.HttpServletRequest
 import model._
 import ems.converters._
-import java.net.URI
 import no.java.util.URIBuilder
-import io.Source
 import security.User
 import unfiltered.response._
 import unfiltered.request._
-import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
+import no.java.unfiltered.BaseURIBuilder
 import net.hamnaberg.json.collection._
 import net.hamnaberg.json.collection.Template
-import scala.Some
+import ems.config.Config
 
 trait EventResources extends ResourceHelper with SessionResources with SpeakerResources {
 
@@ -49,7 +47,7 @@ trait EventResources extends ResourceHelper with SessionResources with SpeakerRe
             val events = storage.getEvents()
             val items = events.map(eventToItem(baseUriBuilder))
             val href = baseUriBuilder.segments("events").build()
-            CollectionJsonResponse(JsonCollection(href, Nil, items))
+            CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items))
           }
         }
       }

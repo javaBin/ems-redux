@@ -42,12 +42,12 @@ case class Abstract(title: String,
 
 
   def toMongo = MongoDBObject(
-    "title" -> title.trim,
-    "body" -> body,
-    "summary" -> summary,
-    "equipment" -> equipment,
-    "outline" -> outline,
-    "audience" -> audience,
+    "title" -> title.trim.noHtml,
+    "body" -> body.map(_.noHtml),
+    "summary" -> summary.map(_.noHtml),
+    "equipment" -> equipment.map(_.noHtml),
+    "outline" -> outline.map(_.noHtml),
+    "audience" -> audience.map(_.noHtml),
     "format" -> format.name,
     "level" -> level.name,
     "language" -> language.getLanguage
@@ -137,8 +137,8 @@ case class Session(id: Option[String],
     val base = MongoDBObject(
       "slug" -> slug,
       "published" -> published,
-      "tags" -> tags.map(_.name),
-      "keywords" -> keywords.map(_.name),
+      "tags" -> tags.map(_.name.noHtml),
+      "keywords" -> keywords.map(_.name.noHtml),
       "state" -> state.name,
       "last-modified" -> lastModified.toDate
     ) ++ abs.toMongo
@@ -164,16 +164,16 @@ case class Session(id: Option[String],
 
 object Session {
   def apply(eventId: String, abs: Abstract): Session = {
-    Session(None, eventId, Slug.makeSlug(abs.title), None, None, abs, State.Pending, false, Set(), Set(), Nil)
+    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, State.Pending, false, Set(), Set(), Nil)
   }
 
   def apply(eventId: String, abs: Abstract, state: State, tags: Set[Tag], keywords: Set[Keyword]): Session = {
-    Session(None, eventId, Slug.makeSlug(abs.title), None, None, abs, state, false, tags, keywords, Nil)
+    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, false, tags, keywords, Nil)
   }
 
   def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
     val ab = Abstract(title, format = format, speakers = speakers)
-    Session(None, eventId, Slug.makeSlug(title), None, None, ab, State.Pending, false, Set(), Set(), Nil)
+    Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, State.Pending, false, Set(), Set(), Nil)
   }
 
   def apply(dbo: DBObject, storage: MongoDBStorage): Session = {
@@ -209,11 +209,11 @@ case class Speaker(id: Option[String], name: String, email: String, zipCode: Opt
 
   def toMongo = MongoDBObject(
     "_id" -> id,
-    "name" -> name,
+    "name" -> name.noHtml,
     "email" -> email,
     "zip-code" -> zipCode,
-    "bio" -> bio,
-    "tags" -> tags.map(_.name),
+    "bio" -> bio.map(_.noHtml),
+    "tags" -> tags.map(_.name.noHtml),
     "last-modified" -> lastModified.toDate
   )
 }
