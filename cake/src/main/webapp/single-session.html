@@ -1,10 +1,13 @@
 <div class="session">
     <h2>{{session.object.title}}</h2>
     <div class="row row-padding">
-        <div class="span2">Highlight Summary</div><div class="span4" ng-bind-html="session.object.summary_html"></div>
+        <div class="span2">Highlight Summary</div><div class="span4" ng-bind-html="session.summary_html"></div>
     </div>
     <div class="row row-padding abstract">
-        <div class="span2">Abstract</div><div class="span4" ng-bind-html="session.object.body_html"></div>
+        <div class="span2">Abstract</div><div class="span4" ng-bind-html="session.body_html"></div>
+    </div>
+    <div ng-show="session.outline_html" class="row row-padding">
+        <div class="span2">Outline</div><div class="span4" ng-bind-html="session.outline_html"></div>
     </div>
     <div class="row row-padding">
         <div class="span2">State</div>
@@ -23,13 +26,15 @@
         <div class="span1">
             <img src="blank.gif" class="{{session.lang.css}}" alt="{{session.lang.title}}" />
         </div>
-
+    </div>
+    <div ng-show="session.equipment_html" class="row row-padding">
+        <div class="span2">Equipment</div><div class="span4" ng-bind-html="session.equipment_html"></div>
     </div>
     <div class="row row-padding">
         <div class="span2">Keywords</div>
         <div class="span4">{{session.keywordsAsString}}</div>
     </div>
-    <div class="row row-padding">
+    <div class="row row-padding" ng-show="session.object.tags">
         <div class="span2">Tags</div>
         <div class="span4">{{session.tagsAsString}}</div>
     </div>

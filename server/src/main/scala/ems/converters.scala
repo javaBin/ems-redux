@@ -1,6 +1,5 @@
 package ems
 
-import no.java.ems.wiki.{DefaultHtmlWikiSink, DefaultWikiEngine}
 import java.net.URI
 import model._
 import net.hamnaberg.json.collection._
@@ -71,19 +70,14 @@ object converters {
         "title" -> Some(s.abs.title),
         "slug" -> Some(s.slug),
         "body" -> s.abs.body,
-        "body_html" -> s.abs.body.map(toHTML),
         "summary" -> s.abs.summary,
-        "summary_html" -> s.abs.summary.map(toHTML),
         "audience" -> s.abs.audience,
-        "outline" -> s.abs.outline,
-        "outline_html" -> s.abs.outline.map(toHTML),
-        "equipment" -> s.abs.equipment,
         "lang" -> Some(s.abs.language.getLanguage),
         "format" -> Some(s.abs.format.toString),
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
         "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty)
-      ) + Some(u).filter(_.authenticated).map(_ => "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty))).getOrElse("tags" -> None)
+      ) ++ handlePrivateProperties(u, s)
       val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
 
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
@@ -91,10 +85,18 @@ object converters {
     }
   }
 
-  private def toHTML(input: String) = {
-    val engine = new DefaultWikiEngine(new DefaultHtmlWikiSink())
-    engine.transform(input)
-    engine.getSink.toString
+
+  private def handlePrivateProperties(u: User, s: Session): Seq[(String, Option[Any])] = {
+    if (u.authenticated) {
+      Seq(
+        "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty)),
+        "outline" -> s.abs.outline,
+        "equipment" -> s.abs.equipment
+      )
+    }
+    else {
+      Nil
+    }
   }
 
   private def createSessionLinks(href: URI, s: Session): List[Link] = {
@@ -141,7 +143,8 @@ object converters {
       val auths = if (user.authenticated) {
         List(
           ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq),
-          ValueProperty("email", Some("Email"), Some(StringValue(s.email)))
+          ValueProperty("email", Some("Email"), Some(StringValue(s.email))),
+          ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue(_)))
         )
       } else {
         Nil
@@ -150,7 +153,6 @@ object converters {
       val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id.get)
       val data = List(
         ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
-        ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue(_))),
         ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
       ) ++ auths
 

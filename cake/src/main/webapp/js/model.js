@@ -29,6 +29,10 @@ function EmsSession(i) {
     format: sessionHelpers.mapFormat(obj.format),
     level: sessionHelpers.mapLevel(obj.level),
     lang: sessionHelpers.mapLang(obj.lang),
+    body_html: wiki.parse(obj.body),
+    outline_html: wiki.parse(obj.outline),
+    summary_html: wiki.parse(obj.summary),
+    equipment_html: wiki.parse(obj.equipment),
     speakers: spk,
     speakersAsString: toCSV(_.map(spk, function (s) {
       return s.prompt

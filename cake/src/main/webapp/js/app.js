@@ -134,6 +134,7 @@ app.SingleSession = function ($scope, $routeParams, $http) {
       if (query) {
         $http.get(app.wrapAjax(query.expand({"slug": slug}, {cache: true}))).success(function (sessionCollection) {
           var session = EmsSession(toCollection(sessionCollection).headItem());
+          console.log(session);
           var speakerLink = session.item.findLinkByRel("speaker collection");
           $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
             $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
