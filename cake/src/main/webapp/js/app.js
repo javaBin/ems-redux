@@ -117,6 +117,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
       var event = EmsEvent(toCollection(eventCollection).headItem());
       $http.get(app.wrapAjax(event.sessions)).success(function (data) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
+        $scope.filteredSessions = $scope.sessions.slice(0);
         $scope.name = event.object.name;
         $scope.eventSlug = event.object.slug;
       });
@@ -124,6 +125,15 @@ app.SessionList = function ($scope, $routeParams, $http) {
   });
 
   $scope.sortSessionBy = "speaker";
+  $scope.filterValues = {
+    title : ""
+  };
+
+  $scope.filterChanged = function() {
+    $scope.filteredSessions = _.filter($scope.sessions,function(session) {
+      return (($scope.filterValues.title === "") || (session.object.title.indexOf($scope.filterValues.title) !== -1));  
+    });
+  }
 
   $scope.orderSessionsFunction = function(asession) {
     if ($scope.sortSessionBy === "speaker") {
