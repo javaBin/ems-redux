@@ -22,3 +22,6 @@ target
 .#*
 .DS_Store
 .springBeans
+.lib/
+repl-port
+server/mongo/

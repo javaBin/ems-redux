@@ -127,16 +127,24 @@ app.SessionList = function ($scope, $routeParams, $http) {
   $scope.sortSessionBy = "speaker";
   $scope.filterValues = {
     title : "",
-    speakers: ""
+    speakers: "",
+    presType: "both"
   };
 
   $scope.filterChanged = function() {
     $scope.filteredSessions = _.filter($scope.sessions,function(session) {
       return (
         (($scope.filterValues.title === "") || (session.object.title.toLowerCase().indexOf($scope.filterValues.title.toLowerCase()) !== -1)) &&
-        (($scope.filterValues.speakers === "") || (session.speakersAsString.toLowerCase().indexOf($scope.filterValues.speakers.toLowerCase()) !== -1))
+        (($scope.filterValues.speakers === "") || (session.speakersAsString.toLowerCase().indexOf($scope.filterValues.speakers.toLowerCase()) !== -1)) &&
+        (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name))
         );  
     });
+  }
+
+  $scope.filterPresType = function(val) {
+    console.log(val);
+    $scope.filterValues.presType = val;
+    $scope.filterChanged();
   }
 
   $scope.orderSessionsFunction = function(asession) {

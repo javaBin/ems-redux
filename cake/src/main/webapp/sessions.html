@@ -15,7 +15,17 @@
         <th><input type="text" ng-model="filterValues.title" ng-change="filterChanged()"/></th>
         <th><input type="text" ng-model="filterValues.speakers" ng-change="filterChanged()"/></th>
         <th>-</th>
-        <th>-</th>
+        <th>
+            <div class="btn-group">
+                <a class="btn dropdown-toggle btn-mini" data-toggle="dropdown">Filter<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li ng-click="filterPresType('presentation')"><i class="icon-comment-alt" title="presentation"></i></li>
+                    <li ng-click="filterPresType('lightning-talk')"><i class="icon-bolt" title="lightning-talk"></i></li>
+                    <li ng-click="filterPresType('both')"><i class="icon-comment-alt" title="presentation"></i>
+                    <i class="icon-bolt" title="lightning-talk"></i></li>    
+                </ul>
+            </div>
+        </th>
         <th>-</th>
         <th>-</th>
         <th>-</th>
