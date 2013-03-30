@@ -111,12 +111,16 @@ app.About = function ($scope) {
 }
 
 app.SessionList = function ($scope, $routeParams, $http) {
+  $scope.numSessions = 0;
+  $scope.showingSessions = 0;
   app.loadRoot($http, function (root) {
     var query = root.findQueryByRel("event by-slug");
     $http.get(app.wrapAjax(query.expand({"slug": $routeParams.slug})), {cache: true}).success(function (eventCollection) {
       var event = EmsEvent(toCollection(eventCollection).headItem());
       $http.get(app.wrapAjax(event.sessions)).success(function (data) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
+        $scope.numSessions = $scope.sessions.length;
+        $scope.showingSessions = $scope.numSessions;
         $scope.filteredSessions = $scope.sessions.slice(0);
         $scope.name = event.object.name;
         $scope.eventSlug = event.object.slug;
@@ -139,6 +143,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
         (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name))
         );  
     });
+    $scope.showingSessions = $scope.filteredSessions.length;
   }
 
   $scope.filterPresType = function(val) {
