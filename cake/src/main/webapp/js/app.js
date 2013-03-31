@@ -160,6 +160,18 @@ app.SessionList = function ($scope, $routeParams, $http) {
     $scope.showingSessions = $scope.filteredSessions.length;
   }
 
+  $scope.clearFilters = function() {
+    $scope.filterValues = {
+      title : "",
+      speakers: "",
+      presType: "both"
+    };
+    _.each($scope.usedTags,function(usedTag) {
+      usedTag.selected = true;
+    });
+    $scope.filterChanged();    
+  }
+
   $scope.filterPresType = function(val) {
     console.log(val);
     $scope.filterValues.presType = val;
