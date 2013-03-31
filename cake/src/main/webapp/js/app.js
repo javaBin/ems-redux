@@ -135,6 +135,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
     _.each($scope.usedTags,function(usedTag) {
       usedTag.selected = updateTo;
     });
+    $scope.filterChanged();
   }
 
   $scope.sortSessionBy = "speaker";
@@ -149,7 +150,11 @@ app.SessionList = function ($scope, $routeParams, $http) {
       return (
         (($scope.filterValues.title === "") || (session.object.title.toLowerCase().indexOf($scope.filterValues.title.toLowerCase()) !== -1)) &&
         (($scope.filterValues.speakers === "") || (session.speakersAsString.toLowerCase().indexOf($scope.filterValues.speakers.toLowerCase()) !== -1)) &&
-        (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name))
+        (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name)) &&
+        (!session.object.tags || (_.intersection(session.object.tags,_.pluck(_.filter($scope.usedTags,
+          function(usedTag) {
+            return usedTag.selected;
+          }), "name")).length !== 0))
         );  
     });
     $scope.showingSessions = $scope.filteredSessions.length;

@@ -36,7 +36,7 @@
                     <li ng-click="updateAllSelectedTags(true)">Select all</li>
                     <li ng-click="updateAllSelectedTags(false)">Select none</li>
                     <li class="divider"></li>
-                    <li ng-repeat="usedTag in usedTags"><input type="checkbox" ng-model="usedTag.selected"/>{{usedTag.name}}</li>    
+                    <li ng-repeat="usedTag in usedTags"><input type="checkbox" ng-model="usedTag.selected" ng-change="filterChanged()"/>{{usedTag.name}}</li>    
                 </ul>
             </div>
         </th>
