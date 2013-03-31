@@ -29,7 +29,16 @@
         </th>
         <th>-</th>
         <th>-</th>
-        <th>-</th>
+        <th><div class="btn-group">
+                <a class="btn dropdown-toggle btn-mini" data-toggle="dropdown">Tags<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li>Select all</li>
+                    <li>Select none</li>
+                    <li class="divider"></li>
+                    <li ng-repeat="usedTag in usedTags">{{usedTag.name}}</li>    
+                </ul>
+            </div>
+        </th>
         <th>-</th>
     </tr>
     </thead>
