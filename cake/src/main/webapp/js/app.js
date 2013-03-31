@@ -122,7 +122,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
         $scope.numSessions = $scope.sessions.length;
         $scope.usedTags = _.map(_.uniq(_.flatten(_.map($scope.sessions,function(session) { return session.object.tags; }))),
-          function(tag) { return {name: tag, selected: false }});
+          function(tag) { return {name: tag, selected: true }});
         $scope.showingSessions = $scope.numSessions;
         $scope.filteredSessions = $scope.sessions.slice(0);
         $scope.name = event.object.name;
@@ -130,6 +130,12 @@ app.SessionList = function ($scope, $routeParams, $http) {
       });
     });
   });
+
+  $scope.updateAllSelectedTags = function(updateTo) {
+    _.each($scope.usedTags,function(usedTag) {
+      usedTag.selected = updateTo;
+    });
+  }
 
   $scope.sortSessionBy = "speaker";
   $scope.filterValues = {
@@ -162,6 +168,8 @@ app.SessionList = function ($scope, $routeParams, $http) {
       return asession.object.title;
     }
   };
+
+
 }
 
 app.SingleSession = function ($scope, $routeParams, $http) {
