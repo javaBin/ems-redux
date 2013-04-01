@@ -122,7 +122,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
         $scope.numSessions = $scope.sessions.length;
         $scope.usedTags = _.map(_.uniq(_.flatten(_.map($scope.sessions,function(session) { return session.object.tags; }))),
-          function(tag) { return {name: tag, selected: true }});
+          function(tag) { return {name: tag, selected: false }});
         $scope.showingSessions = $scope.numSessions;
         $scope.filteredSessions = $scope.sessions.slice(0);
         $scope.name = event.object.name;
@@ -146,15 +146,17 @@ app.SessionList = function ($scope, $routeParams, $http) {
   };
 
   $scope.filterChanged = function() {
-    $scope.filteredSessions = _.filter($scope.sessions,function(session) {
+    var usedT = _.pluck(_.filter($scope.usedTags,
+            function(usedTag) {
+              return usedTag.selected;
+            }), "name");
+
+    $scope.filteredSessions = _.filter($scope.sessions,function(session) {    
       return (
         (($scope.filterValues.title === "") || (session.object.title.toLowerCase().indexOf($scope.filterValues.title.toLowerCase()) !== -1)) &&
         (($scope.filterValues.speakers === "") || (session.speakersAsString.toLowerCase().indexOf($scope.filterValues.speakers.toLowerCase()) !== -1)) &&
         (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name)) &&
-        (!session.object.tags || (_.intersection(session.object.tags,_.pluck(_.filter($scope.usedTags,
-          function(usedTag) {
-            return usedTag.selected;
-          }), "name")).length !== 0))
+        (!session.object.tags || (_.intersection(session.object.tags,usedT).length === usedT.length))
         );  
     });
     $scope.showingSessions = $scope.filteredSessions.length;
@@ -167,7 +169,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
       presType: "both"
     };
     _.each($scope.usedTags,function(usedTag) {
-      usedTag.selected = true;
+      usedTag.selected = false;
     });
     $scope.filterChanged();    
   }
