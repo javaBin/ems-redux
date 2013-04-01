@@ -111,19 +111,74 @@ app.About = function ($scope) {
 }
 
 app.SessionList = function ($scope, $routeParams, $http) {
+  $scope.numSessions = 0;
+  $scope.showingSessions = 0;
+  $scope.usedTags = [];
   app.loadRoot($http, function (root) {
     var query = root.findQueryByRel("event by-slug");
     $http.get(app.wrapAjax(query.expand({"slug": $routeParams.slug})), {cache: true}).success(function (eventCollection) {
       var event = EmsEvent(toCollection(eventCollection).headItem());
       $http.get(app.wrapAjax(event.sessions)).success(function (data) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
+        $scope.numSessions = $scope.sessions.length;
+        $scope.usedTags = _.map(_.uniq(_.flatten(_.map($scope.sessions,function(session) { return session.object.tags; }))),
+          function(tag) { return {name: tag, selected: false }});
+        $scope.showingSessions = $scope.numSessions;
+        $scope.filteredSessions = $scope.sessions.slice(0);
         $scope.name = event.object.name;
         $scope.eventSlug = event.object.slug;
       });
     });
   });
 
+  $scope.updateAllSelectedTags = function(updateTo) {
+    _.each($scope.usedTags,function(usedTag) {
+      usedTag.selected = updateTo;
+    });
+    $scope.filterChanged();
+  }
+
   $scope.sortSessionBy = "speaker";
+  $scope.filterValues = {
+    title : "",
+    speakers: "",
+    presType: "both"
+  };
+
+  $scope.filterChanged = function() {
+    var usedT = _.pluck(_.filter($scope.usedTags,
+            function(usedTag) {
+              return usedTag.selected;
+            }), "name");
+
+    $scope.filteredSessions = _.filter($scope.sessions,function(session) {    
+      return (
+        (($scope.filterValues.title === "") || (session.object.title.toLowerCase().indexOf($scope.filterValues.title.toLowerCase()) !== -1)) &&
+        (($scope.filterValues.speakers === "") || (session.speakersAsString.toLowerCase().indexOf($scope.filterValues.speakers.toLowerCase()) !== -1)) &&
+        (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name)) &&
+        (!session.object.tags || (_.intersection(session.object.tags,usedT).length === usedT.length))
+        );  
+    });
+    $scope.showingSessions = $scope.filteredSessions.length;
+  }
+
+  $scope.clearFilters = function() {
+    $scope.filterValues = {
+      title : "",
+      speakers: "",
+      presType: "both"
+    };
+    _.each($scope.usedTags,function(usedTag) {
+      usedTag.selected = false;
+    });
+    $scope.filterChanged();    
+  }
+
+  $scope.filterPresType = function(val) {
+    console.log(val);
+    $scope.filterValues.presType = val;
+    $scope.filterChanged();
+  }
 
   $scope.orderSessionsFunction = function(asession) {
     if ($scope.sortSessionBy === "speaker") {
@@ -132,6 +187,8 @@ app.SessionList = function ($scope, $routeParams, $http) {
       return asession.object.title;
     }
   };
+
+
 }
 
 app.SingleSession = function ($scope, $routeParams, $http) {

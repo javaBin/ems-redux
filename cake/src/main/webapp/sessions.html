@@ -1,4 +1,5 @@
 <h2>Sessions for {{name}}</h2>
+<p>Showing {{showingSessions}} of {{numSessions}}&nbsp;<button class="btn btn-mini" ng-click="clearFilters()">Clear filters</button></p>
 <table class="table table-hover">
     <thead>
     <tr>
@@ -11,9 +12,39 @@
         <th ng-show="session.object.tags">tags</th>
         <th>keywords</th>
     </tr>
+     <tr>
+        <th><input type="text" ng-model="filterValues.title" ng-change="filterChanged()"/></th>
+        <th><input type="text" ng-model="filterValues.speakers" ng-change="filterChanged()"/></th>
+        <th>-</th>
+        <th>
+            <div class="btn-group">
+                <a class="btn dropdown-toggle btn-mini" data-toggle="dropdown">Filter<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li ng-click="filterPresType('presentation')"><i class="icon-comment-alt" title="presentation"></i></li>
+                    <li ng-click="filterPresType('lightning-talk')"><i class="icon-bolt" title="lightning-talk"></i></li>
+                    <li ng-click="filterPresType('both')"><i class="icon-comment-alt" title="presentation"></i>
+                    <i class="icon-bolt" title="lightning-talk"></i></li>    
+                </ul>
+            </div>
+        </th>
+        <th>-</th>
+        <th>-</th>
+        <th>
+            <div class="btn-group">
+                <a class="btn dropdown-toggle btn-mini" data-toggle="dropdown">Filter<span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li ng-click="updateAllSelectedTags(true)">Select all</li>
+                    <li ng-click="updateAllSelectedTags(false)">Select none</li>
+                    <li class="divider"></li>
+                    <li ng-repeat="usedTag in usedTags"><input type="checkbox" ng-model="usedTag.selected" ng-change="filterChanged()"/>{{usedTag.name}}</li>    
+                </ul>
+            </div>
+        </th>
+        <th>-</th>
+    </tr>
     </thead>
     <tbody>
-        <tr ng-repeat="session in sessions | orderBy:orderSessionsFunction">
+        <tr ng-repeat="session in filteredSessions | orderBy:orderSessionsFunction">
             <td><a href="#/events/{{eventSlug}}/sessions/{{session.object.slug}}">{{session.object.title}}</a></td>
             <td>{{session.speakersAsString}}</td>
             <td><i class="{{session.state.icon}}" title="{{session.state.name}}"></i></td>
