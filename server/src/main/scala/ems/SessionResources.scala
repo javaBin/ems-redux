@@ -1,7 +1,7 @@
 package ems
 
 import javax.servlet.http.HttpServletRequest
-import model.Entity
+import model._
 import ems.converters._
 import java.net.URI
 import no.java.util.URIBuilder
@@ -12,6 +12,8 @@ import unfiltered.request._
 import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
 import net.hamnaberg.json.collection._
 import ems.config.Config
+import unfiltered.IfUnmodifiedSinceString
+import unfiltered.DateResponseHeader
 
 trait SessionResources extends ResourceHelper {
 
@@ -30,7 +32,7 @@ trait SessionResources extends ResourceHelper {
               Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
               Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
             ))
-            CacheControl("max-age" + Config.cache.sessions) ~>  CollectionJsonResponse(coll)
+            CacheControl("max-age=" + Config.cache.sessions) ~>  CollectionJsonResponse(coll)
           }
         }
       }
@@ -58,12 +60,42 @@ trait SessionResources extends ResourceHelper {
   }
 
   def handleSession(eventId: String, sessionId: String, request: HttpRequest[HttpServletRequest])(implicit u: User) = {
+    val base = BaseURIBuilder.getBuilder(request)
     val session = storage.getSession(eventId, sessionId)
-    val base = BaseURIBuilder.unapply(request).get
-    handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)){
-      c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", Some("Speaker by Email"), List(
+
+    def saveTags(tags: Set[Tag], session: Session, href: URI) = {        
+        storage.saveSession(session.withTags(tags)).fold(
+          ex => InternalServerError ~> ResponseString(ex.getMessage),
+          s => DateResponseHeader("Last-Modified", s.lastModified.withMillisOfSecond(0).getMillis) ~> ContentLocation(href.toString) ~> CollectionJsonResponse(JsonCollection(href, Nil, sessionToItem(base)(u)(s)))
+        )          
+    }    
+    
+    request match {
+      case POST(_) & RequestContentType("application/x-www-form-urlencoded") & Params(p) & RequestURIBuilder(rb) => {
+        authenticated(request, u) {
+          case IfUnmodifiedSince(date) => {            
+            session.map{ old =>
+              if (old.lastModified.withMillisOfSecond(0).toDate == date) {
+                saveTags(p("tag").map(Tag).toSet[Tag], old, rb.build())
+              }
+              else {
+                PreconditionFailed
+              }
+            }.getOrElse(NotFound)
+          }
+          case IfUnmodifiedSinceString("*") => {
+            session.map(old => 
+              saveTags(p("tag").map(Tag).toSet[Tag], old, rb.build())
+            ).getOrElse(NotFound)
+          }
+          case _ => PreconditionRequired ~> ResponseString("You must include a 'If-Unmodified-Since' header in your request")                
+        } 
+      }
+      case _ => handleObject(session, request, (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)){
+        c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", Some("Speaker by Email"), List(
         ValueProperty("email")
-      )))
+        )))
+      }
     }
   }
 

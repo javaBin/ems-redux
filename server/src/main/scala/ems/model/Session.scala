@@ -116,6 +116,8 @@ case class Session(id: Option[String],
 
   def withLevel(level: Level) = withAbstract(abs.withLevel(level))
 
+  def withTags(tags: Set[Tag]) = copy(tags = tags)
+
   def addOrUpdateSpeaker(speaker: Speaker) = {
     val speakers = Vector(this.speakers : _*)
     val index = speakers.indexWhere(_.id == speaker.id)

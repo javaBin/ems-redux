@@ -191,7 +191,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
 
 }
 
-app.SingleSession = function ($scope, $routeParams, $http) {
+app.SingleSession = function ($scope, $routeParams, $http, $window) {
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
   app.loadRoot($http, function (root) {
@@ -199,8 +199,9 @@ app.SingleSession = function ($scope, $routeParams, $http) {
     $http.get(app.wrapAjax(query.expand({"slug": eventSlug})), {cache: true}).success(function (eventCollection) {
       var query = toCollection(eventCollection).findQueryByRel("session by-slug");
       if (query) {
-        $http.get(app.wrapAjax(query.expand({"slug": slug}, {cache: true}))).success(function (sessionCollection) {
+        $http.get(app.wrapAjax(query.expand({"slug": slug}, {cache: false}))).success(function (sessionCollection,status,headers) {          
           var session = EmsSession(toCollection(sessionCollection).headItem());
+          session.lastModified = headers("last-modified");
           console.log(session);
           var speakerLink = session.item.findLinkByRel("speaker collection");
           $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
@@ -214,4 +215,23 @@ app.SingleSession = function ($scope, $routeParams, $http) {
       }
     });
   });
+
+  $scope.addTagsToSession = function() {
+    var link = $scope.session.item.findLinkByRel("session tag");
+    if (link) {
+      var data = _.reduce($scope.newTags.split(","), function(agg, e) {
+         return agg + (agg.length > 0 ? "&" : "") + "tag=" + e; 
+      }, "");
+      $http({
+        url: app.wrapAjax(link.href),
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded", "If-Unmodified-Since": $scope.session.lastModified},
+        data: data
+      }).success(function () {        
+        //$window.location.reload();
+      }).error(function(e) {
+          console.log(e);
+      });
+    }
+  }
 }

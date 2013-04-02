@@ -10,6 +10,7 @@ import com.ning.http.client.RequestBuilder
 import com.ning.http.client.Request.EntityWriter
 import org.apache.commons.codec.binary.Base64
 import ems.config.Config
+import collection.JavaConverters._
 
 class EmsProxy extends Plan{
   val Accept = "application/vnd.collection+json,*/*;q=0.8"
@@ -26,7 +27,7 @@ class EmsProxy extends Plan{
     val promise = for {
       res <- Http(makeReq(req, url(href)))
     } yield {
-      Status(res.getStatusCode) ~> ContentType(res.getContentType) ~> new ResponseStreamer {
+      Option(res.getHeader("Last-Modified")).map(lm => Status(res.getStatusCode) ~> LastModified(lm)).getOrElse(Status(res.getStatusCode))  ~> ContentType(res.getContentType) ~> new ResponseStreamer {
         def stream(os: OutputStream) {
           Streaming.copy(res.getResponseBodyAsStream, os, false)
         }
@@ -50,6 +51,9 @@ class EmsProxy extends Plan{
       case _ => builder
     }
     req match {
+      case POST(RequestContentType("application/x-www-form-urlencoded")) & Params(p) => {
+        builder.setParameters(p.mapValues(_.asJavaCollection).asJava)
+      }
       case POST(_) | PUT(_) => builder.setBody(new EntityWriter {
         def writeEntity(out: OutputStream) {
           Streaming.copy(req.inputStream, out)

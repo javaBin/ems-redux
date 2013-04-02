@@ -104,7 +104,8 @@ object converters {
 
     links ++= List(
       Link(URIBuilder(href).segments("attachments").build(), "attachment collection", Some("Attachments for %s".format(s.abs.title))),
-      Link(URIBuilder(href).segments("speakers").build(), "speaker collection", Some("Speakers for %s".format(s.abs.title)))
+      Link(URIBuilder(href).segments("speakers").build(), "speaker collection", Some("Speakers for %s".format(s.abs.title))),
+      Link(href, "session tag", Some("Tag session"))
     )
     links ++= s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
     links ++= s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "room item", Some(r.name)))
