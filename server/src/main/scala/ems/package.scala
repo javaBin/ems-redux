@@ -6,6 +6,7 @@ package ems {
 
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Entities.EscapeMode
+import java.nio.charset.Charset
 
 package object model {
     implicit class HtmlCleaner(val string: String) extends AnyVal{
@@ -14,7 +15,12 @@ package object model {
         settings.indentAmount(0)
         settings.escapeMode(EscapeMode.xhtml)
         settings.prettyPrint(false)
-        Jsoup.clean(string, "", Whitelist.none(), settings)
+        settings.charset(Charset.forName("UTF-8"))
+        Jsoup.clean(string, "", Whitelist.none(), settings).
+          replace("&quot;", "\"").
+          replace("&apos;", "'").
+          replace("&amp;", "&")
+
       }
     }
   }
