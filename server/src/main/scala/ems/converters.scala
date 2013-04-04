@@ -110,7 +110,7 @@ object converters {
     links ++= s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
     links ++= s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "room item", Some(r.name)))
     links ++= s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "slot item", Some(RFC3339.format(slot.start) + "-" + RFC3339.format(slot.end))))
-    links ++= s.abs.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
+    links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()
   }
@@ -187,7 +187,7 @@ object converters {
     val state = template.getPropertyValue("state").map(x => State(x.value.toString))
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
     val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
-    val abs = Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), Vector())
+    val abs = Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation))
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
   }

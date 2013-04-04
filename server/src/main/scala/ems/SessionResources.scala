@@ -142,7 +142,7 @@ trait SessionResources extends ResourceHelper {
     request match {
       case GET(_) & RequestURIBuilder(requestURIBuilder) & BaseURIBuilder(baseURIBuilder) => {
         val items = storage.getSession(eventId, sessionId).map(_.attachments.map(attachmentToItem(baseURIBuilder))).getOrElse(Nil)
-        CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items))
+        CollectionJsonResponse(JsonCollection(requestURIBuilder.build(), Nil, items.toList))
       }
 
       case POST(_) => {

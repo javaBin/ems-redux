@@ -1,13 +1,11 @@
 package ems.model
 
 import ems.storage.MongoDBStorage
-import org.joda.time.DateTime
-import ems.{Attachment, URIAttachment}
-import com.mongodb.casbah.Imports._
-import java.util
-import util.Locale
-import util.{Date => JDate}
 import ems.storage.BinaryStorage
+import ems.{Attachment, URIAttachment}
+import org.joda.time.DateTime
+import com.mongodb.casbah.Imports._
+import java.util.{Date => JDate, Locale, UUID}
 
 case class Abstract(title: String,
                     summary: Option[String] = None,
@@ -17,13 +15,8 @@ case class Abstract(title: String,
                     equipment: Option[String] = None,
                     language: Locale = new Locale("no"),
                     level: Level = Level.Beginner,
-                    format: Format = Format.Presentation,
-                    speakers: Seq[Speaker] = Seq()
+                    format: Format = Format.Presentation
                      ) {
-  def addSpeaker(speaker: Speaker) = copy(speakers = speakers ++ Seq(speaker))
-
-  def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = speakers)
-
   def withTitle(input: String) = copy(input)
 
   def withBody(input: String) = copy(body = Some(input))
@@ -55,24 +48,21 @@ case class Abstract(title: String,
 }
 
 object Abstract {
-  def apply(dbo: DBObject, binaryStorage: BinaryStorage): Abstract = {
+  def apply(dbo: DBObject): Abstract = {
     val m = wrapDBObj(dbo)
-    val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
-    val level = m.getAs[String]("level").map(Level(_)).getOrElse(Level.Beginner)
-    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
-      case x: DBObject => x
-    }.map(Speaker(_, binaryStorage))
+    val asString = m.getAs[String] _
+    val format = asString("format").map(Format(_)).getOrElse(Format.Presentation)
+    val level = asString("level").map(Level(_)).getOrElse(Level.Beginner)
     Abstract(
-      m.getAsOrElse("title", "No Title"),
-      m.getAs[String]("summary"),
-      m.getAs[String]("body"),
-      m.getAs[String]("audience"),
-      m.getAs[String]("outline"),
-      m.getAs[String]("equipment"),
-      m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no")),
+      m.getAsOrElse("title", "No Title").noHtml,
+      asString("summary").map(_.noHtml),
+      asString("body").map(_.noHtml),
+      asString("audience").map(_.noHtml),
+      asString("outline").map(_.noHtml),
+      asString("equipment").map(_.noHtml),
+      asString("language").map(l => new Locale(l)).getOrElse(new Locale("no")),
       level,
-      format,
-      speakers
+      format
     )
   }
 
@@ -88,13 +78,14 @@ case class Session(id: Option[String],
                    published: Boolean,
                    tags: Set[Tag],
                    keywords: Set[Keyword],
-                   attachments: List[URIAttachment] = Nil,
+                   speakers: Seq[Speaker],
+                   attachments: Seq[URIAttachment] = Nil,
                    lastModified: DateTime = new DateTime()) extends Entity[Session] {
 
 
   type T = Session
 
-  def addAttachment(attachment: URIAttachment) = copy(attachments = attachments ::: List(attachment))
+  def addAttachment(attachment: URIAttachment) = copy(attachments = attachments ++ Seq(attachment))
 
   def addKeyword(word: String) = copy(keywords = keywords + Keyword(word))
 
@@ -122,14 +113,16 @@ case class Session(id: Option[String],
     val speakers = Vector(this.speakers : _*)
     val index = speakers.indexWhere(_.id == speaker.id)
     if (index != -1) {
-      withAbstract(abs.withSpeakers(speakers.updated(index, speaker)))
+      withSpeakers(speakers.updated(index, speaker))
     }
     else {
-      withAbstract(abs.addSpeaker(speaker))
+      addSpeaker(speaker)
     }
   }
 
-  def speakers = abs.speakers
+  def addSpeaker(speaker: Speaker) = copy(speakers = speakers ++ Seq(speaker))
+
+  def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = speakers)
 
   private def withAbstract(abs: Abstract) = copy(abs = abs)
 
@@ -152,7 +145,7 @@ case class Session(id: Option[String],
     }
     else {
       val obj = MongoDBObject(
-        "_id" -> id.getOrElse(util.UUID.randomUUID().toString),
+        "_id" -> id.getOrElse(UUID.randomUUID().toString),
         "eventId" -> eventId,
         "roomId" -> room.flatMap(_.id),
         "slotId" -> slot.flatMap(_.id),
@@ -173,18 +166,24 @@ object Session {
     Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, false, tags, keywords, Nil)
   }
 
-  def apply(eventId: String, title: String, format: Format, speakers: Vector[Speaker]): Session = {
-    val ab = Abstract(title, format = format, speakers = speakers)
-    Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, State.Pending, false, Set(), Set(), Nil)
+  def apply(eventId: String, title: String, format: Format, speakers: Seq[Speaker]): Session = {
+    val ab = Abstract(title, format = format)
+    Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, State.Pending, false, Set(), Set(), speakers, Nil)
   }
 
   def apply(dbo: DBObject, storage: MongoDBStorage): Session = {
     val m = wrapDBObj(dbo)
-    val abs = Abstract(dbo, storage.binary)
+    val abs = Abstract(dbo)
     val eventId = m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId"))
     val event = storage.getEvent(eventId).getOrElse(throw new IllegalArgumentException("No Event"))
     val slot = event.slots.find(_.id == m.get("slotId").map(_.toString))
     val room = event.rooms.find(_.id == m.get("roomId").map(_.toString))
+    val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
+      case x: DBObject => x
+    }.map(Speaker(_, storage.binary))
+    val attachments = m.getAsOrElse[Seq[_]]("attachments", Seq()).map {
+      case x: DBObject => x
+    }.map(URIAttachment(_))
 
     Session(
       m.get("_id").map(_.toString),
@@ -197,7 +196,8 @@ object Session {
       m.getAs[Boolean]("published").getOrElse(false),
       m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
       m.getAsOrElse[Seq[_]]("keywords", Seq.empty).map(k => Keyword(k.toString)).toSet[Keyword],
-      Nil,
+      speakers,
+      attachments,
       new DateTime(m.getAsOrElse[JDate]("last-modified", new JDate()))
     )
   }
@@ -225,10 +225,10 @@ object Speaker {
     val m = wrapDBObj(dbo)
     Speaker(
       m.get("_id").map(_.toString),
-      m.as[String]("name"),
+      m.as[String]("name").noHtml,
       m.as[String]("email"),
       m.getAs[String]("zip-code"),
-      m.getAs[String]("bio"),
+      m.getAs[String]("bio").map(_.noHtml),
       m.getAsOrElse[Seq[_]]("tags", Seq.empty).map(t => Tag(t.toString)).toSet[Tag],
       m.get("photo").flatMap(i => binaryStorage.getAttachment(i.toString)),
       new DateTime(m.getAs[JDate]("last-modified").getOrElse(new JDate()))

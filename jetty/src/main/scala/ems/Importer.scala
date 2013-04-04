@@ -105,30 +105,30 @@ object Importer {
           (c \ "equipment").extractOpt[String],
           (c \ "lang").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
           (c \ "level").extractOpt[String].map(Level(_)).getOrElse(Level.Beginner),
-          (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation),
-          (c \ "speakers").children.map(s =>
-            Speaker(
-            (s \ "id").extractOpt[String],
-            (s \ "name").extract[String],
-            (s \ "email").extract[String],
-            (s \ "zip-code").extractOpt[String],
-            (s \ "bio").extractOpt[String], {
-              val JArray(tags) = (s \ "tags")
-              tags.collect{case JString(t) => Tag(t)}.toSet[Tag]
-            },
-            (s \ "photo").extractOpt[JObject].map(photo => {
-              val JString(f) = photo \ "file"
-              val JString(id) = photo \ "id"
-              val file = new File(f)
-              val att = storage.binary.saveAttachment(FileAttachment(Some(id), file, file.getName, MIMEType(MimetypeMap.getContentType(file))))
-              att
-            })
-            ))
+          (c \ "format").extractOpt[String].map(Format(_)).getOrElse(Format.Presentation)
           ),
         (c \ "state").extractOpt[String].map(State(_)).getOrElse(State.Pending),
         (c \ "published").extractOrElse(false),
         (c \ "tags").extractOpt[String].map(_.split(",").map(Tag(_)).toSet[Tag]).getOrElse(Set.empty),
         (c \ "keywords").extractOpt[String].map(_.split(",").map(Keyword(_)).toSet[Keyword]).getOrElse(Set.empty),
+        (c \ "speakers").children.map(s =>
+          Speaker(
+          (s \ "id").extractOpt[String],
+          (s \ "name").extract[String],
+          (s \ "email").extract[String],
+          (s \ "zip-code").extractOpt[String],
+          (s \ "bio").extractOpt[String], {
+            val JArray(tags) = (s \ "tags")
+            tags.collect{case JString(t) => Tag(t)}.toSet[Tag]
+          },
+          (s \ "photo").extractOpt[JObject].map(photo => {
+            val JString(f) = photo \ "file"
+            val JString(id) = photo \ "id"
+            val file = new File(f)
+            val att = storage.binary.saveAttachment(FileAttachment(Some(id), file, file.getName, MIMEType(MimetypeMap.getContentType(file))))
+            att
+          })
+          )),
         (c \ "attachments").children.map(a => {
           val JString(f) = a \ "file"
           val JString(id) = a \ "id"
