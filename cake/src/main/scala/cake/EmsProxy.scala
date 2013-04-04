@@ -6,7 +6,7 @@ import unfiltered.filter.Plan
 import dispatch._
 import unfiltered.filter.request.ContextPath
 import java.io.{InputStream, OutputStream}
-import com.ning.http.client.RequestBuilder
+import com.ning.http.client.{Response, RequestBuilder}
 import com.ning.http.client.Request.EntityWriter
 import org.apache.commons.codec.binary.Base64
 import ems.config.Config
@@ -27,7 +27,7 @@ class EmsProxy extends Plan{
     val promise = for {
       res <- Http(makeReq(req, url(href)))
     } yield {
-      Option(res.getHeader("Last-Modified")).map(lm => Status(res.getStatusCode) ~> LastModified(lm)).getOrElse(Status(res.getStatusCode))  ~> ContentType(res.getContentType) ~> new ResponseStreamer {
+      Status(res.getStatusCode) ~> CopyHeaders(res) ~> new ResponseStreamer {
         def stream(os: OutputStream) {
           Streaming.copy(res.getResponseBodyAsStream, os, false)
         }
@@ -60,6 +60,19 @@ class EmsProxy extends Plan{
         }
       })
       case _ => builder
+    }
+  }
+}
+
+object CopyHeaders {
+  def apply(resp: Response): Responder[Any] = {
+    new Responder[Any] {
+      def respond(res: HttpResponse[Any]) {
+        val headers: java.util.Map[String, java.util.List[String]] = resp.getHeaders
+        headers.asScala.foreach{
+          case (n, list) => list.asScala.foreach(i => res.header(n, i))
+        }
+      }
     }
   }
 }
