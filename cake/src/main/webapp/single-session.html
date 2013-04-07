@@ -34,10 +34,6 @@
         <div class="span2">Keywords</div>
         <div class="span4">{{session.keywordsAsString}}</div>
     </div>
-    <div class="row row-padding" ng-show="session.object.tags">
-        <div class="span2">Tags</div>
-        <div class="span4">{{session.tagsAsString}}</div>
-    </div>
 
     <div ng-repeat="speaker in speakers">
         <h2>{{speaker.object.name}}</h2>
@@ -46,12 +42,19 @@
                 <img class="photo" ng-src="{{speaker.photo}}" width="100" height="100"/>
             </div>
             <div class="span6">{{speaker.object.bio}}</div>
-        </div>
+        </div>        
 
     </div>
+
 
     <div class="row row-padding">
-        <input type="text" ng-model="newTags"/>
-        <button class="btn" ng-click="addTagsToSession()">Add tag</button>
+        <ul id="myTags" class="span8">        
+        </ul>   
+        &nbsp;
+        <button class="btn" ng-click="updateTags()">Update tags</button>
     </div>
+    <div class="row row-padding">
+        
+    </div>
+
 </div>

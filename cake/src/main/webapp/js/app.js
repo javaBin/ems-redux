@@ -192,6 +192,7 @@ app.SessionList = function ($scope, $routeParams, $http) {
 }
 
 app.SingleSession = function ($scope, $routeParams, $http, $window) {
+
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
   app.loadRoot($http, function (root) {
@@ -203,11 +204,19 @@ app.SingleSession = function ($scope, $routeParams, $http, $window) {
           var session = EmsSession(toCollection(sessionCollection).headItem());
           session.lastModified = headers("last-modified");
           console.log(session);
+
           var speakerLink = session.item.findLinkByRel("speaker collection");
           $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
             $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
           });
           $scope.session = session;
+
+          var myTags = $("#myTags");
+          myTags.tagit();
+          _.each($scope.session.object.tags,function(atag) {
+            myTags.tagit("createTag",atag);
+          });
+          
         });
       }
       else {
@@ -216,12 +225,17 @@ app.SingleSession = function ($scope, $routeParams, $http, $window) {
     });
   });
 
-  $scope.addTagsToSession = function() {
+  
+  $scope.updateTags = function() {
+    var updatedTags = $("#myTags").tagit("assignedTags");    
+    $scope.session.object.tags = updatedTags;
+
     var link = $scope.session.item.findLinkByRel("session tag");
     if (link) {
-      var data = _.reduce($scope.newTags.split(","), function(agg, e) {
+      var data = _.reduce(updatedTags, function(agg, e) {
          return agg + (agg.length > 0 ? "&" : "") + "tag=" + e; 
       }, "");
+
       $http({
         url: app.wrapAjax(link.href),
         method: "POST",
@@ -234,4 +248,5 @@ app.SingleSession = function ($scope, $routeParams, $http, $window) {
       });
     }
   }
+
 }
