@@ -14,6 +14,7 @@ import ems.config.Config
 
 
 class LoginPlan extends Plan {
+  import dispatch.Defaults._
   def intent = {
     case req@ContextPath(_, Seg("login" :: Nil)) & UserExtractor(u) & HostPort(h, port) => {
       val host = if (h == "localhost") None else Some(h)
@@ -24,14 +25,17 @@ class LoginPlan extends Plan {
       else {
         Config.server.root
       }
-      val response = Http(url(href.toString + "?auth=true") as(u.username, u.password))()
+      val response = for {
+        re <- Http(url(href.toString + "?auth=true") as(u.username, u.password))
+      } yield re
 
-      if (response.getStatusCode == 200) {
-        Ok ~> SetCookies(
-          Cookie("username", u.username, host, maxAge = Some(24 * 3600), httpOnly = false),
-          Cookie("login", u.encrypted, host, maxAge = Some(24 * 3600), httpOnly = true)
-        )
-      }
+      if (response().getStatusCode == 200) {
+          Ok ~> SetCookies(
+            Cookie("username", u.username, host, maxAge = Some(24 * 3600), httpOnly = false),
+            Cookie("login", u.encrypted, host, maxAge = Some(24 * 3600), httpOnly = true)
+          )
+        }
+
       else {
         Ok ~> SetCookies.discarding("username", "login")
       }

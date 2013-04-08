@@ -8,7 +8,7 @@ object Build extends sbt.Build {
 
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
     organization := "no.java",
-    scalaVersion := "2.10.0",
+    scalaVersion := "2.10.1",
     scalacOptions := Seq("-deprecation"),
     pomIncludeRepository := {
       x => false
@@ -74,7 +74,7 @@ object Build extends sbt.Build {
   }
 
   object Dependencies {
-    val unfilteredVersion = "0.6.7"
+    val unfilteredVersion = "0.6.8"
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
       "net.hamnaberg.rest" %% "scala-json-collection" % "2.0.1",
@@ -86,7 +86,7 @@ object Build extends sbt.Build {
     )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
-      "net.databinder.dispatch" %% "dispatch-core" % "0.9.5",
+      "net.databinder.dispatch" %% "dispatch-core" % "0.10.0",
       "commons-codec" % "commons-codec" % "1.7"
     )
 
@@ -111,6 +111,7 @@ object Build extends sbt.Build {
 
     private val unfiltered = Seq(
       "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
+      "net.databinder" %% "unfiltered-directives" % unfilteredVersion,
       "javax.servlet" % "servlet-api" % "2.5" % "provided"
     )
   }
