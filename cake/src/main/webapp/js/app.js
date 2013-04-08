@@ -110,7 +110,7 @@ app.Main = function ($scope) {
 app.About = function ($scope) {
 }
 
-app.SessionList = function ($scope, $routeParams, $http) {
+app.SessionList = function ($scope, $routeParams, $http,$rootScope) {
   $scope.numSessions = 0;
   $scope.showingSessions = 0;
   $scope.usedTags = [];
@@ -121,7 +121,8 @@ app.SessionList = function ($scope, $routeParams, $http) {
       $http.get(app.wrapAjax(event.sessions)).success(function (data) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
         $scope.numSessions = $scope.sessions.length;
-        $scope.usedTags = _.map(_.uniq(_.flatten(_.map($scope.sessions,function(session) { return session.object.tags; }))),
+        $rootScope.allTags = _.uniq(_.flatten(_.map($scope.sessions,function(session) { return session.object.tags; })));
+        $scope.usedTags = _.map($rootScope.allTags,
           function(tag) { return {name: tag, selected: false }});
         $scope.showingSessions = $scope.numSessions;
         $scope.filteredSessions = $scope.sessions.slice(0);
@@ -191,7 +192,8 @@ app.SessionList = function ($scope, $routeParams, $http) {
 
 }
 
-app.SingleSession = function ($scope, $routeParams, $http, $window) {
+app.SingleSession = function ($scope, $routeParams, $http, $window,$rootScope) {
+  $scope.showSuccess = false;
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
   app.loadRoot($http, function (root) {
@@ -203,11 +205,23 @@ app.SingleSession = function ($scope, $routeParams, $http, $window) {
           var session = EmsSession(toCollection(sessionCollection).headItem());
           session.lastModified = headers("last-modified");
           console.log(session);
+
           var speakerLink = session.item.findLinkByRel("speaker collection");
           $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
             $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
           });
           $scope.session = session;
+
+          var myTags = $("#myTags");
+          var avTags = [];
+          if ($rootScope.allTags) {
+            avTags = $rootScope.allTags;
+          }
+          myTags.tagit({ availableTags: avTags,autocomplete: {delay: 0, minLength: 1}});
+          _.each($scope.session.object.tags,function(atag) {
+            myTags.tagit("createTag",atag);
+          });
+          
         });
       }
       else {
@@ -216,22 +230,30 @@ app.SingleSession = function ($scope, $routeParams, $http, $window) {
     });
   });
 
-  $scope.addTagsToSession = function() {
+  
+  $scope.updateTags = function() {
+    $scope.showSuccess = false;
+    var updatedTags = $("#myTags").tagit("assignedTags");    
+    $scope.session.object.tags = updatedTags;
+
     var link = $scope.session.item.findLinkByRel("session tag");
     if (link) {
-      var data = _.reduce($scope.newTags.split(","), function(agg, e) {
+      var data = _.reduce(updatedTags, function(agg, e) {
          return agg + (agg.length > 0 ? "&" : "") + "tag=" + e; 
       }, "");
+
       $http({
         url: app.wrapAjax(link.href),
         method: "POST",
         headers: {"Content-Type": "application/x-www-form-urlencoded", "If-Unmodified-Since": $scope.session.lastModified},
         data: data
       }).success(function () {        
+        $scope.showSuccess = true;        
         //$window.location.reload();
       }).error(function(e) {
           console.log(e);
       });
     }
   }
+
 }
