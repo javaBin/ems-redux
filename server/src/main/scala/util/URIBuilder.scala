@@ -1,4 +1,4 @@
-package no.java.util
+package util
 
 import java.net.{URLDecoder, URI, URLEncoder}
 import scala.Option

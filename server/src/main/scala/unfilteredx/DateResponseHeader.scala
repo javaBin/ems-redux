@@ -1,6 +1,6 @@
-package unfiltered
+package unfilteredx
 
-import request.StringHeader
+import unfiltered.request.StringHeader
 import unfiltered.response._
 import javax.servlet.http.HttpServletResponse
 

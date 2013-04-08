@@ -1,11 +1,7 @@
-package no.java.util
+package util
 
 import org.specs2.mutable.Specification
 import java.net.URI
-
-/**
- * @author Erlend Hamnaberg<erlend.hamnaberg@arktekk.no>
- */
 
 class URIBuilderSpec extends Specification {
   "A URIBuilder" should {

@@ -1,6 +1,6 @@
 package ems
 
-import no.java.unfiltered.{RequestURIBuilder, BaseURIBuilder}
+import unfilteredx.{RequestURIBuilder, BaseURIBuilder}
 import security.User
 import storage.MongoDBStorage
 import unfiltered.request._

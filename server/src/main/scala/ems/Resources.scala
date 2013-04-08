@@ -5,14 +5,12 @@ import storage.{MongoSetting, MongoDBStorage}
 import unfiltered.request._
 import unfiltered.filter.Plan
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
-import no.java.unfiltered._
-import scala.util.Properties
+import unfilteredx._
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
 import unfiltered.filter.request.ContextPath
 import unfiltered.response._
 import unfiltered.Cycle
 import ems.storage.FilesystemBinaryStorage
-import java.io.File
 import ems.config.Config
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler with ChangelogResources {

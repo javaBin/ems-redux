@@ -3,7 +3,7 @@ package ems
 import java.net.URI
 import model._
 import net.hamnaberg.json.collection._
-import no.java.util.URIBuilder
+import util.URIBuilder
 import java.util.Locale
 import net.hamnaberg.json.collection.Value._
 import security.User

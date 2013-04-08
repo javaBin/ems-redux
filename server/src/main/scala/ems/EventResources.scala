@@ -1,16 +1,16 @@
 package ems
 
+import config.Config
 import javax.servlet.http.HttpServletRequest
 import model._
 import ems.converters._
-import no.java.util.URIBuilder
+import util.URIBuilder
 import security.User
 import unfiltered.response._
 import unfiltered.request._
-import no.java.unfiltered.BaseURIBuilder
+import unfilteredx.BaseURIBuilder
 import net.hamnaberg.json.collection._
 import net.hamnaberg.json.collection.Template
-import ems.config.Config
 
 trait EventResources extends ResourceHelper with SessionResources with SpeakerResources {
 

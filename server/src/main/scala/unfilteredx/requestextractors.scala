@@ -1,10 +1,9 @@
-package no.java.unfiltered
+package unfilteredx
 
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
-import no.java.util.URIBuilder
+import util.URIBuilder
 import unfiltered.request.{StringHeader, HttpRequest}
-import unfilteredx.ContentDisposition
 
 
 object RequestURIBuilder {

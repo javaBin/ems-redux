@@ -6,7 +6,7 @@ import ems.converters._
 import security.User
 import unfiltered.response._
 import unfiltered.request._
-import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
+import unfilteredx.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
 import net.hamnaberg.json.collection._
 
 trait SpeakerResources extends ResourceHelper {

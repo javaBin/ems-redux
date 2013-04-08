@@ -6,9 +6,7 @@ import storage.MongoDBStorage
 import unfiltered.response._
 import unfiltered.request._
 import javax.servlet.http.HttpServletRequest
-import no.java.unfiltered.{BaseURIBuilder, RequestURIBuilder}
-import unfiltered.IfUnmodifiedSinceString
-import unfiltered.DateResponseHeader
+import unfilteredx._
 import net.hamnaberg.json.collection._
 
 trait ResourceHelper {

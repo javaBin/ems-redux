@@ -4,16 +4,14 @@ import javax.servlet.http.HttpServletRequest
 import model._
 import ems.converters._
 import java.net.URI
-import no.java.util.URIBuilder
+import util.URIBuilder
 import security.User
 import io.Source
 import unfiltered.response._
 import unfiltered.request._
-import no.java.unfiltered.{RequestURIBuilder, RequestContentDisposition, BaseURIBuilder}
+import unfilteredx._
 import net.hamnaberg.json.collection._
 import ems.config.Config
-import unfiltered.IfUnmodifiedSinceString
-import unfiltered.DateResponseHeader
 
 trait SessionResources extends ResourceHelper {
 
