@@ -3,16 +3,7 @@ package util
 import java.net.{URLDecoder, URI, URLEncoder}
 import scala.Option
 
-
-/**
- * Created by IntelliJ IDEA.
- * User: maedhros
- * Date: 12/20/11
- * Time: 10:59 AM
- * To change this template use File | Settings | File Templates.
- */
-
-case class URIBuilder private(scheme: Option[String], host: Option[String], port: Option[Int], path: List[Segment], params: Map[String, List[String]], pathEndsWithSlash: Boolean = false) {
+case class URIBuilder(scheme: Option[String], host: Option[String], port: Option[Int], path: List[Segment], params: Map[String, Seq[String]], pathEndsWithSlash: Boolean = false) {
   def withScheme(scheme: String) = copy(scheme = Some(scheme))
   
   def withHost(host: String) = copy(host = Some(host))
@@ -79,7 +70,7 @@ object URIBuilder {
         }
       }
     }
-    val params = Option(uri.getQuery).map(buildMap).getOrElse(Map[String, List[String]]())
+    val params = Option(uri.getQuery).map(buildMap).getOrElse(Map[String, Seq[String]]())
     new URIBuilder(Option(uri.getScheme), Option(uri.getHost), Option(uri.getPort).filterNot(_ == -1), path, params, endsWithSlash)
   }
   
