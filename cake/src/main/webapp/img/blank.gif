@@ -1,0 +1,11 @@
+--2013-04-12 20:05:28--  http://upload.wikimedia.org/wikipedia/commons/c/c0/Blank.gif
+Resolving upload.wikimedia.org... 91.198.174.234, 2620:0:862:ed1a::b
+Connecting to upload.wikimedia.org|91.198.174.234|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 43 [image/gif]
+Saving to: ‘Blank.gif’
+
+     0K                                                       100% 3.42M=0s
+
+2013-04-12 20:05:29 (3.42 MB/s) - ‘Blank.gif’ saved [43/43]
+
