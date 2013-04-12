@@ -38,12 +38,8 @@ trait SessionResources extends ResourceHelper {
         }
       }
     }
+    val post = createObject(t => toSession(eventId, None, t), storage.saveSession, (s : Session) => Seq("events", eventId, "sessions", s.id.get))
 
-    val post = for {
-      c <- createObject(t => toSession(eventId, None, t), storage.saveSession, (s : Session) => Seq("events", eventId, "sessions", s.id.get))
-    } yield {
-      c
-    }
     get | post
   }
 
