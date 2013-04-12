@@ -1,12 +1,10 @@
-var app = {};
-
-angular.module('app', ['ngSanitize', 'ngCookies']).
+var app = angular.module('app', ['ngSanitize', 'ngCookies']).
   config(function ($routeProvider) {
     $routeProvider.
-      when('/', {controller: app.Main, templateUrl: 'fragment/main.html'}).
-      when('/about', {controller: app.About, templateUrl: 'fragment/about.html'}).
-      when('/events/:slug', {controller: app.SessionList, templateUrl: 'fragment/sessions.html'}).
-      when('/events/:eventSlug/sessions/:slug', {controller: app.SingleSession, templateUrl: 'fragment/single-session.html'}).
+      when('/', {controller: 'Main', templateUrl: 'fragment/main.html'}).
+      when('/about', {controller: 'About', templateUrl: 'fragment/about.html'}).
+      when('/events/:slug', {controller: 'SessionList', templateUrl: 'fragment/sessions.html'}).
+      when('/events/:eventSlug/sessions/:slug', {controller: 'SingleSession', templateUrl: 'fragment/single-session.html'}).
       otherwise({redirectTo: '/'});
   }).
   run(function ($http) {
@@ -37,7 +35,7 @@ app.loadRoot = function ($http, cb) {
   }
 }
 
-app.LoadEvents = function ($scope, $http) {
+app.controller('LoadEvents', function ($scope, $http) {
   if (!app.events) {
     app.loadRoot($http, function (root) {
       var eventHref = root.findLinkByRel("event collection").href;
@@ -48,9 +46,9 @@ app.LoadEvents = function ($scope, $http) {
       });
     });
   }
-}
+});
 
-app.Navigation = function($scope, $location) {
+app.controller('Navigation', function($scope, $location) {
   $scope.isRoot = function() {
     return $location.path() === '/' ? "active" : "inactive";
   }
@@ -62,25 +60,30 @@ app.Navigation = function($scope, $location) {
   }
   $scope.Login = app.Login;
   $scope.LoadEvents = app.LoadEvents;
-}
+});
 
-app.Login = function ($scope, $http, $cookies, $window) {
+app.controller('Login', function ($scope, $rootScope, $http, $cookies, $window) {
   var signIn = function () {
-    if (!$scope.signedIn) {
-      var username = $("#username").val();
-      var password = $("#password").val();
-      var postData = "username=" + username + "&password=" + password;
+    if (!$rootScope.signedIn) {
+      var postData = "username=" + $scope.username + "&password=" + $scope.password;
       $http({
         url: "login",
         method: "POST",
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         data: postData
       }).success(function () {
-        $scope.signedIn = ((typeof $scope.username) !== "undefined");
+        $rootScope.signedIn = ((typeof $scope.username) !== "undefined");
         $window.location.reload();
       }).error(function () {
+          $rootScope.signedIn = false;
           if ($cookies.username) {
             delete $cookies.username
+          }
+          if ($scope.username) {
+            delete $scope.username;
+          }
+          if ($scope.password) {
+            delete $scope.password;
           }
         });
     }
@@ -102,15 +105,15 @@ app.Login = function ($scope, $http, $cookies, $window) {
   $scope.signOut = signOut;
   $scope.username = $cookies.username;
   $scope.signedIn = ((typeof $scope.username) !== "undefined");
-}
+});
 
-app.Main = function ($scope) {
-}
+app.controller('Main', function ($scope) {
+});
 
-app.About = function ($scope) {
-}
+app.controller('About', function ($scope) {
+});
 
-app.SessionList = function ($scope, $routeParams, $http,$rootScope) {
+app.controller('SessionList', function ($scope, $routeParams, $http,$rootScope) {
   $scope.numSessions = 0;
   $scope.showingSessions = 0;
   $scope.usedTags = [];
@@ -190,9 +193,9 @@ app.SessionList = function ($scope, $routeParams, $http,$rootScope) {
   };
 
 
-}
+});
 
-app.SingleSession = function ($scope, $routeParams, $http, $window,$rootScope) {
+app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$rootScope) {
   $scope.showSuccess = false;
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
@@ -256,4 +259,4 @@ app.SingleSession = function ($scope, $routeParams, $http, $window,$rootScope) {
     }
   }
 
-}
+});
