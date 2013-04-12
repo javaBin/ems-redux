@@ -3,10 +3,10 @@ var app = {};
 angular.module('app', ['ngSanitize', 'ngCookies']).
   config(function ($routeProvider) {
     $routeProvider.
-      when('/', {controller: app.Main, templateUrl: 'main.html'}).
-      when('/about', {controller: app.About, templateUrl: 'about.html'}).
-      when('/events/:slug', {controller: app.SessionList, templateUrl: 'sessions.html'}).
-      when('/events/:eventSlug/sessions/:slug', {controller: app.SingleSession, templateUrl: 'single-session.html'}).
+      when('/', {controller: app.Main, templateUrl: 'fragment/main.html'}).
+      when('/about', {controller: app.About, templateUrl: 'fragment/about.html'}).
+      when('/events/:slug', {controller: app.SessionList, templateUrl: 'fragment/sessions.html'}).
+      when('/events/:eventSlug/sessions/:slug', {controller: app.SingleSession, templateUrl: 'fragment/single-session.html'}).
       otherwise({redirectTo: '/'});
   }).
   run(function ($http) {
