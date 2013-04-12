@@ -1,6 +1,5 @@
 package ems
 
-import javax.servlet.http.HttpServletRequest
 import model._
 import ems.converters._
 import java.net.URI
