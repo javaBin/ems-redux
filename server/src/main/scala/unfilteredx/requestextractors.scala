@@ -7,12 +7,12 @@ import unfiltered.request._
 
 
 object RequestURIBuilder {
-  def unapply(req: HttpRequest[HttpServletRequest]): Option[URIBuilder] = {
+  def unapply[A](req: HttpRequest[A]): Option[URIBuilder] = {
     Some(apply(req))
   }
 
   @deprecated
-  def getBuilder(req: HttpRequest[HttpServletRequest]) = apply(req)
+  def getBuilder[A](req: HttpRequest[A]) = apply(req)
 
   def apply[A](req: HttpRequest[A]) = {
     val (scheme, host, port) = req match {
@@ -28,28 +28,35 @@ object RequestURIBuilder {
 
 object RequestURI {
   def unapply[A](req: HttpRequest[A]) : Option[URI] = {
-    Some(RequestURIBuilder(req).build())
+    Some(apply(req))
   }
+
+  def apply[A](req: HttpRequest[A]) = RequestURIBuilder(req).build()
 }
 
 object BaseURIBuilder {
   @deprecated
-  def getBuilder(req: HttpRequest[HttpServletRequest]) = apply(req)
+  def getBuilder(req: HttpRequest[Any]) = apply(req)
 
-  def apply(req: HttpRequest[HttpServletRequest]) = {
-    val path = req.underlying.getContextPath
-    URIBuilder(URI.create(req.underlying.getRequestURL.toString)).replacePath(path)
+  def apply(req: HttpRequest[Any]) = {
+    val path = req.underlying match {
+      case r: HttpServletRequest => r.getContextPath
+      case _ => "/"
+    }
+    RequestURIBuilder(req).emptyParams().replacePath(path)
   }
 
-  def unapply(req: HttpRequest[HttpServletRequest]): Option[URIBuilder] = {
+  def unapply(req: HttpRequest[Any]): Option[URIBuilder] = {
     Some(apply(req))
   }
 }
 
 object BaseURI {
   def unapply(req: HttpRequest[HttpServletRequest]): Option[URI] = {
-    Some(BaseURIBuilder(req).build())
+    Some(apply(req))
   }
+
+  def apply(req: HttpRequest[HttpServletRequest]) = BaseURIBuilder(req).build()
 }
 
 object RequestContentDisposition {

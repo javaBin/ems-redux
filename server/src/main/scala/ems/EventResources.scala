@@ -1,68 +1,77 @@
 package ems
 
 import config.Config
-import javax.servlet.http.HttpServletRequest
 import model._
 import ems.converters._
 import util.URIBuilder
 import security.User
 import unfiltered.response._
 import unfiltered.request._
-import unfilteredx.BaseURIBuilder
+import unfiltered.directives._
+import Directives._
 import net.hamnaberg.json.collection._
 import net.hamnaberg.json.collection.Template
 
-trait EventResources extends ResourceHelper with SessionResources with SpeakerResources {
+trait EventResources extends SessionResources with SpeakerResources {
 
-  def handleSlots(id: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
-    request match {
-      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
-        val items = storage.getEvent(id).map(_.slots.map(slotToItem(baseUriBuilder, id))).getOrElse(Nil)
-        val href = baseUriBuilder.segments("events", id, "slots").build()
-        CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
-      }
-      case POST(_) => createObject[Slot](request, toSlot(_: Template, None), storage.saveSlot(id, _ : Slot), s => List("events", id, "slots", s.id.get))
-      case _ => MethodNotAllowed
+  def handleSlots(id: String)(implicit user: User) = {
+    val get = for {
+      _ <- autocommit(GET)
+      e <- getOrElse(storage.getEvent(id), NotFound)
+      base <- baseURIBuilder
+    } yield {
+      val items = e.slots.map(slotToItem(base, id))
+      val href = base.segments("events", id, "slots").build()
+      CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
     }
+
+    val post = createObject[Slot](toSlot(_: Template, None), storage.saveSlot(id, _ : Slot), (s: Slot) => List("events", id, "slots", s.id.get))
+    get | post
   }
 
-  def handleRooms(id: String, request: HttpRequest[HttpServletRequest])(implicit user: User) = {
-    request match {
-      case GET(_) & BaseURIBuilder(baseUriBuilder) => {
-        val items = storage.getEvent(id).map(_.rooms.map(roomToItem(baseUriBuilder, id))).getOrElse(Nil)
-        val href = baseUriBuilder.segments("events", id, "rooms").build()
-        CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
-      }
-      case POST(_) => createObject[Room](request, toRoom(_: Template, None), storage.saveRoom(id, _ : Room), r => List("events", id, "rooms", r.id.get))
-      case _ => MethodNotAllowed
+  def handleRooms(id: String)(implicit user: User) = {
+    val get = for {
+      _ <- autocommit(GET)
+      e <- getOrElse(storage.getEvent(id), NotFound)
+      base <- baseURIBuilder
+    } yield {
+      val items = e.rooms.map(roomToItem(base, id))
+      val href = base.segments("events", id, "rooms").build()
+      CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
     }
+
+    val post = createObject[Room](toRoom(_: Template, None), storage.saveRoom(id, _ : Room), (r: Room) => List("events", id, "rooms", r.id.get))
+    get | post
   }
 
-  def handleEventList(request: HttpRequest[HttpServletRequest])(implicit user:User) = {
-    request match {
-      case GET(_) & BaseURIBuilder(baseUriBuilder) & Params(p) => {
-        p("slug").headOption match {
-          case Some(s) => storage.getEventsBySlug(s).headOption.map(e => Found ~> Location(baseUriBuilder.segments("events", e.id.get).toString)).getOrElse(NotFound)
-          case None => {
-            val events = storage.getEvents()
-            val items = events.map(eventToItem(baseUriBuilder))
-            val href = baseUriBuilder.segments("events").build()
-            CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items))
-          }
+  def handleEventList(implicit user:User) = {
+    val get = for {
+      _ <- GET
+      base <- baseURIBuilder
+      p <- queryParams
+    } yield {
+      p("slug").headOption match {
+        case Some(s) => storage.getEventsBySlug(s).headOption.map(e => Found ~> Location(base.segments("events", e.id.get).toString)).getOrElse(NotFound)
+        case None => {
+          val events = storage.getEvents()
+          val items = events.map(eventToItem(base))
+          val href = base.segments("events").build()
+          CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items))
         }
       }
-      case POST(_) => createObject[Event](request, toEvent(_: Template, None), storage.saveEvent, e => List("events", e.id.get))
-      case _ => MethodNotAllowed
     }
+    val post = createObject[Event](toEvent(_: Template, None), storage.saveEvent _, (e: Event) => List("events", e.id.get))
+
+    get | post
   }
 
-  def handleEvent(id: String, request: HttpRequest[HttpServletRequest])(implicit user:User) = {
-    val event = storage.getEvent(id)
-    val base = BaseURIBuilder.unapply(request).get
-    handleObject(event, request, (t: Template) => toEvent(t, Some(id)), storage.saveEvent, eventToItem(base)) {
+  def handleEvent(id: String)(implicit user:User) = for {
+    event <- getOrElse(storage.getEvent(id), NotFound)
+    base <- baseURIBuilder
+    res <- handleObject(Some(event), (t: Template) => toEvent(t, Some(id)), storage.saveEvent _, eventToItem(base)) {
       c => c.addQuery(Query(URIBuilder(c.href).segments("sessions").build(), "session by-slug", Some("Session by Slug"), List(
          ValueProperty("slug")
       )))
     }
-  }
+  } yield res
 }
