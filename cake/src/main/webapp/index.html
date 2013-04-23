@@ -61,8 +61,8 @@
                         </li>
                     </ul>
                     <span class="nav" ng-hide="signedIn">
-                        <input class="span2" type="text" placeholder="Username" id="username">
-                        <input class="span2" type="password" placeholder="Password" id="password">
+                        <input class="span2" type="text" placeholder="Username" ng-bind="username">
+                        <input class="span2" type="password" placeholder="Password" ng-bind="password">
                         <button ng-click="signIn()" type="button" class="btn">Sign in</button>
                     </span>
                 </form>

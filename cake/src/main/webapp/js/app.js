@@ -73,6 +73,7 @@ app.controller('Login', function ($scope, $rootScope, $http, $cookies, $window) 
         data: postData
       }).success(function () {
         $rootScope.signedIn = ((typeof $scope.username) !== "undefined");
+        console.log("Sucessfully signed in as " + $scope.username);
         $window.location.reload();
       }).error(function () {
           $rootScope.signedIn = false;
@@ -90,7 +91,7 @@ app.controller('Login', function ($scope, $rootScope, $http, $cookies, $window) 
   }
 
   var signOut = function () {
-    $scope.signedIn = false;
+    $rootScope.signedIn = false;
     if ($cookies.username) {
       delete $cookies.username;
     }
