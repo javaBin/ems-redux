@@ -69,7 +69,7 @@ object Importer {
               (o \ "name").extract[String]
             )
           }),
-          (c \ "timeslots").children.map(o => {
+          (c \ "slots").children.map(o => {
             Slot(
               (o \ "id").extractOpt[String],
               (o \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
@@ -100,7 +100,7 @@ object Importer {
           title,
           (c \ "summary").extractOpt[String],
           (c \ "body").extractOpt[String],
-          (c \ "audience").extractOpt[String],
+          (c \ "audience").extractOpt[String].filterNot(_ == null),
           (c \ "outline").extractOpt[String],
           (c \ "equipment").extractOpt[String],
           (c \ "lang").extractOpt[String].map(l => new Locale(l)).getOrElse(new Locale("no")),
@@ -117,7 +117,8 @@ object Importer {
           (s \ "name").extract[String],
           (s \ "email").extract[String],
           (s \ "zip-code").extractOpt[String],
-          (s \ "bio").extractOpt[String], {
+          (s \ "bio").extractOpt[String].filterNot(_ == null),
+          {
             val JArray(tags) = (s \ "tags")
             tags.collect{case JString(t) => Tag(t)}.toSet[Tag]
           },
