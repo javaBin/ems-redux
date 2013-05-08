@@ -43,33 +43,38 @@ trait SessionResources extends ResourceHelper {
     get | post
   }
 
-  def handleSession(eventId: String, sessionId: String)(implicit u: User) = {
-    val tags = for {
-      _ <- POST
-      _ <- authenticated(u)
-      href <- requestURI
-      base <- baseURIBuilder
-      _ <- contentType("application/x-www-form-urlencoded")
-      a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
-      _ <- ifUnmodifiedSince(a.lastModified)
-      tags <- parameterValues("tag")
-    } yield {
-      storage.saveSession(a.withTags(tags.map(Tag).toSet[Tag])).fold(
-        ex => InternalServerError ~> ResponseString(ex.getMessage),
-        s => DateResponseHeader("Last-Modified", s.lastModified.withMillisOfSecond(0)) ~> ContentLocation(href.toString) ~> CollectionJsonResponse(JsonCollection(href, Nil, sessionToItem(base)(u)(s)))
-      )
+  def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
+    base <- baseURIBuilder
+    a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)) {
+      c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", Some("Speaker by Email"), List(
+        ValueProperty("email")
+      )))
     }
+  } yield a
 
-    val obj = for {
-      base <- baseURIBuilder
-      a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)) {
-        c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", Some("Speaker by Email"), List(
-          ValueProperty("email")
-        )))
-      }
-    } yield a
+  def handleSessionTags(eventId: String, sessionId: String)(implicit u: User) =
+    handleSessionForm(eventId, sessionId, "tag", (tags, s) => s.withTags(tags.map(Tag).toSet[Tag]))
 
-    tags | obj
+  def handleSessionSlot(eventId: String, sessionId: String)(implicit u: User) =
+    handleSessionForm(eventId, sessionId, "slot", (slots, s) => slots.headOption.flatMap{ slotString =>
+      val id = URIBuilder(slotString).path.last.seg
+      storage.getSlot(eventId, id).map(slot => s.withSlot(slot))
+    }.getOrElse(s))
+
+  private def handleSessionForm(eventId: String, sessionId: String, name: String, update: (Seq[String], Session) => Session)(implicit u: User) = for {
+    _ <- POST
+    _ <- authenticated(u)
+    href <- requestURI
+    base <- baseURIBuilder
+    _ <- contentType("application/x-www-form-urlencoded")
+    a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+    _ <- ifUnmodifiedSince(a.lastModified)
+    items <- parameterValues(name)
+  } yield {
+    storage.saveSession(update(items, a)).fold(
+      ex => InternalServerError ~> ResponseString(ex.getMessage),
+      s => DateResponseHeader("Last-Modified", s.lastModified.withMillisOfSecond(0)) ~> ContentLocation(href.toString) ~> CollectionJsonResponse(JsonCollection(href, Nil, sessionToItem(base)(u)(s)))
+    )
   }
 
   private def getValidURIForPublish(eventId: String, u: URI) = {

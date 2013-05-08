@@ -81,7 +81,7 @@ object converters {
       val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
 
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
-      Item(href, filtered, createSessionLinks(href, s))
+      Item(href, filtered, createSessionLinks(baseBuilder, href, s))
     }
   }
 
@@ -99,17 +99,18 @@ object converters {
     }
   }
 
-  private def createSessionLinks(href: URI, s: Session): List[Link] = {
+  private def createSessionLinks(baseURIBuilder: URIBuilder, href: URI, s: Session): List[Link] = {
     val links = List.newBuilder[Link]
 
     links ++= List(
-      Link(URIBuilder(href).segments("attachments").build(), "attachment collection", Some("Attachments for %s".format(s.abs.title))),
-      Link(URIBuilder(href).segments("speakers").build(), "speaker collection", Some("Speakers for %s".format(s.abs.title))),
-      Link(href, "session tag", Some("Tag session"))
+      Link(URIBuilder(href).segments("attachments").build(), "attachment collection", Some("Attachments")),
+      Link(URIBuilder(href).segments("speakers").build(), "speaker collection", Some("Speakers")),
+      Link(URIBuilder(href).segments("tags").build(), "session tag", Some("Tag session")),
+      Link(URIBuilder(href).segments("slot").build(), "session slot", Some("Assign a slot"))
     )
-    links ++= s.attachments.map(a => Link(a.href, getRel(a), Some(a.name)))
-    links ++= s.room.map(r => Link(URIBuilder(href).segments(s.eventId + "rooms", r.id.get).build(), "room item", Some(r.name)))
-    links ++= s.slot.map(slot => Link(URIBuilder(href).segments(s.eventId + "slots", slot.id.get).build(), "slot item", Some(RFC3339.format(slot.start) + "-" + RFC3339.format(slot.end))))
+    links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), Some(a.name)))
+    links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name)))
+    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(RFC3339.format(slot.start) + "+" + RFC3339.format(slot.end))))
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()

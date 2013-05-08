@@ -59,6 +59,9 @@ case class URIBuilder(scheme: Option[String], host: Option[String], port: Option
 
 object URIBuilder {
   val KeyValue = """(?i)(\w+)=(.*)?""".r
+
+  def apply(input: String): URIBuilder = apply(URI.create(input))
+
   def apply(uri: URI): URIBuilder = {
     val (path, endsWithSlash) = decodePath(uri.getPath)
     def buildMap: (String) => Map[String, scala.List[String]] = s => {

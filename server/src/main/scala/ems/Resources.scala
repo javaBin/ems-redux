@@ -35,6 +35,8 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     case Seg("events" :: eventId :: "publish" :: Nil) => publish(eventId)
     case Seg("events" :: eventId :: "sessions" :: Nil) => handleSessionList(eventId)
     case Seg("events" :: eventId :: "sessions" :: id :: Nil) => handleSession(eventId, id)
+    case Seg("events" :: eventId :: "sessions" :: sessionId :: "slot" :: Nil) => handleSessionSlot(eventId, sessionId)
+    case Seg("events" :: eventId :: "sessions" :: sessionId :: "tag" :: Nil) => handleSessionTags(eventId, sessionId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil) => handleSessionAttachments(eventId, sessionId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil) => handleSpeakers(eventId, sessionId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: Nil) => handleSpeaker(eventId, sessionId, speakerId)
