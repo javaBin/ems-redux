@@ -66,7 +66,7 @@ trait SessionResources extends ResourceHelper {
           <head><title>Rooms</title></head>
           <body>
             <form method="post">
-              <select name="slot">
+              <select name="slot" id="slot">
                 {
                 storage.getSlots(eventId).map{s =>
                   <option value={base.segments("events", eventId, "slots", s.id.get).toString}>{formatSlot(s)}</option>
@@ -98,7 +98,7 @@ trait SessionResources extends ResourceHelper {
           <head><title>Rooms</title></head>
           <body>
             <form method="post">
-              <select name="room">
+              <select name="room" id="room">
                 {
                   storage.getRooms(eventId).map{r =>
                      <option value={base.segments("events", eventId, "rooms", r.id.get).toString}>{r.name}</option>
