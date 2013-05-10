@@ -110,10 +110,14 @@ object converters {
     )
     links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), Some(a.name)))
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name)))
-    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(RFC3339.format(slot.start) + "+" + RFC3339.format(slot.end))))
+    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot))))
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()
+  }
+
+  def formatSlot(slot: Slot): String = {
+    RFC3339.format(slot.start) + "+" + RFC3339.format(slot.end)
   }
 
   def attachmentToItem(baseURIBuilder: URIBuilder): (URIAttachment) => (Item) = {

@@ -55,11 +55,69 @@ trait SessionResources extends ResourceHelper {
   def handleSessionTags(eventId: String, sessionId: String)(implicit u: User) =
     handleSessionForm(eventId, sessionId, "tag", (tags, s) => s.withTags(tags.map(Tag).toSet[Tag]))
 
-  def handleSessionSlot(eventId: String, sessionId: String)(implicit u: User) =
-    handleSessionForm(eventId, sessionId, "slot", (slots, s) => slots.headOption.flatMap{ slotString =>
+  def handleSessionSlot(eventId: String, sessionId: String)(implicit u: User) = {
+    val get = for {
+      _ <- GET
+      a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+      base <- baseURIBuilder
+    } yield {
+      HtmlContent ~> Html5(
+        <html>
+          <head><title>Rooms</title></head>
+          <body>
+            <form method="post">
+              <select name="slot">
+                {
+                storage.getSlots(eventId).map{s =>
+                  <option value={base.segments("events", eventId, "slots", s.id.get).toString}>{formatSlot(s)}</option>
+                }
+                }
+              </select>
+            </form>
+          </body>
+        </html>
+      )
+    }
+
+    val post = handleSessionForm(eventId, sessionId, "slot", (slots, s) => slots.headOption.flatMap{ slotString =>
       val id = URIBuilder(slotString).path.last.seg
       storage.getSlot(eventId, id).map(slot => s.withSlot(slot))
     }.getOrElse(s))
+
+    get | post
+  }
+
+  def handleSessionRoom(eventId: String, sessionId: String)(implicit u: User) = {
+    val get = for {
+      _ <- GET
+      a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+      base <- baseURIBuilder
+    } yield {
+      HtmlContent ~> Html5(
+        <html>
+          <head><title>Rooms</title></head>
+          <body>
+            <form method="post">
+              <select name="room">
+                {
+                  storage.getRooms(eventId).map{r =>
+                     <option value={base.segments("events", eventId, "rooms", r.id.get).toString}>{r.name}</option>
+                  }
+                }
+              </select>
+            </form>
+          </body>
+        </html>
+      )
+    }
+
+    val post = handleSessionForm(eventId, sessionId, "room", (rooms, s) => rooms.headOption.flatMap{ r =>
+      val id = URIBuilder(r).path.last.seg
+      storage.getRoom(eventId, id).map(room => s.withRoom(room))
+    }.getOrElse(s))
+
+    get | post
+  }
 
   private def handleSessionForm(eventId: String, sessionId: String, name: String, update: (Seq[String], Session) => Session)(implicit u: User) = for {
     _ <- POST
