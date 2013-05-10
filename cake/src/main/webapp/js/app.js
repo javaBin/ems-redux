@@ -239,25 +239,43 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
     $scope.showSuccess = false;
     var updatedTags = $("#myTags").tagit("assignedTags");    
     $scope.session.object.tags = updatedTags;
+    var data = _.reduce(updatedTags, function(agg, e) {
+      return agg + (agg.length > 0 ? "&" : "") + "tag=" + e;
+    }, "");
+    app.updateTarget($http, $scope, "session tag", data);
+  }
 
-    var link = $scope.session.item.findLinkByRel("session tag");
-    if (link) {
-      var data = _.reduce(updatedTags, function(agg, e) {
-         return agg + (agg.length > 0 ? "&" : "") + "tag=" + e; 
-      }, "");
+  $scope.updateRoom = function() {
+    var href = $scope.selected_room.value;
+    $scope.session.object.room = $scope.selected_room.name;
+    app.updateTarget($http, $scope, "session room", "room=" + href);
+  }
 
-      $http({
-        url: app.wrapAjax(link.href),
-        method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded", "If-Unmodified-Since": $scope.session.lastModified},
-        data: data
-      }).success(function () {        
-        $scope.showSuccess = true;        
-        //$window.location.reload();
-      }).error(function(e) {
-          console.log(e);
-      });
-    }
+  $scope.updateSlot = function() {
+    var href = $scope.selected_slot.value;
+    $scope.session.object.slot = $scope.selected_slot.name;
+    app.updateTarget($http, $scope, "session slot", "slot=" + href);
   }
 
 });
+
+app.updateTarget = function($http, $scope, rel, data) {
+  var target = $scope.session.item.findLinkByRel(rel);
+  if (target) {
+    app.postFormData($http, $scope, target.href, data);
+  }
+}
+
+app.postFormData = function($http, $scope, href, data) {
+  $http({
+    url: app.wrapAjax(href),
+    method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded", "If-Unmodified-Since": $scope.session.lastModified},
+    data: data
+  }).success(function () {
+      $scope.showSuccess = true;
+      //$window.location.reload();
+    }).error(function(e) {
+      console.log(e);
+    });
+}
