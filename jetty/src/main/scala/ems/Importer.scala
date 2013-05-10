@@ -16,10 +16,10 @@ import javax.activation.MimetypesFileTypeMap
 import storage.FilesystemBinaryStorage
 
 
-object ImportMain extends App {
+/*object ImportMain extends App {
 
   Importer.execute(new File(args.headOption.getOrElse("/tmp/ems")))
-}
+}*/
 
 object Importer {
   object storage extends MongoDBStorage {
