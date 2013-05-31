@@ -85,4 +85,10 @@ trait ResourceHelper extends EmsDirectives {
     commit(getOrElse(Some(user).filter(_.authenticated), Forbidden))
   }
 
+  protected def makeTemplate(names: String*): Template = {
+    val props = names.map(n => ValueProperty(n)).toList
+    Template(props)
+  }
+
+
 }

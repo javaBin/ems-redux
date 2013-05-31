@@ -270,6 +270,8 @@ object Level {
 
   case object Advanced extends Level("advanced")
 
+  val values: Seq[Level] = Seq(Beginner, Beginner_Intermediate, Intermediate, Intermediate_Advanced, Advanced)
+
 }
 
 sealed abstract class Format(val name: String) {
@@ -302,6 +304,8 @@ object Format {
 
   case object BoF extends Format("bof")
 
+
+  val values: Seq[Format] = Seq(Presentation, LightningTalk, Panel, BoF)
 }
 
 sealed abstract class State(val name: String) {

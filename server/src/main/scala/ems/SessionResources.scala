@@ -29,11 +29,14 @@ trait SessionResources extends ResourceHelper {
           val sessions = storage.getSessions(eventId)(u)
           val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
           val items = filtered.map(sessionToItem(rb))
+          val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "tags", "keywords").
+            addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
+            addProperty(ValueProperty("format").apply(ValueOptions, List(Format.values.map(f => ValueOption(f.name))))).
+            addProperty(ValueProperty("level").apply(ValueOptions, List(Level.values.map(l => ValueOption(l.name)))))
           val coll = JsonCollection(href, Nil, items, List(
-            Query(href, "session by-title", Some("By Title"), List(ValueProperty("title"))),
             Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
             Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
-          ))
+          )).withTemplate(template)
           CacheControl("max-age=" + Config.cache.sessions) ~>  CollectionJsonResponse(coll)
         }
       }
@@ -189,7 +192,7 @@ trait SessionResources extends ResourceHelper {
     } yield res
 
     val binary = for {
-      ct <- when{case RequestContentType(ct) => ct}.orElse(BadRequest)
+      ct <- commit(when{case RequestContentType(ct) => ct}.orElse(BadRequest))
       base <- baseURIBuilder
       href <- requestURI
       cd <- contentDisposition
