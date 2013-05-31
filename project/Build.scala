@@ -1,6 +1,7 @@
 import sbt._
 import sbt.Keys._
-import com.github.siasia.WebappPlugin._
+import com.earldouglas.xsbtwebplugin.WebappPlugin._
+import com.typesafe.sbt.SbtStartScript._
 
 object Build extends sbt.Build {
 
@@ -47,7 +48,7 @@ object Build extends sbt.Build {
 
   lazy val jetty = module("jetty")(settings = Seq(
     libraryDependencies ++= Dependencies.jetty
-  )).dependsOn(cake, server)
+  ) ++ startScriptForClassesSettings).dependsOn(cake, server)
 
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],

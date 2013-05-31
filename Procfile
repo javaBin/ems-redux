@@ -1,1 +1,1 @@
-web: server/target/start Main
+web: jetty/target/start ems.Jetty
