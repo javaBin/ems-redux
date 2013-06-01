@@ -13,6 +13,7 @@ import Directives._
 import unfilteredx._
 import net.hamnaberg.json.collection._
 import ems.config.Config
+import ems.cj.{ValueOptions, ValueOption}
 
 trait SessionResources extends ResourceHelper {
 
