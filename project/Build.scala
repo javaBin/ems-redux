@@ -26,12 +26,7 @@ object Build extends sbt.Build {
     settings = buildSettings ++ Seq(
       name := "ems"
     )
-  ) aggregate(wiki, server, cake, jetty)
-
-  lazy val wiki = module("wiki")(settings = Seq(
-    libraryDependencies := Dependencies.wiki,
-    javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
-  ))
+  ) aggregate(config, server, cake, jetty)
 
   lazy val config = module("config")(settings = Seq(
     libraryDependencies ++= Dependencies.config
@@ -39,7 +34,7 @@ object Build extends sbt.Build {
 
   lazy val server = module("server")(settings = Seq(
     libraryDependencies ++= Dependencies.server
-  ) ++ webappSettings).dependsOn(wiki, config)
+  ) ++ webappSettings).dependsOn(config)
 
   lazy val cake = module("cake")(settings = Seq(
     description := "The cake is a lie",
@@ -92,8 +87,6 @@ object Build extends sbt.Build {
     )
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % unfilteredVersion)
-
-    lazy val wiki = Seq("commons-io" % "commons-io" % "2.3", "junit" % "junit" % "4.11" % "test")
 
     val config = Seq(
       "org.constretto" % "constretto-core" % "2.0.3",
