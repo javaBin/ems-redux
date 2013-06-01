@@ -11,8 +11,6 @@ function EmsEvent(i) {
   return {
     item: i,
     object: obj,
-    start: DT.parse(obj.start),
-    end: DT.parse(obj.end),
     sessions: i.findLinkByRel("session collection").href
   }
 }
