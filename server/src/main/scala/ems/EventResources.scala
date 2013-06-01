@@ -22,7 +22,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     } yield {
       val items = e.slots.map(slotToItem(base, id))
       val href = base.segments("events", id, "slots").build()
-      CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
+      CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("start", "end"))))
     }
 
     val post = createObject[Slot](toSlot(_: Template, None), storage.saveSlot(id, _ : Slot), (s: Slot) => List("events", id, "slots", s.id.get))
@@ -37,7 +37,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     } yield {
       val items = e.rooms.map(roomToItem(base, id))
       val href = base.segments("events", id, "rooms").build()
-      CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
+      CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("name"))))
     }
 
     val post = createObject[Room](toRoom(_: Template, None), storage.saveRoom(id, _ : Room), (r: Room) => List("events", id, "rooms", r.id.get))
@@ -56,7 +56,7 @@ trait EventResources extends SessionResources with SpeakerResources {
           val events = storage.getEvents()
           val items = events.map(eventToItem(base))
           val href = base.segments("events").build()
-          CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items))
+          CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items, Nil, Some(makeTemplate("name", "venue"))))
         }
       }
     }
@@ -69,9 +69,9 @@ trait EventResources extends SessionResources with SpeakerResources {
     event <- getOrElse(storage.getEvent(id), NotFound)
     base <- baseURIBuilder
     res <- handleObject(Some(event), (t: Template) => toEvent(t, Some(id)), storage.saveEvent _, eventToItem(base)) {
-      c => c.addQuery(Query(URIBuilder(c.href).segments("sessions").build(), "session by-slug", Some("Session by Slug"), List(
+      c => c.addQuery(Query(URIBuilder(c.href.get).segments("sessions").build(), "session by-slug", List(
          ValueProperty("slug")
-      )))
+      ), Some("Session by Slug")))
     }
   } yield res
 }

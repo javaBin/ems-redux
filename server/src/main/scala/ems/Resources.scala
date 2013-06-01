@@ -54,12 +54,12 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
         Link(base.segments("events").build(), "event collection")
       ),
       Nil,
-      List(Query(base.segments("changelog").build(), "changelog", Some("Changelog"), List(
+      List(Query(base.segments("changelog").build(), "changelog", List(
         ValueProperty("type", Some("Type")),
         ValueProperty("from", Some("From DateTime"))
-      )), Query(base.segments("events").build(), "event by-slug", Some("Event By Slug"), List(
+      ), Some("Changelog")), Query(base.segments("events").build(), "event by-slug", List(
         ValueProperty("slug", Some("Slug"))
-      )))
+      ), Some("Event By Slug")))
     ))
   }
 }

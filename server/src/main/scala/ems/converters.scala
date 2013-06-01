@@ -165,7 +165,7 @@ object converters {
       Item(
         base.build(),
         data,
-        s.photo.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, Some(Render.IMAGE))).toList ++
+        s.photo.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, None, Some(Render.IMAGE))).toList ++
           List(Link(base.segments("photo").build(), "attach-photo"))
       )
     }

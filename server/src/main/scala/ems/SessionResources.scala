@@ -35,8 +35,8 @@ trait SessionResources extends ResourceHelper {
             addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
             addProperty(ValueProperty("level").apply(ValueOptions, Level.values.map(l => ValueOption(l.name))))
           val coll = JsonCollection(href, Nil, items, List(
-            Query(href, "session by-slug", Some("By Slug"), List(ValueProperty("slug"))),
-            Query(href, "session by-tags", Some("By Tags"), List(ValueProperty("tags")))
+            Query(href, "session by-slug", List(ValueProperty("slug")), Some("By Slug")),
+            Query(href, "session by-tags", List(ValueProperty("tags")), Some("By Tags"))
           )).withTemplate(template)
           CacheControl("max-age=" + Config.cache.sessions) ~>  CollectionJsonResponse(coll)
         }
@@ -50,9 +50,9 @@ trait SessionResources extends ResourceHelper {
   def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)) {
-      c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", Some("Speaker by Email"), List(
+      c => c.addQuery(Query(URIBuilder(c.href.get).segments("speakers").build(), "speaker by-email", List(
         ValueProperty("email")
-      )))
+      ), Some("Speaker by Email")))
     }
   } yield a
 

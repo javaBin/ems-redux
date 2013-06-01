@@ -73,7 +73,7 @@ object Build extends sbt.Build {
     val unfilteredVersion = "0.6.8"
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
-      "net.hamnaberg.rest" %% "scala-json-collection" % "2.0.1",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "2.1-SNAPSHOT",
       "org.jsoup" % "jsoup" % "1.7.2",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",

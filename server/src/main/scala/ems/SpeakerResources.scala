@@ -1,6 +1,5 @@
 package ems
 
-import javax.servlet.http.HttpServletRequest
 import model.Speaker
 import ems.converters._
 import security.User
@@ -8,7 +7,6 @@ import unfiltered.response._
 import unfiltered.request._
 import unfiltered.directives._
 import Directives._
-import unfilteredx._
 import net.hamnaberg.json.collection._
 
 trait SpeakerResources extends ResourceHelper {
@@ -21,7 +19,7 @@ trait SpeakerResources extends ResourceHelper {
       session <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
     } yield {
       val items = session.speakers.map(speakerToItem(base, eventId, sessionId)).toList
-      CollectionJsonResponse(JsonCollection(href, Nil, items))
+      CollectionJsonResponse(JsonCollection(href, Nil, items, Nil, Some(makeTemplate("name", "email", "bio", "zip-code", "tags"))))
     }
 
     val post = for {
