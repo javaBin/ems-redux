@@ -11,7 +11,7 @@ case class ValueOption(option: String) {
 object ValueOptions extends Extension[Property, Seq[ValueOption]] {
   def apply(like: Property): Seq[ValueOption] = {
     like.underlying.findField{case (n,_) => n == "options"}.map{
-      case JArray(lst) => lst.map(v => ValueOption(v.values.toString))
+      case (_, JArray(lst)) => lst.map(v => ValueOption(v.values.toString))
       case _ => Nil
     }.getOrElse(Nil)
   }

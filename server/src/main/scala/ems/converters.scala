@@ -17,8 +17,7 @@ object converters {
       val properties = Map(
         "name" -> Some(e.name),
         "slug" -> Some(e.slug),
-        "start" -> Some(RFC3339.format(e.start)),
-        "end" -> Some(RFC3339.format(e.end))
+        "venue" -> Some(e.venue)
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", e.id.get)
       val links = List(
@@ -174,10 +173,8 @@ object converters {
 
   def toEvent(template: Template, id: Option[String] = None): Event = {
     val name = template.getPropertyValue("name").map(_.value.toString).get
-    val start = template.getPropertyValue("start").map(x => RFC3339.parseDateTime(x.value.toString).right.get).get
-    val end = template.getPropertyValue("end").map(x => RFC3339.parseDateTime(x.value.toString).right.get).get
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
-    Event(id, name, Slug.makeSlug(name), start, end, venue, Nil, Nil)
+    Event(id, name, Slug.makeSlug(name), venue, Nil, Nil)
   }
 
   def toSession(eventId: String, id: Option[String], template: Template): Session = {

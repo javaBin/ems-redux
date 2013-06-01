@@ -60,8 +60,6 @@ object Importer {
           (c \ "id").extractOpt[String],
           name,
           Slug.makeSlug(name),
-          (c \ "start").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(0L)),
-          (c \ "end").extractOpt[String].map(isoDF.parseDateTime(_)).getOrElse(new DateTime(1L)),
           (c \ "venue").extract[String],
           (c \ "rooms").children.map(o => {
             Room(
