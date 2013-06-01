@@ -30,4 +30,9 @@
         <filter-name>ajax</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+  
+   <mime-mapping>
+     <extension>woff</extension>
+     <mime-type>application/x-font-woff</mime-type>
+   </mime-mapping>
 </web-app>
