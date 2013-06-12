@@ -14,7 +14,7 @@ object Build extends sbt.Build {
     pomIncludeRepository := {
       x => false
     },
-    //resolvers += Resolvers.sonatypeNexusSnapshots,
+    resolvers += Resolvers.sonatypeNexusSnapshots,
     crossPaths := false,
     credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
   )

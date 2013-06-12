@@ -5,11 +5,9 @@ import storage.{MongoSetting, MongoDBStorage}
 import unfiltered.request._
 import unfiltered.filter.Plan
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
-import unfilteredx._
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
 import unfiltered.filter.request.ContextPath
 import unfiltered.response._
-import unfiltered.Cycle
 import ems.storage.FilesystemBinaryStorage
 import ems.config.Config
 import unfiltered.directives.{Result, Directive}
@@ -43,6 +41,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: Nil) => handleSpeaker(eventId, sessionId, speakerId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Seg("binary" :: id :: Nil) => handleAttachment(id)
+    case _ => unfiltered.directives.Directives.failure(NotFound)
   }
 
   def handleRoot = for {
