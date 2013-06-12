@@ -69,7 +69,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     event <- getOrElse(storage.getEvent(id), NotFound)
     base <- baseURIBuilder
     res <- handleObject(Some(event), (t: Template) => toEvent(t, Some(id)), storage.saveEvent _, eventToItem(base)) {
-      c => c.addQuery(Query(URIBuilder(c.href.get).segments("sessions").build(), "session by-slug", List(
+      c => c.addQuery(Query(URIBuilder(c.href).segments("sessions").build(), "session by-slug", List(
          ValueProperty("slug")
       ), Some("Session by Slug")))
     }

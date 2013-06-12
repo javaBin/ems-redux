@@ -50,7 +50,7 @@ trait SessionResources extends ResourceHelper {
   def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => toSession(eventId, Some(sessionId), t), storage.saveSession, sessionToItem(base)) {
-      c => c.addQuery(Query(URIBuilder(c.href.get).segments("speakers").build(), "speaker by-email", List(
+      c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", List(
         ValueProperty("email")
       ), Some("Speaker by Email")))
     }
