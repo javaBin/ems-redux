@@ -17,7 +17,7 @@ app.wrapAjax = function (url) {
   var documentLocation = URI(window.location.href);
   var parsedURI = URI(url);
   var actual = parsedURI.is("relative") ? parsedURI.absoluteTo(documentLocation) : parsedURI;
-  return "ajax?href=" + actual;
+  return URI("ajax").addQuery("href", actual).toString();
 }
 
 app.loadRoot = function ($http, cb) {
@@ -39,7 +39,7 @@ app.controller('LoadEvents', function ($scope, $http) {
   if (!app.events) {
     app.loadRoot($http, function (root) {
       var eventHref = root.findLinkByRel("event collection").href;
-      $http.get(app.wrapAjax(eventHref), {cache: true}).success(function (data) {
+      $http.get(app.wrapAjax(eventHref)).success(function (data) {
         var events = toCollection(data).mapItems(EmsEvent);
         app.events = events;
         $scope.events = events;
@@ -201,37 +201,34 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
   app.loadRoot($http, function (root) {
-    var query = root.findQueryByRel("event by-slug");
-    $http.get(app.wrapAjax(query.expand({"slug": eventSlug})), {cache: true}).success(function (eventCollection) {
-      var query = toCollection(eventCollection).findQueryByRel("session by-slug");
-      if (query) {
-        $http.get(app.wrapAjax(query.expand({"slug": slug}, {cache: false}))).success(function (sessionCollection,status,headers) {          
-          var session = EmsSession(toCollection(sessionCollection).headItem());
-          session.lastModified = headers("last-modified");
-          console.log(session);
+    var query = root.findQueryByRel("event session by-slug");
+    if (query) {
+      var url = query.expand({"event-slug": eventSlug, "session-slug": slug});
+      $http.get(app.wrapAjax(url)).success(function (sessionCollection,status, headers) {
+        console.log(sessionCollection);
+        var session = EmsSession(toCollection(sessionCollection).headItem());
+        session.lastModified = headers("last-modified");
 
-          var speakerLink = session.item.findLinkByRel("speaker collection");
-          $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
-            $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
-          });
-          $scope.session = session;
-
-          var myTags = $("#myTags");
-          var avTags = [];
-          if ($rootScope.allTags) {
-            avTags = $rootScope.allTags;
-          }
-          myTags.tagit({ availableTags: avTags,autocomplete: {delay: 0, minLength: 1}});
-          _.each($scope.session.object.tags,function(atag) {
-            myTags.tagit("createTag",atag);
-          });
-          
+        var speakerLink = session.item.findLinkByRel("speaker collection");
+        $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
+          $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
         });
+        $scope.session = session;
+
+        var myTags = $("#myTags");
+        var avTags = [];
+        if ($rootScope.allTags) {
+          avTags = $rootScope.allTags;
+        }
+        myTags.tagit({ availableTags: avTags,autocomplete: {delay: 0, minLength: 1}});
+        _.each($scope.session.object.tags,function(atag) {
+          myTags.tagit("createTag",atag);
+        });
+      });
       }
       else {
         console.log("WARN: missing session slug query!")
       }
-    });
   });
 
   

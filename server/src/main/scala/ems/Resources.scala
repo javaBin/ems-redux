@@ -93,7 +93,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
         Query(base.segments("events").build(), "event by-slug", List(
           ValueProperty("slug", Some("Slug"))
         ), Some("Event By Slug")),
-        Query(base.segments("redirect").build(), "session event by-slug", List(
+        Query(base.segments("redirect").build(), "event session by-slug", List(
         ValueProperty("event-slug", Some("Slug")),
         ValueProperty("session-slug", Some("Slug"))
       ), Some("Event or Session By Slug"))
