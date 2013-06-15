@@ -29,6 +29,7 @@ function EmsSession(i) {
     lang: sessionHelpers.mapLang(obj.lang),
     body_html: wiki.parse(obj.body),
     outline_html: wiki.parse(obj.outline),
+    audience_html: wiki.parse(obj.audience),
     summary_html: wiki.parse(obj.summary),
     equipment_html: wiki.parse(obj.equipment),
     speakers: spk,

@@ -27,6 +27,9 @@
             <img src="img/blank.gif" class="{{session.lang.css}}" alt="{{session.lang.title}}" />
         </div>
     </div>
+    <div ng-show="session.audience_html" class="row row-padding">
+        <div class="span2">Expected Audience</div><div class="span4" ng-bind-html="session.audience_html"></div>
+    </div>
     <div ng-show="session.equipment_html" class="row row-padding">
         <div class="span2">Equipment</div><div class="span4" ng-bind-html="session.equipment_html"></div>
     </div>
