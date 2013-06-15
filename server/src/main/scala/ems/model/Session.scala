@@ -256,6 +256,7 @@ object Level {
     case Intermediate.name => Some(Intermediate)
     case Intermediate_Advanced.name => Some(Intermediate_Advanced)
     case Advanced.name => Some(Advanced)
+    case Hardcore.name => Some(Hardcore)
     case _ => None
   }
 
@@ -270,7 +271,9 @@ object Level {
 
   case object Advanced extends Level("advanced")
 
-  val values: Seq[Level] = Seq(Beginner, Beginner_Intermediate, Intermediate, Intermediate_Advanced, Advanced)
+  case object Hardcore extends Level("hardcore")
+
+  val values: Seq[Level] = Seq(Beginner, Beginner_Intermediate, Intermediate, Intermediate_Advanced, Advanced, Hardcore)
 
 }
 

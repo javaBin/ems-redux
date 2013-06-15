@@ -49,19 +49,22 @@ sessionHelpers.mapLevel = function(level) {
 
     switch (level) {
         case "beginner":
-            object.icons = ["icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty", "icon-star-empty"];
+            object.icons = ["icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty", "icon-star-empty", "icon-star-empty"];
             break;
         case "beginner_intermediate":
-            object.icons = ["icon-star", "icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty"]
+            object.icons = ["icon-star", "icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty", "icon-star-empty"];
             break;
         case "intermediate":
-            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star-empty", "icon-star-empty"]
+            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star-empty", "icon-star-empty", "icon-star-empty"];
             break;
         case "intermediate_advanced":
-            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star", "icon-star-empty"]
+            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star", "icon-star-empty", "icon-star-empty"];
             break;
         case "advanced":
-            object.icons = ["icon-star","icon-star","icon-star","icon-star","icon-star"]
+            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star", "icon-star", "icon-star-empty"];
+            break;
+        case "hardcore":
+            object.icons = ["icon-star", "icon-star", "icon-star", "icon-star", "icon-star", "icon-star"];
             break;
     }
     return object;
