@@ -60,7 +60,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
           id <- event.id
           session <- storage.getSessionsBySlug(id, s).headOption
         } yield {
-          SeeOther ~> Location(base.segments("events", id, "sessions", session.id.get).build().toString)
+          Found ~> CacheControl("max-age=3600") ~> Location(base.segments("events", id, "sessions", session.id.get).build().toString)
         }
       }
       case (Some(e), None) => {
@@ -68,7 +68,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
           event <- storage.getEventsBySlug(e).headOption
           id <- event.id
         } yield {
-          SeeOther ~> Location(base.segments("events", id).build().toString)
+          Found ~> CacheControl("max-age=3600") ~> Location(base.segments("events", id).build().toString)
         }
       }
       case _ => None
@@ -79,7 +79,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
   def handleRoot = for {
     base <- baseURIBuilder
   } yield {
-    CollectionJsonResponse(JsonCollection(
+    CacheControl("max-age=3600") ~> CollectionJsonResponse(JsonCollection(
       base.build(),
       List(
         Link(base.segments("events").build(), "event collection")
