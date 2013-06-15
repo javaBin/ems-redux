@@ -205,7 +205,6 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
     if (query) {
       var url = query.expand({"event-slug": eventSlug, "session-slug": slug});
       $http.get(app.wrapAjax(url)).success(function (sessionCollection,status, headers) {
-        console.log(sessionCollection);
         var session = EmsSession(toCollection(sessionCollection).headItem());
         session.lastModified = headers("last-modified");
 
