@@ -136,7 +136,7 @@ object converters {
         List(
           ValueProperty("href", Some("Href"), Some(StringValue(href.toString))),
           ValueProperty("name", Some("Name"), Some(StringValue(a.name))),
-          ValueProperty("size", Some("Size"), a.size.map(s => (NumberValue(BigDecimal(s))))),
+          ValueProperty("size", Some("Size"), a.size.map(s => NumberValue(BigDecimal(s)))),
           ValueProperty("type", Some("Type"), Some(StringValue(a.mediaType.toString)))
         ),
         Nil
