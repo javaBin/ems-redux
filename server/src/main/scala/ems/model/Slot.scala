@@ -15,7 +15,7 @@ case class Slot(id: Option[String], start: DateTime, end: DateTime, lastModified
     "_id" -> id.getOrElse(util.UUID.randomUUID().toString),
     "start" -> start.toDate,
     "end" -> end.toDate,
-    "last-modified" -> lastModified.toDate
+    "last-modified" -> DateTime.now.toDate
   )
 }
 

@@ -136,9 +136,10 @@ trait SessionResources extends ResourceHelper {
     _ <- ifUnmodifiedSince(a.lastModified)
     items <- parameterValues(name)
   } yield {
+    val sessionHref = base.segments("events", eventId, "sessions", sessionId).build()
     storage.saveSession(update(items, a)).fold(
       ex => InternalServerError ~> ResponseString(ex.getMessage),
-      s => DateResponseHeader("Last-Modified", s.lastModified.withMillisOfSecond(0)) ~> ContentLocation(href.toString) ~> CollectionJsonResponse(JsonCollection(href, Nil, sessionToItem(base)(u)(s)))
+      s => SeeOther ~> Location(sessionHref.toString)
     )
   }
 

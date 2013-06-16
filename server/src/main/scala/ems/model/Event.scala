@@ -15,7 +15,7 @@ case class Event(id: Option[String], name: String, slug: String, venue: String, 
       "name" -> name.noHtml,
       "slug" -> slug,
       "venue" -> venue.noHtml,
-      "last-modified" -> lastModified.toDate
+      "last-modified" -> DateTime.now.toDate
     )
     if (update) {
       MongoDBObject(

@@ -14,7 +14,7 @@ case class Room(id: Option[String], name: String, lastModified: DateTime = new D
   def toMongo: DBObject = MongoDBObject(
     "_id" -> id.getOrElse(util.UUID.randomUUID().toString),
     "name" -> name.noHtml,
-    "last-modified" -> lastModified.toDate
+    "last-modified" -> DateTime.now.toDate
   )
 }
 

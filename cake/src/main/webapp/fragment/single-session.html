@@ -37,7 +37,11 @@
         <div class="span2">Keywords</div>
         <div class="span4">{{session.keywordsAsString}}</div>
     </div>
-    <div class="row row-padding" ng-show="session.object.tags">
+    <div class="row row-padding">
+        <div class="span2">Tags</div>
+        <div class="span4">{{session.tagsAsString}}</div>
+    </div>
+    <div class="row row-padding" ng-show="signedIn">
         <div class="span2">Tags</div>
         <div class="span6">
             <ul id="myTags" class="span4"></ul>
@@ -45,9 +49,7 @@
             <button class="btn btn-primary" ng-click="updateTags()">Update tags</button>
         </div>
     </div>
-    <div class="row row-padding" ng-show="showSuccess">
-        <div class="alert alert-success" >Tags successfully updated</div>
-    </div>
+
 
 
     <div ng-repeat="speaker in speakers">
@@ -62,5 +64,7 @@
             <div class="span1">Email</div><div class="span6">{{speaker.object.email}}</div>
         </div>
     </div>
-
+    <div class="row row-padding" ng-show="showSuccess">
+        <div class="alert alert-success" >Tags successfully updated</div>
+    </div>
 </div>

@@ -72,7 +72,7 @@ trait SpeakerResources extends ResourceHelper {
     }
 
     val imageType = when {
-      case RequestContentType(ct) if (MIMEType.ImageAll.includes(MIMEType(ct).get)) => ct
+      case RequestContentType(ct) if MIMEType.ImageAll.includes(MIMEType(ct).get) => ct
     }.orElse(UnsupportedMediaType)
 
 

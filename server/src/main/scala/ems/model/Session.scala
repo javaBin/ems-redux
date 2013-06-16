@@ -135,7 +135,7 @@ case class Session(id: Option[String],
       "tags" -> tags.map(_.name.noHtml),
       "keywords" -> keywords.map(_.name.noHtml),
       "state" -> state.name,
-      "last-modified" -> lastModified.toDate
+      "last-modified" -> DateTime.now().toDate
     ) ++ abs.toMongo
 
     if (update) {
@@ -216,7 +216,7 @@ case class Speaker(id: Option[String], name: String, email: String, zipCode: Opt
     "zip-code" -> zipCode,
     "bio" -> bio.map(_.noHtml),
     "tags" -> tags.map(_.name.noHtml),
-    "last-modified" -> lastModified.toDate
+    "last-modified" -> DateTime.now.toDate
   )
 }
 

@@ -105,7 +105,7 @@ app.controller('Login', function ($scope, $rootScope, $http, $cookies, $window) 
   $scope.signIn = signIn;
   $scope.signOut = signOut;
   $scope.username = $cookies.username;
-  $scope.signedIn = ((typeof $scope.username) !== "undefined");
+  $rootScope.signedIn = ((typeof $scope.username) !== "undefined");
 });
 
 app.controller('Main', function ($scope) {
@@ -219,6 +219,7 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
         if ($rootScope.allTags) {
           avTags = $rootScope.allTags;
         }
+        $scope.signedIn = $rootScope.signedIn;
         myTags.tagit({ availableTags: avTags,autocomplete: {delay: 0, minLength: 1}});
         _.each($scope.session.object.tags,function(atag) {
           myTags.tagit("createTag",atag);
@@ -238,31 +239,31 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
     var data = _.reduce(updatedTags, function(agg, e) {
       return agg + (agg.length > 0 ? "&" : "") + "tag=" + e;
     }, "");
-    app.updateTarget($http, $scope, "session tag", data);
+    app.updateTarget($http, $scope, $window, "session tag", data);
   }
 
   $scope.updateRoom = function() {
     var href = $scope.selected_room.value;
     $scope.session.object.room = $scope.selected_room.name;
-    app.updateTarget($http, $scope, "session room", "room=" + href);
+    app.updateTarget($http, $scope, $window, "session room", "room=" + href);
   }
 
   $scope.updateSlot = function() {
     var href = $scope.selected_slot.value;
     $scope.session.object.slot = $scope.selected_slot.name;
-    app.updateTarget($http, $scope, "session slot", "slot=" + href);
+    app.updateTarget($http, $scope, $window, "session slot", "slot=" + href);
   }
 
 });
 
-app.updateTarget = function($http, $scope, rel, data) {
+app.updateTarget = function($http, $scope, $window, rel, data) {
   var target = $scope.session.item.findLinkByRel(rel);
   if (target) {
-    app.postFormData($http, $scope, target.href, data);
+    app.postFormData($http, $scope, $window, target.href, data);
   }
 }
 
-app.postFormData = function($http, $scope, href, data) {
+app.postFormData = function($http, $scope, $window, href, data) {
   $http({
     url: app.wrapAjax(href),
     method: "POST",
@@ -270,7 +271,10 @@ app.postFormData = function($http, $scope, href, data) {
     data: data
   }).success(function () {
       $scope.showSuccess = true;
-      //$window.location.reload();
+      setTimeout(function(){
+        $window.location.reload();
+      }, 1000);
+
     }).error(function(e) {
       console.log(e);
     });
