@@ -14,9 +14,8 @@ object Build extends sbt.Build {
     pomIncludeRepository := {
       x => false
     },
-    resolvers += Resolvers.sonatypeNexusSnapshots,
-    crossPaths := false,
-    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+    //resolvers += Resolvers.sonatypeNexusSnapshots,
+    crossPaths := false
   )
 
   //TODO: Sbt should produce a POM artifact with modules for the aggregates
@@ -73,7 +72,7 @@ object Build extends sbt.Build {
     val unfilteredVersion = "0.6.8"
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
-      "net.hamnaberg.rest" %% "scala-json-collection" % "2.1-SNAPSHOT",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "2.1",
       "org.jsoup" % "jsoup" % "1.7.2",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",
