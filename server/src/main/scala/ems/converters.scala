@@ -161,12 +161,17 @@ object converters {
         ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
         ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
       ) ++ auths
-
+      val photos = s.photo.map{a =>
+        val binary = builder.segments("binary", a.id.get).build()
+        List(
+          Link(binary, "photo", None, None, Some(Render.IMAGE)),
+          Link(URIBuilder.apply("http://proxy.boxresizer.com/convert?resize=100x100").queryParam("source", binary.toString).build(), "thumbnail", None, None, Some(Render.IMAGE))
+        )
+      }.getOrElse(Nil)
       Item(
         base.build(),
         data,
-        s.photo.map(a => Link(builder.segments("binary", a.id.get).build(), "photo", None, None, Some(Render.IMAGE))).toList ++
-          List(Link(base.segments("photo").build(), "attach-photo"))
+        photos ++ List(Link(base.segments("photo").build(), "attach-photo"))
       )
     }
   }
