@@ -20,6 +20,8 @@ trait MongoDBStorage {
 
   def getEvents() = db("event").find().sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
 
+  def getEventsWithSessionCount(user: User) = getEvents().map(e => EventWithSessionCount(e, e.id.map(id => getSessionCount(id)(user)).getOrElse(0)))
+
   def getEvent(id: String) = db("event").findOneByID(id).map(Event.apply)
 
   def getEventsBySlug(name: String) = db("event").find(MongoDBObject("slug" -> name)).sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
@@ -65,12 +67,11 @@ trait MongoDBStorage {
 
   def getRooms(eventId: String): Seq[Room] = getEvent(eventId).map(_.rooms).getOrElse(Nil)
 
-  def getRoom(eventId: String, id: String): Option[Room] = getEvent(eventId).flatMap(_.rooms.find(_.id == id))
+  def getRoom(eventId: String, id: String): Option[Room] = getRooms(eventId).find(r => r.id.exists(_ == id))
 
   def saveRoom(eventId: String, room: Room): Either[Exception, Room] = Left(new UnsupportedOperationException())
 
   def removeRoom(eventId: String, id: String): Either[Exception, String] = Left(new UnsupportedOperationException())
-
 
   def getSessions(eventId: String)(user: User) = {
     val query = MongoDBObject.newBuilder
@@ -79,6 +80,15 @@ trait MongoDBStorage {
       query += "published" -> true
     }
     db("session").find(query.result()).sort(MongoDBObject("title" -> 1)).map(Session(_, this)).toList
+  }
+
+  def getSessionCount(eventId: String)(user: User): Int = {
+    val query = MongoDBObject.newBuilder
+    query += "eventId" -> eventId
+    if (!user.authenticated) {
+      query += "published" -> true
+    }
+    db("session").find(query.result(), MongoDBObject("_id" -> 1)).size
   }
 
   def getSessionsBySlug(eventId: String, slug: String) = db("session").find(

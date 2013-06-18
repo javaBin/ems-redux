@@ -11,6 +11,7 @@ import unfiltered.directives._
 import Directives._
 import net.hamnaberg.json.collection._
 import net.hamnaberg.json.collection.Template
+import ems.cj.LinkCount
 
 trait EventResources extends SessionResources with SpeakerResources {
 
@@ -53,8 +54,14 @@ trait EventResources extends SessionResources with SpeakerResources {
       p("slug").headOption match {
         case Some(s) => storage.getEventsBySlug(s).headOption.map(e => Found ~> Location(base.segments("events", e.id.get).toString)).getOrElse(NotFound)
         case None => {
-          val events = storage.getEvents()
-          val items = events.map(eventToItem(base))
+          val events = storage.getEventsWithSessionCount(user)
+          val items = events.map{evt =>
+            val item = eventToItem(base)(evt.event)
+            item.withLinks(item.links.collect{
+              case l if l.rel == "session collection" => l.apply(LinkCount, evt.count)
+              case x => x
+            })
+          }
           val href = base.segments("events").build()
           CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items, Nil, Some(makeTemplate("name", "venue"))))
         }

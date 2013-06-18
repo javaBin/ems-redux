@@ -46,3 +46,5 @@ object Event {
     )
   }
 }
+
+case class EventWithSessionCount(event: Event, count : Int = -1)

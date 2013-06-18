@@ -11,9 +11,6 @@ object RequestURIBuilder {
     Some(apply(req))
   }
 
-  @deprecated
-  def getBuilder[A](req: HttpRequest[A]) = apply(req)
-
   def apply[A](req: HttpRequest[A]) = {
     val (scheme, host, port) = req match {
       case HostPort(h, 80) => ("http", h, None)
@@ -35,8 +32,6 @@ object RequestURI {
 }
 
 object BaseURIBuilder {
-  @deprecated
-  def getBuilder(req: HttpRequest[Any]) = apply(req)
 
   def apply(req: HttpRequest[Any]) = {
     val path = req.underlying match {
