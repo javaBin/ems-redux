@@ -1,11 +1,11 @@
-package ems
+package ems.util
 
 import java.io.{BufferedReader, FileReader, File}
 import java.util.{UUID, Locale}
 import org.json4s.DefaultFormats
 import org.json4s.native.JsonParser
 import org.json4s.JsonAST._
-import ems.storage.{FileAttachment, MongoSetting, MongoDBStorage}
+import ems.storage.{FilesystemBinaryStorage, FileAttachment, MongoSetting, MongoDBStorage}
 import ems.model._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -13,7 +13,17 @@ import scala.util.Properties
 import java.net.URI
 
 import javax.activation.MimetypesFileTypeMap
-import storage.FilesystemBinaryStorage
+import ems.storage.FileAttachment
+import scala.Some
+import org.json4s.JsonAST.JArray
+import org.json4s.JsonAST.JString
+import ems.storage.FileAttachment
+import scala.Some
+import org.json4s.JsonAST.JArray
+import org.json4s.JsonAST.JString
+import ems.model.Keyword
+import ems.model.Tag
+import ems.{URIAttachment, Attachment, MIMEType}
 
 
 /*object ImportMain extends App {

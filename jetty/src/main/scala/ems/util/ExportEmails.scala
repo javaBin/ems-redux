@@ -1,4 +1,4 @@
-package ems
+package ems.util
 
 import dispatch._
 import net.hamnaberg.json.collection.{JsonCollection, NativeJsonCollectionParser}
