@@ -47,7 +47,7 @@ object ExportEmails extends App {
       coll.fold(fa => throw fa, identity)
     }
   }
-}
-case class SpeakerRef(name: String, email: String)
+  case class SpeakerRef(name: String, email: String)
 
-case class SessionWithSpeakers(title: String, speakers: Seq[SpeakerRef] = Nil)
+  case class SessionWithSpeakers(title: String, speakers: Seq[SpeakerRef] = Nil)
+}
