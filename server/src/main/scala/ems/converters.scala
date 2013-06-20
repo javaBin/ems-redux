@@ -3,11 +3,11 @@ package ems
 import java.net.URI
 import model._
 import net.hamnaberg.json.collection._
-import util.URIBuilder
+import ems.util.URIBuilder
+import ems.util.RFC3339
 import java.util.Locale
 import net.hamnaberg.json.collection.Value._
 import security.User
-import util.RFC3339
 
 
 object converters {
@@ -34,9 +34,8 @@ object converters {
       val properties = Map(
         "name" -> Some(r.name)
       ).map(toProperty).toList
-      val rooms = baseBuilder.segments("events", eventId, "rooms")
-      val href = rooms.segments(r.id.get).build()
-      Item(href, properties, Link(rooms.build(), "room collection", Some("Rooms")) :: Nil)
+      val href = baseBuilder.segments("events", eventId, "rooms", r.id.get).build()
+      Item(href, properties, Nil)
     }
   }
 
@@ -46,9 +45,8 @@ object converters {
         "start" -> Some(RFC3339.format(r.start)),
         "end" -> Some(RFC3339.format(r.end))
       ).map(toProperty).toList
-      val slots = baseBuilder.segments("events", eventId, "slots")
-      val href = slots.segments(r.id.get).build()
-      Item(href, properties,  Link(slots.build(), "slot collection", Some("Slots")) :: Nil)
+      val href = baseBuilder.segments("events", eventId, "slots", r.id.get).build()
+      Item(href, properties,  Nil)
     }
   }
 

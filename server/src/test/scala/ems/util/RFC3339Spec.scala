@@ -1,4 +1,4 @@
-package util
+package ems.util
 
 import org.specs2.mutable.Specification
 import org.joda.time.{DateMidnight, DateTimeZone, DateTime}

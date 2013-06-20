@@ -2,7 +2,7 @@ package unfilteredx
 
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
-import util.URIBuilder
+import ems.util.URIBuilder
 import unfiltered.request._
 
 

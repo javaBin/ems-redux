@@ -1,7 +1,7 @@
-package util
+package ems.util
 
-import org.joda.time.format.{ISODateTimeFormat, DateTimeFormat}
-import org.joda.time.{DateTimeZone, MutableDateTime, DateTime}
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.{DateTimeZone, DateTime}
 import scala.util.control.Exception.allCatch
 import java.util.regex.Pattern
 
@@ -33,8 +33,8 @@ object RFC3339 {
       var moff = 0
       if (m.group(10) != null) {
         val doff = if (m.group(10).equals("-")) 1 else -1
-        hoff = doff * (Option(m.group(11)).map(_.toInt).getOrElse(0))
-        moff = doff * (Option(m.group(12)).map(_.toInt).getOrElse(0))
+        hoff = doff * Option(m.group(11)).map(_.toInt).getOrElse(0)
+        moff = doff * Option(m.group(12)).map(_.toInt).getOrElse(0)
       }
       Right(new DateTime(
         m.group(1).toInt,

@@ -1,4 +1,4 @@
-package util
+package ems.util
 
 import java.net.{URLDecoder, URI, URLEncoder}
 import scala.Option
