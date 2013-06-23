@@ -47,6 +47,8 @@ function EmsSession(i) {
     audience_html: wiki.parse(obj.audience),
     summary_html: wiki.parse(obj.summary),
     equipment_html: wiki.parse(obj.equipment),
+    room: i.findLinkByRel("room item"),
+    slot: sessionHelpers.handleSlot(i.findLinkByRel("slot item")),
     speakers: spk,
     speakersAsString: toCSV(_.map(spk, function (s) {
       return s.prompt

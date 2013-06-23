@@ -165,6 +165,7 @@ app.controller('AssignSlots', function($scope, $routeParams, $http) {
 
         }, {});
         $scope.sessions = groupedSessions;
+        $scope.eventSlug = $routeParams.slug;
       })
       });
     });

@@ -88,3 +88,21 @@ sessionHelpers.mapLang = function(lang) {
 
     return object;
 }
+
+sessionHelpers.handleSlot = function(link) {
+  if (link) {
+    var parts = link.prompt.split("+")
+    if (parts.length === 2) {
+      var start = moment(parts[0]);
+      var end = moment(parts[1]);
+      link.parsed = {
+        start: start,
+        startTime: start.format("HH:mm"),
+        end: end,
+        endTime: end.format("HH:mm"),
+        day: start.format("YYYY-MM-DD")
+      }
+    }
+  }
+  return link;
+}

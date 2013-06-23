@@ -17,7 +17,7 @@
             <tr ng-repeat="slot in object.slots">
                 <td>{{slot.formatted}}</td>
                 <td ng-repeat="room in rooms">
-                    {{sessionByRoom(sessions[slot.item.href], room).object.title}}
+                    <a href="#/events/{{eventSlug}}/sessions/{{sessionByRoom(sessions[slot.item.href], room).object.slug}}">{{sessionByRoom(sessions[slot.item.href], room).object.title}}</a>
                 </td>
             </tr>
             </tbody>

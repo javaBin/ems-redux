@@ -34,6 +34,12 @@
         <div class="span2">Equipment</div><div class="span4" ng-bind-html="session.equipment_html"></div>
     </div>
     <div class="row row-padding">
+        <div class="span2">Room</div>
+        <div class="span1">{{session.room.prompt}}</div>
+        <div class="span1">Slot</div>
+        <div class="span2">{{session.slot.parsed.day}} - {{session.slot.parsed.startTime}} {{session.slot.parsed.endTime}}</div>
+    </div>
+    <div class="row row-padding">
         <div class="span2">Keywords</div>
         <div class="span4">{{session.keywordsAsString}}</div>
     </div>
@@ -45,6 +51,7 @@
             <button class="btn btn-primary" ng-click="updateTags()">Update tags</button>
         </div>
     </div>
+
 
 
 
