@@ -1,10 +1,3 @@
-var DT = {}
-DT.parse = function(dateString) {
-  return moment.utc(dateString, 'yyyy-MM-ddTHH:mm:ssZ').toDate()
-}
-DT.format = function(dt) {
-  return moment.utc(dt).format('yyyy-MM-ddTHH:mm:ssZ');
-}
 
 function EmsEvent(i) {
   var obj = i.toObject();
@@ -12,6 +5,28 @@ function EmsEvent(i) {
     item: i,
     object: obj,
     sessions: i.findLinkByRel("session collection").href
+  }
+}
+
+function EmsSlot(i) {
+  var obj = i.toObject();
+  var start = moment(obj.start);
+  var end = moment(obj.end);
+  return {
+    item: i,
+    object: obj,
+    start: start,
+    end: end,
+    dayOfYear: start.dayOfYear(),
+    formatted: start.format("HH:mm") + "-" + end.format("HH:mm")
+  }
+}
+
+function EmsRoom(i) {
+  var obj = i.toObject();
+  return {
+    item: i,
+    object: obj
   }
 }
 

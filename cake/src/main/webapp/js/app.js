@@ -4,6 +4,7 @@ var app = angular.module('app', ['ngSanitize', 'ngCookies']).
       when('/', {controller: 'Main', templateUrl: 'fragment/main.html'}).
       when('/about', {controller: 'About', templateUrl: 'fragment/about.html'}).
       when('/events/:slug', {controller: 'SessionList', templateUrl: 'fragment/sessions.html'}).
+      when('/assign/:slug', {controller: 'AssignSlots', templateUrl: 'fragment/assign-slots.html'}).
       when('/events/:eventSlug/sessions/:slug', {controller: 'SingleSession', templateUrl: 'fragment/single-session.html'}).
       otherwise({redirectTo: '/'});
   }).
@@ -112,6 +113,62 @@ app.controller('Main', function ($scope) {
 });
 
 app.controller('About', function ($scope) {
+});
+
+app.controller('AssignSlots', function($scope, $routeParams, $http) {
+  app.loadRoot($http, function(root) {
+    var query = root.findQueryByRel("event by-slug");
+    $http.get(app.wrapAjax(query.expand({"slug": $routeParams.slug})), {cache: true}).success(function (eventCollection) {
+      var event = EmsEvent(toCollection(eventCollection).headItem());
+      var roomLink = event.item.findLinkByRel("room collection");
+      var slotLink = event.item.findLinkByRel("slot collection");
+      $http.get(app.wrapAjax(slotLink.href)).success(function(data){
+        var slots = _.sortBy(toCollection(data).mapItems(EmsSlot), "start");
+        var groupedSlots = _.groupBy(slots, function(s){
+          return s.dayOfYear;
+        });
+        $scope.grouped = _.reduce(_.keys(groupedSlots), function(acc, key){
+          acc[key] = {
+            slots: groupedSlots[key],
+            day: moment().dayOfYear(key).format("YYYY-MM-DD")
+          }
+          return acc;
+        }, {});
+        $http.get(app.wrapAjax(event.sessions)).success(function (data) {
+          var sessions = _.filter(toCollection(data).mapItems(EmsSession), function(s) {
+            return s.object.state === "approved";
+          });
+          var groupedSessions = _.reduce(sessions, function(acc, s){
+            var assigned = s.item.findLinkByRel("slot item");
+            if (assigned) {
+              var _arr = acc[assigned.href] || [];
+              _arr.push(s);
+              acc[assigned.href] = _arr;
+            }
+            else {
+              var unassigned = acc["unassigned"] || [];
+              unassigned.push(s);
+              acc["unassigned"] = unassigned;
+            }
+            return acc;
+
+          }, {});
+          $scope.sessions = groupedSessions;
+        });
+
+      });
+      $http.get(app.wrapAjax(roomLink.href)).success(function(data){
+        var rooms = toCollection(data).mapItems(EmsRoom);
+        $scope.sessionByRoom = function(sessions, room) {
+          return _.find(sessions, function(s){
+            var roomLink = s.item.findLinkByRel("room item");
+            return roomLink ? room.item.href == roomLink.href : false;
+          });
+        }
+        $scope.rooms = rooms;
+      });
+      });
+    });
 });
 
 app.controller('SessionList', function ($scope, $routeParams, $http,$rootScope) {

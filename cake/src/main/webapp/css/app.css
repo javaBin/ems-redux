@@ -18,3 +18,9 @@ div.paragraph {
 input.filter {
     margin-bottom: 0;
 }
+
+div.boxed {
+    background-color: #d4d4d4;
+    margin: 1px 1px 1px 1px;
+    border: 1px solid #808080;
+}
