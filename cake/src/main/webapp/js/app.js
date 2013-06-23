@@ -1,4 +1,4 @@
-var app = angular.module('app', ['ngSanitize', 'ngCookies']).
+var app = angular.module('app', ['ngSanitize', 'ngCookies', 'ems-filters']).
   config(function ($routeProvider) {
     $routeProvider.
       when('/', {controller: 'Main', templateUrl: 'fragment/main.html'}).
@@ -258,13 +258,38 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
   app.loadRoot($http, function (root) {
+    $http.get(app.wrapAjax(root.findQueryByRel("event by-slug").expand({"slug": eventSlug})), {cache: true}).success(function (eventCollection) {
+      var event = EmsEvent(toCollection(eventCollection).headItem());
+      $http.get(event.item.findLinkByRel("slot collection").href).success(function (data) {
+        var slots = _.sortBy(toCollection(data).mapItems(EmsSlot), "start");
+        var filtered = function(session) {
+          if (session) {
+            var durationInMinutes;
+            switch(session.object.format) {
+              case "lightning-talk":
+                durationInMinutes = 10;
+                break;
+              default:
+                durationInMinutes = 60;
+                break;
+            }
+            return _.filter(slots, function(s) {
+              return s.duration === durationInMinutes;
+            });
+          }
+          return slots;
+        }
+        $scope.slotsBySession = filtered;
+      });
+    });
+
     var query = root.findQueryByRel("event session by-slug");
     if (query) {
       var url = query.expand({"event-slug": eventSlug, "session-slug": slug});
       $http.get(app.wrapAjax(url)).success(function (sessionCollection,status, headers) {
         var session = EmsSession(toCollection(sessionCollection).headItem());
         session.lastModified = headers("last-modified");
-
+        console.log("session: " + session.item.href);
         var speakerLink = session.item.findLinkByRel("speaker collection");
         $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
           $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
@@ -300,14 +325,12 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
   }
 
   $scope.updateRoom = function() {
-    var href = $scope.selected_room.value;
-    $scope.session.object.room = $scope.selected_room.name;
+    var href = $scope.selectedRoom.item.href;
     app.updateTarget($http, $scope, $window, "session room", "room=" + href);
   }
 
   $scope.updateSlot = function() {
-    var href = $scope.selected_slot.value;
-    $scope.session.object.slot = $scope.selected_slot.name;
+    var href = $scope.selectedSlot;
     app.updateTarget($http, $scope, $window, "session slot", "slot=" + href);
   }
 

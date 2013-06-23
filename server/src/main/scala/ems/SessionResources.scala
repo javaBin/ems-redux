@@ -60,7 +60,10 @@ trait SessionResources extends ResourceHelper {
   } yield a
 
   def handleSessionTags(eventId: String, sessionId: String)(implicit u: User) =
-    handleSessionForm(eventId, sessionId, "tag", (tags, s) => s.withTags(tags.map(Tag).toSet[Tag]))
+    handleSessionForm(eventId, sessionId, "tag", (tags, s) => {
+      val updated = s.withTags(tags.map(Tag).toSet[Tag])
+      storage.saveSession(updated)
+    })
 
   def handleSessionSlot(eventId: String, sessionId: String)(implicit u: User) = {
     val get = for {
@@ -86,10 +89,13 @@ trait SessionResources extends ResourceHelper {
       )
     }
 
-    val post = handleSessionForm(eventId, sessionId, "slot", (slots, s) => slots.headOption.flatMap{ slotString =>
-      val id = URIBuilder(slotString).path.last.seg
-      storage.getSlot(eventId, id).map(slot => s.withSlot(slot))
-    }.getOrElse(s))
+    val post = handleSessionForm(eventId, sessionId, "slot", (slots, s) => {
+      val slot = slots.headOption.flatMap{ slot =>
+        val id = URIBuilder(slot).path.last.seg
+        storage.getSlot(eventId, id)
+      }
+      slot.map(s => storage.saveSlotInSession(eventId, sessionId, s)).getOrElse(Left(new IllegalArgumentException("Not found")))
+    })
 
     get | post
   }
@@ -118,15 +124,18 @@ trait SessionResources extends ResourceHelper {
       )
     }
 
-    val post = handleSessionForm(eventId, sessionId, "room", (rooms, s) => rooms.headOption.flatMap{ r =>
-      val id = URIBuilder(r).path.last.seg
-      storage.getRoom(eventId, id).map(room => s.withRoom(room))
-    }.getOrElse(s))
+    val post = handleSessionForm(eventId, sessionId, "room", (rooms, s) => {
+      val room = rooms.headOption.flatMap{ r =>
+        val id = URIBuilder(r).path.last.seg
+        storage.getRoom(eventId, id)
+      }
+      room.map(r => storage.saveRoomInSession(eventId, sessionId, r)).getOrElse(Left(new IllegalArgumentException("Not found")))
+    })
 
     get | post
   }
 
-  private def handleSessionForm(eventId: String, sessionId: String, name: String, update: (Seq[String], Session) => Session)(implicit u: User) = for {
+  private def handleSessionForm(eventId: String, sessionId: String, name: String, update: (Seq[String], Session) => Either[Exception, Session])(implicit u: User) = for {
     _ <- POST
     _ <- authenticated(u)
     href <- requestURI
@@ -137,7 +146,7 @@ trait SessionResources extends ResourceHelper {
     items <- parameterValues(name)
   } yield {
     val sessionHref = base.segments("events", eventId, "sessions", sessionId).build()
-    storage.saveSession(update(items, a)).fold(
+    update(items, a).fold(
       ex => InternalServerError ~> ResponseString(ex.getMessage),
       s => SeeOther ~> Location(sessionHref.toString)
     )

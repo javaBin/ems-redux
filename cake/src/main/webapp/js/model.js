@@ -12,13 +12,17 @@ function EmsSlot(i) {
   var obj = i.toObject();
   var start = moment(obj.start);
   var end = moment(obj.end);
+  var time = start.format("HH:mm") + "-" + end.format("HH:mm");
   return {
     item: i,
     object: obj,
     start: start,
     end: end,
+    day: start.format("YYYY-MM-DD"),
     dayOfYear: start.dayOfYear(),
-    formatted: start.format("HH:mm") + "-" + end.format("HH:mm")
+    duration: end.diff(start) / 1000 / 60,
+    dayFormatted: start.format("YYYY-MM-DD") + ": " + time,
+    formatted: time
   }
 }
 

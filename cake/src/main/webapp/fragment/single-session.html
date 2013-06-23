@@ -52,9 +52,16 @@
         </div>
     </div>
 
-
-
-
+    <div class="row row-padding" ng-show="signedIn">
+        <div class="span2">Assign Slot</div>
+        <div class="span6">
+            <select class="span4" ng-model="selectedSlot">
+                <option ng-repeat="slot in slotsBySession(session)" value="{{slot.item.href}}">{{slot.day}} - {{slot.formatted}}</option>
+            </select>
+            &nbsp;
+            <button class="btn btn-primary" ng-click="updateSlot()">Set Slot</button>
+        </div>
+    </div>
     <div ng-repeat="speaker in speakers">
         <h2>{{speaker.object.name}}</h2>
         <div class="row row-padding">

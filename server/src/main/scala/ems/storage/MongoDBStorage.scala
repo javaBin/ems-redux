@@ -30,7 +30,9 @@ trait MongoDBStorage {
 
   def getSlots(eventId: String): Seq[Slot] = getEvent(eventId).map(_.slots).getOrElse(Nil)
 
-  def getSlot(eventId: String, id: String): Option[Slot] = getEvent(eventId).flatMap(_.slots.find(_.id == id))
+  def getSlot(eventId: String, id: String): Option[Slot] = {
+    getEvent(eventId).map(_.slots).getOrElse(Nil).find(s => s.id.exists(_ == id))
+  }
 
   def saveSlot(eventId: String, slot: Slot): Either[Exception, Slot] = {
     val slotId = slot.id.getOrElse(util.UUID.randomUUID().toString)
@@ -100,6 +102,18 @@ trait MongoDBStorage {
   ).map(Session(_, this))
 
   def saveSession(session: Session) = saveOrUpdate(session, (s: Session, update) => s.toMongo(update), db("session"))
+
+  def saveSlotInSession(eventId: String, sessionId: String, slot: Slot) = saveOrUpdate(
+    getSession(eventId, sessionId).get,
+    (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("slotId" -> slot.id.get)),
+    db("session")
+  )
+
+  def saveRoomInSession(eventId: String, sessionId: String, room: Room) = saveOrUpdate(
+    getSession(eventId, sessionId).get,
+    (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("roomId" -> room.id.get)),
+    db("session")
+  )
 
   def saveAttachment(eventId: String, sessionId: String, attachment: URIAttachment) = {
     val withId = if (attachment.id.isDefined) attachment else attachment.withId(util.UUID.randomUUID().toString)
