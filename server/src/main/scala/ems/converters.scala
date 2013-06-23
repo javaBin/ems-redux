@@ -104,7 +104,8 @@ object converters {
       Link(URIBuilder(href).segments("speakers").build(), "speaker collection", Some("Speakers")),
       Link(URIBuilder(href).segments("tags").build(), "session tag", Some("Tag session")),
       Link(URIBuilder(href).segments("slot").build(), "session slot", Some("Assign a slot")),
-      Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room"))
+      Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room")),
+      Link(baseURIBuilder.segments("events", s.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
     links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), Some(a.name)))
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name)))

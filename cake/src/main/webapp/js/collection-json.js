@@ -37,7 +37,12 @@ function toTemplate(object) {
     }, []);
 
     return {
-      data: dt
+      data: dt,
+      toJSON: function() {
+        return JSON.stringify({template: {
+          data: dt
+        }})
+      }
     }
   }
 }

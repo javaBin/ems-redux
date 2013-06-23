@@ -1,7 +1,7 @@
 package ems
 
 import javax.servlet.http.HttpServletRequest
-import org.joda.time.DateTime
+import org.joda.time.{DateTimeZone, DateTime}
 import unfiltered.directives._
 import unfiltered.directives.Result._
 import Directives._
@@ -19,15 +19,16 @@ trait EmsDirectives {
 
   def requestURI = request[Any].map(r => RequestURI(r))
 
-  def ifModifiedSince(dt: DateTime, res: ResponseFunction[Any]) = commit(when {
-    case IfModifiedSince(date) if (dt.withMillisOfSecond(0).toDate != date) => res
-    case _ => res
-  }.orElse(NotModified))
+  def ifModifiedSince(dt: DateTime, res: ResponseFunction[Any]) = Directive[Any, Any, ResponseFunction[Any]]{
+    case IfModifiedSinceString("*") => Result.Error(NotModified)
+    case IfModifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => Result.Error(NotModified)
+    case _ => Result.Success(res)
+  }
 
-  def ifUnmodifiedSince[A](dt: DateTime) = Directive[A, Any, Unit]{
+  def ifUnmodifiedSince(dt: DateTime) = Directive[Any, Any, Unit]{
     case IfUnmodifiedSinceString("*") => Success(())
-    case IfUnmodifiedSince(date) if (dt.withMillisOfSecond(0).toDate == date) => Success(())
-    case IfUnmodifiedSince(_) => Result.Error(PreconditionFailed)
+    case IfUnmodifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => Success(())
+    case IfUnmodifiedSince(date) => Result.Error(PreconditionFailed ~> ResponseString(s"${dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate} is not equal to $date"))
     case RequestURI(href) => Result.Error(PreconditionRequired ~> CollectionJsonResponse(JsonCollection(href, Error("Wrong response", None, Some("Missing If-Unmodified-Since header")))))
   }
 

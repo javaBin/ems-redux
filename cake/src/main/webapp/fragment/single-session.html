@@ -72,6 +72,16 @@
             <button class="btn btn-primary" ng-click="updateRoom()">Set Room</button>
         </div>
     </div>
+    <div class="row row-padding">
+        <div class="span2">State</div>
+        <div class="span6">
+            <select class="span4" ng-model="session.object.state" ng-options="s for s in states"></select>
+        </div>
+    </div>
+    <div class="row row-padding">
+        <div class="span2">Update</div>
+        <button class="btn btn-primary" ng-click="updateSession()">Update</button>
+    </div>
     <div ng-repeat="speaker in speakers">
         <h2>{{speaker.object.name}}</h2>
         <div class="row row-padding">
@@ -84,6 +94,7 @@
             <div class="span1">Email</div><div class="span6">{{speaker.object.email}}</div>
         </div>
     </div>
+
     <div class="row row-padding" ng-show="showSuccess">
         <div class="alert alert-success" >Tags successfully updated</div>
     </div>

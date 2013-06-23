@@ -44,7 +44,7 @@ trait SessionResources extends ResourceHelper {
     }
     val post = createObject(t => toSession(eventId, None, t), storage.saveSession, (s : Session) => Seq("events", eventId, "sessions", s.id.get))
 
-    get | post
+    get | post | publish(eventId)
   }
 
   def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
@@ -53,9 +53,14 @@ trait SessionResources extends ResourceHelper {
       val updated = toSession(eventId, Some(sessionId), t)
       storage.getSession(eventId, sessionId).map(s => updated.copy(tags = s.tags ++ updated.tags)).getOrElse(updated)
     }, storage.saveSession, sessionToItem(base)) {
-      c => c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", List(
+      c =>
+        val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords").
+          addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
+          addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
+          addProperty(ValueProperty("level").apply(ValueOptions, Level.values.map(l => ValueOption(l.name))))
+        c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", List(
         ValueProperty("email")
-      ), Some("Speaker by Email")))
+      ), Some("Speaker by Email"))).withTemplate(template)
     }
   } yield a
 
@@ -171,8 +176,8 @@ trait SessionResources extends ResourceHelper {
     })
   }
 
-  def publish(eventId: String)(implicit user: User) = for {
-    _ <- autocommit(POST)
+  private def publish(eventId: String)(implicit user: User) = for {
+    _ <- POST
     _ <- authenticated(user)
     _ <- contentType("text/uri-list")
     is <- inputStream

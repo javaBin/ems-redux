@@ -317,7 +317,7 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
       }
   });
 
-  
+  $scope.states = ["approved", "rejected", "pending"];
   $scope.updateTags = function() {
     $scope.showSuccess = false;
     var updatedTags = $("#myTags").tagit("assignedTags");    
@@ -336,6 +336,24 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
   $scope.updateSlot = function() {
     var href = $scope.selectedSlot;
     app.updateTarget($http, $scope, $window, "session slot", "slot=" + href);
+  }
+
+  $scope.updateSession = function() {
+    var session = $scope.session;
+    var template = session.object.toTemplate().toJSON();
+    $http({
+      url: app.wrapAjax(session.item.href),
+      method: "PUT",
+      headers: {"Content-Type": "application/vnd.collection+json", "If-Unmodified-Since": session.lastModified},
+      data: template
+    }).success(function () {
+        setTimeout(function(){
+          $window.location.reload();
+        }, 1000);
+      }).error(function(e) {
+        console.log(e);
+      });
+
   }
 
 });

@@ -16,3 +16,4 @@ case class DateResponseHeader(name: String, dateTime: DateTime) extends Responde
 
 
 object IfUnmodifiedSinceString extends StringHeader("If-Unmodified-Since")
+object IfModifiedSinceString extends StringHeader("If-Modified-Since")
