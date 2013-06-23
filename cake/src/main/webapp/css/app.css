@@ -14,3 +14,7 @@ body {
 div.paragraph {
     margin-bottom: 1em;
 }
+
+input.filter {
+    margin-bottom: 0;
+}
