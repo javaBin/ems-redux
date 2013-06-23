@@ -105,13 +105,13 @@ trait MongoDBStorage {
 
   def saveSlotInSession(eventId: String, sessionId: String, slot: Slot) = saveOrUpdate(
     getSession(eventId, sessionId).get,
-    (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("slotId" -> slot.id.get)),
+    (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("slotId" -> slot.id.get, "last-modified" -> DateTime.now.toDate)),
     db("session")
   )
 
   def saveRoomInSession(eventId: String, sessionId: String, room: Room) = saveOrUpdate(
     getSession(eventId, sessionId).get,
-    (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("roomId" -> room.id.get)),
+    (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("roomId" -> room.id.get, "last-modified" -> DateTime.now.toDate)),
     db("session")
   )
 
