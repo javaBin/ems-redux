@@ -281,6 +281,10 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
         }
         $scope.slotsBySession = filtered;
       });
+
+      $http.get(event.item.findLinkByRel("room collection").href).success(function (data) {
+        $scope.rooms = toCollection(data).mapItems(EmsRoom);
+      });
     });
 
     var query = root.findQueryByRel("event session by-slug");
@@ -325,7 +329,7 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
   }
 
   $scope.updateRoom = function() {
-    var href = $scope.selectedRoom.item.href;
+    var href = $scope.selectedRoom;
     app.updateTarget($http, $scope, $window, "session room", "room=" + href);
   }
 

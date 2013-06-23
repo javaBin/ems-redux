@@ -62,6 +62,16 @@
             <button class="btn btn-primary" ng-click="updateSlot()">Set Slot</button>
         </div>
     </div>
+    <div class="row row-padding" ng-show="signedIn">
+        <div class="span2">Assign Room</div>
+        <div class="span6">
+            <select class="span4" ng-model="selectedRoom">
+                <option ng-repeat="room in rooms" value="{{room.item.href}}">{{room.object.name}}</option>
+            </select>
+            &nbsp;
+            <button class="btn btn-primary" ng-click="updateRoom()">Set Room</button>
+        </div>
+    </div>
     <div ng-repeat="speaker in speakers">
         <h2>{{speaker.object.name}}</h2>
         <div class="row row-padding">
