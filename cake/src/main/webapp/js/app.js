@@ -355,6 +355,10 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
       });
 
   }
+  $scope.publish = function() {
+    var session = $scope.session;
+    app.publish($http, $scope, $window, session.item.findLinkByRel("publish").href, [session])
+  }
 
 });
 
@@ -376,6 +380,25 @@ app.postFormData = function($http, $scope, $window, href, data) {
       setTimeout(function(){
         $window.location.reload();
       }, 1000);
+
+    }).error(function(e) {
+      console.log(e);
+    });
+}
+
+app.publish = function($http, $scope, $window, href, sessionsToPublish) {
+  $http({
+    url: app.wrapAjax(href),
+    method: "POST",
+    headers: {"Content-Type": "text/uri-list"},
+    data: _.reduce(sessionsToPublish, function(agg, s){
+      return agg + s.item.href + "\r\n";
+    }, "")
+  }).success(function () {
+      $scope.showSuccess = true;
+      setTimeout(function(){
+        $window.location.reload();
+      }, 2000);
 
     }).error(function(e) {
       console.log(e);
