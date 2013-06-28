@@ -10,14 +10,14 @@ import unfiltered.response._
 import unfiltered.request._
 import unfiltered.directives._
 import Directives._
-import unfilteredx._
 import net.hamnaberg.json.collection._
 import ems.config.Config
 import ems.cj.{ValueOptions, ValueOption}
+import javax.servlet.http.HttpServletRequest
 
 trait SessionResources extends ResourceHelper {
 
-  def handleSessionList(eventId: String)(implicit u: User) = {
+  def handleSessionList(eventId: String)(implicit u: User): Directive[HttpServletRequest, Any, ResponseFunction[Any]] = {
     val get = for {
       _ <- GET
       params <- queryParams
@@ -42,9 +42,15 @@ trait SessionResources extends ResourceHelper {
         }
       }
     }
-    val post = createObject(t => toSession(eventId, None, t), storage.saveSession, (s : Session) => Seq("events", eventId, "sessions", s.id.get))
+    val newSession = createObject(t => toSession(eventId, None, t), storage.saveSession, (s : Session) => Seq("events", eventId, "sessions", s.id.get))
 
-    get | post | publish(eventId)
+    val post = for {
+      _ <- POST
+      ct <- when{case RequestContentType(ct) => ct}.orElse(BadRequest ~> ResponseString("Missing Content-Type header"))
+      res <- if (ct == "text/uri-list") publish(eventId) else newSession
+    } yield res
+
+    get | post
   }
 
   def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
@@ -158,7 +164,7 @@ trait SessionResources extends ResourceHelper {
   }
 
   private def getValidURIForPublish(eventId: String, u: URI) = {
-    val segments = URIBuilder(u).path.map(_.seg)
+    val segments = URIBuilder(u).path.map(_.seg).drop(1)
     segments match {
       case "events" :: `eventId` :: "sessions" :: id :: Nil => Seq(id)
       case _ => Nil
