@@ -164,11 +164,9 @@ trait SessionResources extends ResourceHelper {
   }
 
   private def getValidURIForPublish(eventId: String, u: URI) = {
-    val segments = URIBuilder(u).path.map(_.seg).drop(1)
-    segments match {
-      case "events" :: `eventId` :: "sessions" :: id :: Nil => Seq(id)
-      case _ => Nil
-    }
+    val path = u.getPath
+    val index = path.indexOf(s"/events/$eventId/sessions/")
+    if (index > 0) Seq(path.substring(path.lastIndexOf("/") + 1)) else Nil
   }
 
   private def publishNow(eventId: String, list: URIList) = {
