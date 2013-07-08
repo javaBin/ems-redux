@@ -74,7 +74,7 @@ object ContentDisposition {
   val headerName = "Content-Disposition"
 
   private val FilenameStar = """(?sm)(\w+);\s*filename\*=\s*(.*)""".r
-  private val Filename = """(?im)(\w+);\s*filename=\s*"?([a-z0-9\.\s]+)"?""".r
+  private val Filename = """(?im)(\w+);\s*filename=\s*"?([\w\.\s]+)"?""".r
   private val DT = """(?i)(\w+)""".r
 
   def apply(s: String): Option[ContentDisposition] = {

@@ -29,6 +29,19 @@ class ContentDispositionSpec extends Specification {
 
       ContentDisposition(input) must be equalTo(Some(expected))
     }
+    "Parse attachment value with underscore in filename" in {
+      val input = """attachment; FILENAME= "an_example.html""""
+      val expected = ContentDisposition(
+        DispositionType.ATTACHMENT,
+        Some("an_example.html")
+      )
+
+      ContentDisposition(input) must be equalTo(Some(expected))
+    }
+    "Parse attachment value with % in filename" in {
+      val input = """attachment; FILENAME= "an%example.html""""
+      ContentDisposition(input) must be equalTo None
+    }
     "Parse attachment header value correctly from example in rfc" in {
       val input = """attachment;
                           filename*= UTF-8''%e2%82%ac%20rates"""
