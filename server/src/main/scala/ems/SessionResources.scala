@@ -171,15 +171,12 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  private def publishNow(eventId: String, list: URIList) {
+  private def publishNow(eventId: String, list: URIList) = {
     val sessions = list.list.flatMap(getValidURIForPublish(eventId, _))
-
-    sessions.foreach(s => {
-      val session = storage.getSession(eventId, s)
-      session.foreach(sess =>
-        storage.saveSession(sess.publish)
-      )
-    })
+    storage.publishSessions(eventId, sessions).fold(
+      ex => BadRequest,
+      _ => NoContent
+    )
   }
 
   private def publish(eventId: String)(implicit user: User) = for {
@@ -193,7 +190,6 @@ trait SessionResources extends ResourceHelper {
     )
   } yield {
     publishNow(eventId, res)
-    NoContent
   }
 
   def handleSessionAttachments(eventId: String, sessionId: String)(implicit user: User) = {

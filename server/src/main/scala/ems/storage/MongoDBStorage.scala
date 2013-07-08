@@ -103,6 +103,13 @@ trait MongoDBStorage {
 
   def saveSession(session: Session) = saveOrUpdate(session, (s: Session, update) => s.toMongo(update), db("session"))
 
+  def publishSessions(eventId: String, sessions: Seq[String]): Either[Exception, Unit] = {
+    val result = db("session").update(MongoDBObject("eventId" -> eventId, "_id" -> MongoDBObject("$in" -> sessions)), MongoDBObject("$set" -> MongoDBObject("published" -> true)), multi = true)
+
+    val error = result.getLastError
+    if (error.ok()) Right(()) else Left(error.getException)
+  }
+
   def saveSlotInSession(eventId: String, sessionId: String, slot: Slot) = saveOrUpdate(
     getSession(eventId, sessionId).get,
     (s: Session, update) => MongoDBObject("$set" -> MongoDBObject("slotId" -> slot.id.get, "last-modified" -> DateTime.now.toDate)),
