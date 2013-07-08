@@ -17,7 +17,7 @@ class ContentDispositionSpec extends Specification {
         Some("genome.jpeg")
       )
 
-      actual.toString() must be equalTo(expected)
+      actual.toString() must be equalTo expected
     }
 
     "Parse inline header value correctly from example in rfc" in {
@@ -27,7 +27,7 @@ class ContentDispositionSpec extends Specification {
         Some("an example.html")
       )
 
-      ContentDisposition(input) must be equalTo(Some(expected))
+      ContentDisposition(input) must be equalTo Some(expected)
     }
     "Parse attachment value with underscore in filename" in {
       val input = """attachment; FILENAME= "an_example.html""""
@@ -36,9 +36,9 @@ class ContentDispositionSpec extends Specification {
         Some("an_example.html")
       )
 
-      ContentDisposition(input) must be equalTo(Some(expected))
+      ContentDisposition(input) must be equalTo Some(expected)
     }
-    "Parse attachment value with % in filename" in {
+    "Fail to parse attachment value with % in filename" in {
       val input = """attachment; FILENAME= "an%example.html""""
       ContentDisposition(input) must be equalTo None
     }
@@ -51,7 +51,7 @@ class ContentDispositionSpec extends Specification {
         Some(CharsetFilename("€ rates", Some(Charset.forName("UTF-8"))))
       )
 
-      ContentDisposition(input) must be equalTo(Some(expected))
+      ContentDisposition(input) must be equalTo Some(expected)
     }
   }
 }

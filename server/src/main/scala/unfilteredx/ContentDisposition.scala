@@ -74,12 +74,15 @@ object ContentDisposition {
   val headerName = "Content-Disposition"
 
   private val FilenameStar = """(?sm)(\w+);\s*filename\*=\s*(.*)""".r
-  private val Filename = """(?im)(\w+);\s*filename=\s*"?([\w\.\s]+)"?""".r
+  private val Filename = """(?im)(\w+);\s*filename=\s*"?(.*[^\"])"?""".r
   private val DT = """(?i)(\w+)""".r
+
+  private val Separators = "()<>@,;:\\\"%/[]?={}\t"
+  private val CTLs = ((0 to 31) ++ Seq(127)).map(_.toChar).mkString
 
   def apply(s: String): Option[ContentDisposition] = {
     s match {
-      case Filename(t, f) => Some(ContentDisposition(DispositionType(t), Some(f), None))
+      case Filename(t, f) if isValidToken(f) => Some(ContentDisposition(DispositionType(t), Some(f), None))
       case FilenameStar(t, f) => {
         Some(ContentDisposition(DispositionType(t), None, Some(CharsetFilename.decoded(f))))
       }
@@ -87,6 +90,9 @@ object ContentDisposition {
       case ss => None
     }
   }
+
+  private def isValidToken(s: String) = s.forall(c => Separators.indexOf(c) < 0 && CTLs.indexOf(c) < 0)
+
 }
 
 object Rfc3986 {
@@ -96,7 +102,7 @@ object Rfc3986 {
   def encode(input: String, charset: Charset): String = encode(input.getBytes(charset))
 
   private def encode(source: Array[Byte]): String = {
-    val bos = new ByteArrayOutputStream(source.length);
+    val bos = new ByteArrayOutputStream(source.length)
 
     source foreach (
       b => {
@@ -107,11 +113,11 @@ object Rfc3986 {
         else {
           bos.write('%')
 
-          val hex1 = Character.toUpperCase(Character.forDigit((byte >> 4) & 0xF, 16));
-          val hex2 = Character.toUpperCase(Character.forDigit(byte & 0xF, 16));
+          val hex1 = Character.toUpperCase(Character.forDigit((byte >> 4) & 0xF, 16))
+          val hex2 = Character.toUpperCase(Character.forDigit(byte & 0xF, 16))
 
-          bos.write(hex1);
-          bos.write(hex2);
+          bos.write(hex1)
+          bos.write(hex2)
         }
       }
       )
