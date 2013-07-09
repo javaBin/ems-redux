@@ -101,8 +101,6 @@ case class Session(id: Option[String],
 
   def withSlot(slot: Slot) = copy(slot = Some(slot))
 
-  def publish = if (published) this else copy(published = true)
-
   def withFormat(format: Format) = copy(abs = abs.withFormat(format))
 
   def withLevel(level: Level) = withAbstract(abs.withLevel(level))
@@ -131,7 +129,6 @@ case class Session(id: Option[String],
   def toMongo(update: Boolean): DBObject = {
     val base = MongoDBObject(
       "slug" -> slug,
-      "published" -> published,
       "tags" -> tags.map(_.name.noHtml),
       "keywords" -> keywords.map(_.name.noHtml),
       "state" -> state.name,
@@ -147,6 +144,7 @@ case class Session(id: Option[String],
       val obj = MongoDBObject(
         "_id" -> id.getOrElse(UUID.randomUUID().toString),
         "eventId" -> eventId,
+        "published" -> published,
         "roomId" -> room.flatMap(_.id),
         "slotId" -> slot.flatMap(_.id),
         "attachments" -> attachments.map(_.toMongo),
