@@ -14,6 +14,7 @@ import net.hamnaberg.json.collection._
 import ems.config.Config
 import ems.cj.{ValueOptions, ValueOption}
 import javax.servlet.http.HttpServletRequest
+import java.io.OutputStream
 
 trait SessionResources extends ResourceHelper {
 
@@ -51,6 +52,20 @@ trait SessionResources extends ResourceHelper {
     } yield res
 
     get | post
+  }
+
+  def handleAllTags(eventId: String)(implicit u: User) = for {
+    _ <- GET
+    _ <- authenticated(u)
+  } yield {
+    val tags = storage.getSessions(eventId)(u).flatMap(_.tags.map(_.name).toSeq).toSet[String]
+    JsonContent ~> new ResponseStreamer {
+      import org.json4s._
+      import org.json4s.native.JsonMethods._
+      def stream(os: OutputStream) {
+        os.write(compact(render(JObject(JField("tags", JArray(tags.map(JString).toList))))).getBytes("UTF-8"))
+      }
+    }
   }
 
   def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {

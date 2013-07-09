@@ -23,7 +23,8 @@ object converters {
       val links = List(
         Link(href.segments("sessions").build(), "session collection", Some("Sessions")),
         Link(href.segments("slots").build(), "slot collection", Some("Slots")),
-        Link(href.segments("rooms").build(), "room collection", Some("Rooms"))
+        Link(href.segments("rooms").build(), "room collection", Some("Rooms")),
+        Link(href.segments("tags").build(), "tag index", Some("Tags"))
       )
       Item(href.build(), properties, links)
     }
