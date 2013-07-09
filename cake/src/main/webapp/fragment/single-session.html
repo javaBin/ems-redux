@@ -72,17 +72,17 @@
             <button class="btn btn-primary" ng-click="updateRoom()">Set Room</button>
         </div>
     </div>
-    <div class="row row-padding">
+    <div class="row row-padding" ng-show="signedIn">
         <div class="span2">State</div>
         <div class="span6">
             <select class="span4" ng-model="session.object.state" ng-options="s for s in states"></select>
         </div>
     </div>
-    <div class="row row-padding">
+    <div class="row row-padding" ng-show="signedIn">
         <div class="span2">Update</div>
         <button class="btn btn-primary" ng-click="updateSession()">Update</button>
     </div>
-    <div class="row row-padding">
+    <div class="row row-padding" ng-show="signedIn">
         <div class="span2">Publish</div>
         <button class="btn btn-primary" ng-click="publish()">Publish</button>
     </div>

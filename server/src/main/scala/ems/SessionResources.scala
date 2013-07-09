@@ -63,6 +63,7 @@ trait SessionResources extends ResourceHelper {
         val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords").
           addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
           addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
+          addProperty(ValueProperty("state").apply(ValueOptions, State.values.map(s => ValueOption(s.name)))).
           addProperty(ValueProperty("level").apply(ValueOptions, Level.values.map(l => ValueOption(l.name))))
         c.addQuery(Query(URIBuilder(c.href).segments("speakers").build(), "speaker by-email", List(
         ValueProperty("email")

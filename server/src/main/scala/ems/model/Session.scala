@@ -335,4 +335,6 @@ object State {
 
   case object Pending extends State("pending")
 
+  val values: Seq[State] = Seq(Pending, Rejected, Approved)
+
 }

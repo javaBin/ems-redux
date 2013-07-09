@@ -291,7 +291,8 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
     if (query) {
       var url = query.expand({"event-slug": eventSlug, "session-slug": slug});
       $http.get(app.wrapAjax(url)).success(function (sessionCollection,status, headers) {
-        var session = EmsSession(toCollection(sessionCollection).headItem());
+        var collection = toCollection(sessionCollection);
+        var session = EmsSession(collection.headItem());
         session.lastModified = headers("last-modified");
         console.log("session: " + session.item.href);
         var speakerLink = session.item.findLinkByRel("speaker collection");
@@ -305,6 +306,9 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
         if ($rootScope.allTags) {
           avTags = $rootScope.allTags;
         }
+        if (collection.collection.template) {
+          $scope.states = collection.collection.template.get("state").options;
+        }
         $scope.signedIn = $rootScope.signedIn;
         myTags.tagit({ availableTags: avTags,autocomplete: {delay: 0, minLength: 1}});
         _.each($scope.session.object.tags,function(atag) {
@@ -317,7 +321,7 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
       }
   });
 
-  $scope.states = ["approved", "rejected", "pending"];
+
   $scope.updateTags = function() {
     $scope.showSuccess = false;
     var updatedTags = $("#myTags").tagit("assignedTags");    

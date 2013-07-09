@@ -38,6 +38,11 @@ function toTemplate(object) {
 
     return {
       data: dt,
+      get: function(name){
+        return _.find(dt, function(i){
+          return i.name === name;
+        })
+      },
       toJSON: function() {
         return JSON.stringify({template: {
           data: dt
@@ -74,6 +79,11 @@ function expandQuery(query, params) {
 function fixTemplate(t) {
   t.data = _.isArray(t.data) ? t.data : [];
   t.toObject = toObject(t.data);
+  t.get = function(name){
+    return _.find(t.data, function(i){
+      return i.name === name;
+    })
+  }
 }
 
 /**
