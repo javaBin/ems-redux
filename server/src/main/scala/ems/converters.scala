@@ -227,10 +227,10 @@ object converters {
   }
 
   private def getRel(a: URIAttachment) = {
-    val VideoSites = Set("vimeo.com", "www.vimeo.com", "youtube.com", "www.youtube.com")
+    val VideoSites = Set("player.vimeo.com", "vimeo.com", "www.vimeo.com", "youtube.com", "www.youtube.com")
     val mime = MIMEType.fromFilename(a.name).getOrElse(MIMEType.OctetStream)
     if (MIMEType.VideoAll.includes(mime) || VideoSites.contains(a.href.getHost)) { //TODO: Hack to allow for broken file names.
-      "enclosure video"
+      "alternate video"
     }
     else {
       "enclosure presentation"
