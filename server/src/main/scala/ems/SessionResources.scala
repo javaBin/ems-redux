@@ -3,7 +3,7 @@ package ems
 import model._
 import ems.converters._
 import java.net.URI
-import util.URIBuilder
+import ems.util.URIBuilder
 import security.User
 import io.Source
 import unfiltered.response._
@@ -68,7 +68,56 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
+  def handleSessionAndForms(eventId: String, sessionId: String)(implicit u: User) = {
+    val form = for {
+      _ <- POST
+      _ <- authenticated(u)
+      ct <- contentType("application/x-www-form-urlencoded")
+      params <- autocommit(when {
+        case Params(p) => p
+      }.orElse(BadRequest))
+      session <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+      _ <- ifUnmodifiedSince(session.lastModified)
+    } yield {
+      val tags = params.get("tag").filterNot(_.isEmpty)
+      val slot = params.get("slot").flatMap(_.headOption).flatMap{ slot =>
+        val id = URIBuilder(slot).path.last.seg
+        storage.getSlot(eventId, id)
+      }
+      val room = params.get("room").flatMap(_.headOption).flatMap{ room =>
+        val id = URIBuilder(room).path.last.seg
+        storage.getRoom(eventId, id)
+      }
+      //TODO: improve this.
+      var updated = session
+      if (tags.isDefined) {
+        updated = updated.withTags(tags.get.map(Tag).toSet[Tag])
+      }
+      if (slot.isDefined) {
+        updated = updated.withSlot(slot.get)
+      }
+      if (room.isDefined) {
+        updated = updated.withRoom(room.get)
+      }
+      if (updated == session) {
+        NoContent
+      } else {
+        storage.saveSession(updated).fold(
+          ex => InternalServerError ~> ResponseString(ex.getMessage),
+          s => NoContent
+        )
+      }
+    }
+    val cj = for {
+      _ <- PUT | GET
+      res <- handleSession(eventId, sessionId)
+    } yield {
+      res
+    }
+    form | cj
+  }
+
+  private def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => {
       val updated = toSession(eventId, Some(sessionId), t)
@@ -86,23 +135,17 @@ trait SessionResources extends ResourceHelper {
     }
   } yield a
 
-  def handleSessionTags(eventId: String, sessionId: String)(implicit u: User) =
-    handleSessionForm(eventId, sessionId, "tag", (tags, s) => {
-      val updated = s.withTags(tags.map(Tag).toSet[Tag])
-      storage.saveSession(updated)
-    })
-
   def handleSessionSlot(eventId: String, sessionId: String)(implicit u: User) = {
-    val get = for {
+    for {
       _ <- GET
-      a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+      a <- commit(getOrElse(storage.getSession(eventId, sessionId), NotFound))
       base <- baseURIBuilder
     } yield {
       HtmlContent ~> Html5(
         <html>
           <head><title>Rooms</title></head>
           <body>
-            <form method="post">
+            <form method="post" action={base.segments("events", eventId, "sessions", sessionId).toString}>
               <select name="slot" id="slot">
                 {
                 storage.getSlots(eventId).map{s =>
@@ -115,22 +158,12 @@ trait SessionResources extends ResourceHelper {
         </html>
       )
     }
-
-    val post = handleSessionForm(eventId, sessionId, "slot", (slots, s) => {
-      val slot = slots.headOption.flatMap{ slot =>
-        val id = URIBuilder(slot).path.last.seg
-        storage.getSlot(eventId, id)
-      }
-      slot.map(s => storage.saveSlotInSession(eventId, sessionId, s)).getOrElse(Left(new IllegalArgumentException("Not found")))
-    })
-
-    get | post
   }
 
   def handleSessionRoom(eventId: String, sessionId: String)(implicit u: User) = {
-    val get = for {
+    for {
       _ <- GET
-      a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+      a <- commit(getOrElse(storage.getSession(eventId, sessionId), NotFound))
       base <- baseURIBuilder
     } yield {
       HtmlContent ~> Html5(
@@ -150,33 +183,6 @@ trait SessionResources extends ResourceHelper {
         </html>
       )
     }
-
-    val post = handleSessionForm(eventId, sessionId, "room", (rooms, s) => {
-      val room = rooms.headOption.flatMap{ r =>
-        val id = URIBuilder(r).path.last.seg
-        storage.getRoom(eventId, id)
-      }
-      room.map(r => storage.saveRoomInSession(eventId, sessionId, r)).getOrElse(Left(new IllegalArgumentException("Not found")))
-    })
-
-    get | post
-  }
-
-  private def handleSessionForm(eventId: String, sessionId: String, name: String, update: (Seq[String], Session) => Either[Exception, Session])(implicit u: User) = for {
-    _ <- POST
-    _ <- authenticated(u)
-    href <- requestURI
-    base <- baseURIBuilder
-    _ <- contentType("application/x-www-form-urlencoded")
-    a <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
-    _ <- ifUnmodifiedSince(a.lastModified)
-    items <- parameterValues(name)
-  } yield {
-    val sessionHref = base.segments("events", eventId, "sessions", sessionId).build()
-    update(items, a).fold(
-      ex => InternalServerError ~> ResponseString(ex.getMessage),
-      s => SeeOther ~> Location(sessionHref.toString)
-    )
   }
 
   private def getValidURIForPublish(eventId: String, u: URI) = {

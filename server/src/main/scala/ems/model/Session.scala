@@ -122,7 +122,7 @@ case class Session(id: Option[String],
 
   def withSpeakers(speakers: Seq[Speaker]) = copy(speakers = speakers)
 
-  private def withAbstract(abs: Abstract) = copy(abs = abs)
+  def withAbstract(abs: Abstract) = copy(abs = abs)
 
   def withId(id: String) = copy(id = Some(id))
 

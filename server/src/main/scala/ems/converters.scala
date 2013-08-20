@@ -108,9 +108,9 @@ object converters {
       Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room")),
       Link(baseURIBuilder.segments("events", s.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
-    links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), Some(a.name)))
-    links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name)))
-    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot))))
+    links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
+    links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name))).toSeq
+    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot)))).toSeq
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()
@@ -150,7 +150,7 @@ object converters {
         List(
           ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq),
           ValueProperty("email", Some("Email"), Some(StringValue(s.email))),
-          ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue(_)))
+          ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue))
         )
       } else {
         Nil
@@ -159,7 +159,7 @@ object converters {
       val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id.get)
       val data = List(
         ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
-        ValueProperty("bio", Some("Bio"), s.bio.map(StringValue(_)))
+        ValueProperty("bio", Some("Bio"), s.bio.map(StringValue))
       ) ++ auths
       val photos = s.photo.map{a =>
         val binary = builder.segments("binary", a.id.get).build()
@@ -182,7 +182,7 @@ object converters {
     Event(id, name, Slug.makeSlug(name), venue, Nil, Nil)
   }
 
-  def toSession(eventId: String, id: Option[String], template: Template): Session = {
+  private def toAbstract(template: Template): Abstract = {
     val title = template.getPropertyValue("title").get.value.toString
     val body = template.getPropertyValue("body").map(_.value.toString)
     val outline = template.getPropertyValue("outline").map(_.value.toString)
@@ -192,10 +192,14 @@ object converters {
     val format = template.getPropertyValue("format").map(x => Format(x.value.toString))
     val level = template.getPropertyValue("level").map(x => Level(x.value.toString))
     val language = template.getPropertyValue("lang").map(x => new Locale(x.value.toString))
+    Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation))
+  }
+
+  def toSession(eventId: String, id: Option[String], template: Template): Session = {
+    val abs = toAbstract(template)
     val state = template.getPropertyValue("state").map(x => State(x.value.toString))
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
     val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
-    val abs = Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation))
     val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
     sess.copy(id = id)
   }
@@ -221,9 +225,9 @@ object converters {
   }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
-    case (a, Some(x: Seq[_])) => ListProperty(a, Some(a.capitalize), x.map(toValue(_)))
+    case (a, Some(x: Seq[_])) => ListProperty(a, Some(a.capitalize), x.map(toValue))
     case (a, Some(x: Map[_, _])) => ObjectProperty(a, Some(a.capitalize), x.map{case (k: Any, v: Any) => k.toString -> toValue(v)}.toMap)
-    case (a, b) => ValueProperty(a, Some(a.capitalize), b.map(toValue(_)))
+    case (a, b) => ValueProperty(a, Some(a.capitalize), b.map(toValue))
   }
 
   private def getRel(a: URIAttachment) = {
