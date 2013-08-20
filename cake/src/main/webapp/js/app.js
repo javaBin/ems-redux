@@ -1,4 +1,4 @@
-var app = angular.module('app', ['ngSanitize', 'ngCookies', 'ems-filters']).
+var app = angular.module('app', ['ngRoute','ngSanitize', 'ngCookies', 'ems-filters']).
   config(function ($routeProvider) {
     $routeProvider.
       when('/', {controller: 'Main', templateUrl: 'fragment/main.html'}).
@@ -64,6 +64,19 @@ app.controller('Navigation', function($scope, $location) {
 });
 
 app.controller('Login', function ($scope, $rootScope, $http, $cookies, $window) {
+  var clearAuthTokens = function() {
+    $rootScope.signedIn = false;
+    if ($cookies.username) {
+      delete $cookies.username
+    }
+    if ($scope.username) {
+      delete $scope.username;
+    }
+    if ($scope.password) {
+      delete $scope.password;
+    }
+  };
+
   var signIn = function () {
     if (!$rootScope.signedIn) {
       var postData = "username=" + $scope.username + "&password=" + $scope.password;
@@ -75,32 +88,20 @@ app.controller('Login', function ($scope, $rootScope, $http, $cookies, $window) 
       }).success(function () {
         $rootScope.signedIn = ((typeof $scope.username) !== "undefined");
         console.log("Sucessfully signed in as " + $scope.username);
-        $window.location.reload();
+        //$window.location.reload();
       }).error(function () {
-          $rootScope.signedIn = false;
-          if ($cookies.username) {
-            delete $cookies.username
-          }
-          if ($scope.username) {
-            delete $scope.username;
-          }
-          if ($scope.password) {
-            delete $scope.password;
-          }
+          clearAuthTokens();
         });
     }
   }
 
   var signOut = function () {
-    $rootScope.signedIn = false;
-    if ($cookies.username) {
-      delete $cookies.username;
-    }
+    clearAuthTokens();
     $http.post("logout").success(function () {
       console.log("Successfully logged out");
     }).error(function () {
         console.log("Failed logged out");
-      });
+    });
   }
 
   $scope.signIn = signIn;
@@ -329,17 +330,17 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
     var data = _.reduce(updatedTags, function(agg, e) {
       return agg + (agg.length > 0 ? "&" : "") + "tag=" + e;
     }, "");
-    app.updateTarget($http, $scope, $window, "session tag", data);
+    app.updateTarget($http, $scope, $window, data);
   }
 
   $scope.updateRoom = function() {
     var href = $scope.selectedRoom;
-    app.updateTarget($http, $scope, $window, "session room", "room=" + href);
+    app.updateTarget($http, $scope, $window, "room=" + href);
   }
 
   $scope.updateSlot = function() {
     var href = $scope.selectedSlot;
-    app.updateTarget($http, $scope, $window, "session slot", "slot=" + href);
+    app.updateTarget($http, $scope, $window, "slot=" + href);
   }
 
   $scope.updateSession = function() {
@@ -366,11 +367,8 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
 
 });
 
-app.updateTarget = function($http, $scope, $window, rel, data) {
-  var target = $scope.session.item.findLinkByRel(rel);
-  if (target) {
-    app.postFormData($http, $scope, $window, target.href, data);
-  }
+app.updateTarget = function($http, $scope, $window, data) {
+    app.postFormData($http, $scope, $window, $scope.session.item.href, data);
 }
 
 app.postFormData = function($http, $scope, $window, href, data) {

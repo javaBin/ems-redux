@@ -21,7 +21,7 @@
     </div>
     <div class="row row-padding">
         <div class="span2">Level</div>
-        <div class="span1"><span ng-repeat="icon in session.level.icons" title="{{session.level.name}}"><span class="{{icon}}"></span></span></div>
+        <div class="span1"><span ng-repeat="icon in session.level.icons track by $index" title="{{session.level.name}}"><span class="{{icon}}"></span></span></div>
         <div class="span2">Lang</div>
         <div class="span1">
             <img src="img/blank.gif" class="{{session.lang.css}}" alt="{{session.lang.title}}" />
@@ -56,7 +56,7 @@
         <div class="span2">Assign Slot</div>
         <div class="span6">
             <select class="span4" ng-model="selectedSlot">
-                <option ng-repeat="slot in slotsBySession(session)" value="{{slot.item.href}}">{{slot.day}} - {{slot.formatted}}</option>
+                <option ng-repeat="slot in slotsBySession(session)" value="{{slot.item.href}}" ng-selected="{{slot.item.href == session.slot.href}}">{{slot.day}} - {{slot.formatted}}</option>
             </select>
             &nbsp;
             <button class="btn btn-primary" ng-click="updateSlot()">Set Slot</button>
@@ -66,7 +66,7 @@
         <div class="span2">Assign Room</div>
         <div class="span6">
             <select class="span4" ng-model="selectedRoom">
-                <option ng-repeat="room in rooms" value="{{room.item.href}}">{{room.object.name}}</option>
+                <option ng-repeat="room in rooms" value="{{room.item.href}}" ng-selected="{{room.item.href == session.room.href}}">{{room.object.name}}</option>
             </select>
             &nbsp;
             <button class="btn btn-primary" ng-click="updateRoom()">Set Room</button>
