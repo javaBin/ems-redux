@@ -72,7 +72,7 @@ object Build extends sbt.Build {
     val unfilteredVersion = "0.6.8"
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
-      "net.hamnaberg.rest" %% "scala-json-collection" % "2.2-SNAPSHOT",
+      "net.hamnaberg.rest" %% "scala-json-collection" % "2.2",
       "org.jsoup" % "jsoup" % "1.7.2",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",
@@ -81,7 +81,7 @@ object Build extends sbt.Build {
     )
 
     lazy val cake = unfiltered ++ testDeps ++ joda ++ Seq(
-      "net.databinder.dispatch" %% "dispatch-core" % "0.10.0",
+      "net.databinder.dispatch" %% "dispatch-core" % "0.10.1",
       "commons-codec" % "commons-codec" % "1.7"
     )
 
