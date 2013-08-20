@@ -1,15 +1,15 @@
 package cake
 
 import crypto.JavaCryptoEncryption
-import unfiltered.request._
 import org.apache.commons.codec.binary.Base64
 import javax.servlet.http.HttpServletRequest
-import unfiltered.filter.Plan
-import unfiltered.filter.request.ContextPath
 import java.net.URI
 import dispatch._
-import unfiltered.response.{SetCookies, Ok}
 import unfiltered.Cookie
+import unfiltered.request._
+import unfiltered.response._
+import unfiltered.filter.Plan
+import unfiltered.filter.request.ContextPath
 import ems.config.Config
 
 
@@ -37,7 +37,7 @@ class LoginPlan extends Plan {
         }
 
       else {
-        Ok ~> SetCookies.discarding("username", "login")
+        BadRequest ~> SetCookies.discarding("username", "login")
       }
     }
     case req@ContextPath(_, Seg("logout" :: Nil)) & HostPort(h, port) => {
