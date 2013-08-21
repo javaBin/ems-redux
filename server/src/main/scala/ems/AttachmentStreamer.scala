@@ -7,7 +7,8 @@ import ems.storage.BinaryStorage
 
 object AttachmentStreamer {
   def apply(attachment: Attachment, storage: BinaryStorage) = {
-    ContentType(attachment.mediaType.getOrElse(MIMEType.OctetStream).toString) ~> ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader ~> new ResponseStreamer {
+    val ct: MIMEType = attachment.mediaType.filterNot(_ == MIMEType.OctetStream).orElse(MIMEType.fromFilename(attachment.name.toLowerCase)).getOrElse(MIMEType.OctetStream)
+    ContentType(ct.toString) ~> ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader ~> new ResponseStreamer {
       def stream(os: OutputStream) {
         val stream = storage.getStream(attachment)
         Streaming.copy(stream, os, closeOS = false)

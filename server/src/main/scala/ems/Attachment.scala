@@ -56,7 +56,7 @@ case class MIMEType(major: String, minor: String, parameters: Map[String, String
 }
 
 object MIMEType {
-  private val resolver = new MimetypesFileTypeMap()
+  private val resolver = new MimetypesFileTypeMap(classOf[MIMEType].getResourceAsStream("/META-INF/mime.types"))
 
   val All = MIMEType("*", "*")
   val ImageAll = MIMEType("image", "*")
