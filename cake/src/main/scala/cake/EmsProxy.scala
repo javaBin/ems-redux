@@ -28,7 +28,7 @@ class EmsProxy extends Plan {
     val promise = for {
       res <- Http(makeReq(req, url(href)))
     } yield {
-      Status(res.getStatusCode) ~> CopyHeaders(res) ~> new ResponseStreamer {
+      Status(res.getStatusCode) ~> CopyHeaders(res) ~> CacheControl("max-age=0") ~> new ResponseStreamer {
         def stream(os: OutputStream) {
           Streaming.copy(res.getResponseBodyAsStream, os, false)
         }
@@ -70,7 +70,7 @@ object CopyHeaders {
     new Responder[Any] {
       def respond(res: HttpResponse[Any]) {
         val headers: java.util.Map[String, java.util.List[String]] = resp.getHeaders
-        headers.asScala.foreach{
+        headers.asScala.filterNot(_._1.toLowerCase == "cache-control").foreach{
           case (n, list) => list.asScala.foreach(i => res.header(n, i))
         }
       }

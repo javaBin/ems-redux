@@ -1,5 +1,5 @@
 var app = angular.module('app', ['ngRoute','ngSanitize', 'ngCookies', 'ems-filters']).
-  config(function ($routeProvider) {
+  config(function ($routeProvider, $httpProvider) {
     $routeProvider.
       when('/', {controller: 'Main', templateUrl: 'fragment/main.html'}).
       when('/about', {controller: 'About', templateUrl: 'fragment/about.html'}).
@@ -7,6 +7,16 @@ var app = angular.module('app', ['ngRoute','ngSanitize', 'ngCookies', 'ems-filte
       when('/assign/:slug', {controller: 'AssignSlots', templateUrl: 'fragment/assign-slots.html'}).
       when('/events/:eventSlug/sessions/:slug', {controller: 'SingleSession', templateUrl: 'fragment/single-session.html'}).
       otherwise({redirectTo: '/'});
+    $httpProvider.interceptors.push(function($q) {
+      return {
+        'request': function(config) {
+          if (config) {
+            config.url = app.wrapAjax(config.url);
+            console.log(config);
+          }
+          return config || $q.when(config);
+        }
+      }});
   }).
   run(function ($http) {
     app.loadRoot($http, function (root) {
@@ -15,10 +25,15 @@ var app = angular.module('app', ['ngRoute','ngSanitize', 'ngCookies', 'ems-filte
   });
 
 app.wrapAjax = function (url) {
-  var documentLocation = URI(window.location.href);
-  var parsedURI = URI(url);
-  var actual = parsedURI.is("relative") ? parsedURI.absoluteTo(documentLocation) : parsedURI;
-  return URI("ajax").addQuery("href", actual).toString();
+  if (url.match(/server/)) {
+    console.log(url);
+    var documentLocation = URI(window.location.href);
+    var parsedURI = URI(url);
+    var actual = parsedURI.is("relative") ? parsedURI.absoluteTo(documentLocation) : parsedURI;
+    return URI("ajax").addQuery("href", actual).toString();
+  } else {
+    return url;
+  }
 }
 
 app.loadRoot = function ($http, cb) {
@@ -26,7 +41,7 @@ app.loadRoot = function ($http, cb) {
     var root = $('head link[rel="nofollow index"]').attr("href");
     console.log("The configured root is: " + root)
 
-    $http.get(app.wrapAjax(root), {cache: true}).success(function (data) {
+    $http.get(root, {cache: true}).success(function (data) {
       app.root = toCollection(data);
       cb(app.root);
     });
@@ -40,7 +55,7 @@ app.controller('LoadEvents', function ($scope, $http) {
   if (!app.events) {
     app.loadRoot($http, function (root) {
       var eventHref = root.findLinkByRel("event collection").href;
-      $http.get(app.wrapAjax(eventHref)).success(function (data) {
+      $http.get(eventHref).success(function (data) {
         var events = toCollection(data).mapItems(EmsEvent);
         app.events = events;
         $scope.events = events;
@@ -119,11 +134,11 @@ app.controller('About', function ($scope) {
 app.controller('AssignSlots', function($scope, $routeParams, $http) {
   app.loadRoot($http, function(root) {
     var query = root.findQueryByRel("event by-slug");
-    $http.get(app.wrapAjax(query.expand({"slug": $routeParams.slug})), {cache: true}).success(function (eventCollection) {
+    $http.get(query.expand({"slug": $routeParams.slug}), {cache: true}).success(function (eventCollection) {
       var event = EmsEvent(toCollection(eventCollection).headItem());
       var roomLink = event.item.findLinkByRel("room collection");
       var slotLink = event.item.findLinkByRel("slot collection");
-      $http.get(app.wrapAjax(slotLink.href)).success(function(data){
+      $http.get(slotLink.href).success(function(data){
         var slots = _.sortBy(toCollection(data).mapItems(EmsSlot), "start");
         var groupedSlots = _.groupBy(slots, function(s){
           return s.dayOfYear;
@@ -136,7 +151,7 @@ app.controller('AssignSlots', function($scope, $routeParams, $http) {
           return acc;
         }, {});
       });
-      $http.get(app.wrapAjax(roomLink.href)).success(function(data){
+      $http.get(roomLink.href).success(function(data){
         var rooms = toCollection(data).mapItems(EmsRoom);
         $scope.sessionByRoom = function(sessions, room) {
           return _.find(sessions, function(s){
@@ -146,7 +161,7 @@ app.controller('AssignSlots', function($scope, $routeParams, $http) {
         }
         $scope.rooms = rooms;
       });
-      $http.get(app.wrapAjax(event.sessions)).success(function (data) {
+      $http.get(event.sessions).success(function (data) {
         var sessions = _.filter(toCollection(data).mapItems(EmsSession), function(s) {
           return s.object.state === "approved";
         });
@@ -178,9 +193,9 @@ app.controller('SessionList', function ($scope, $routeParams, $http,$rootScope) 
   $scope.usedTags = [];
   app.loadRoot($http, function (root) {
     var query = root.findQueryByRel("event by-slug");
-    $http.get(app.wrapAjax(query.expand({"slug": $routeParams.slug})), {cache: true}).success(function (eventCollection) {
+    $http.get(query.expand({"slug": $routeParams.slug})).success(function (eventCollection) {
       var event = EmsEvent(toCollection(eventCollection).headItem());
-      $http.get(app.wrapAjax(event.sessions)).success(function (data) {
+      $http.get(event.sessions).success(function (data) {
         $scope.sessions = toCollection(data).mapItems(EmsSession);
         $scope.numSessions = $scope.sessions.length;
         $rootScope.allTags = _.uniq(_.flatten(_.map($scope.sessions,function(session) { return session.object.tags; })));
@@ -214,13 +229,13 @@ app.controller('SessionList', function ($scope, $routeParams, $http,$rootScope) 
               return usedTag.selected;
             }), "name");
 
-    $scope.filteredSessions = _.filter($scope.sessions,function(session) {    
+    $scope.filteredSessions = _.filter($scope.sessions,function(session) {
       return (
         (($scope.filterValues.title === "") || (session.object.title.toLowerCase().indexOf($scope.filterValues.title.toLowerCase()) !== -1)) &&
         (($scope.filterValues.speakers === "") || (session.speakersAsString.toLowerCase().indexOf($scope.filterValues.speakers.toLowerCase()) !== -1)) &&
         (($scope.filterValues.presType === "both") || ($scope.filterValues.presType === session.format.name)) &&
         (!session.object.tags || (_.intersection(session.object.tags,usedT).length === usedT.length))
-        );  
+        );
     });
     $scope.showingSessions = $scope.filteredSessions.length;
   }
@@ -234,7 +249,7 @@ app.controller('SessionList', function ($scope, $routeParams, $http,$rootScope) 
     _.each($scope.usedTags,function(usedTag) {
       usedTag.selected = false;
     });
-    $scope.filterChanged();    
+    $scope.filterChanged();
   }
 
   $scope.filterPresType = function(val) {
@@ -259,14 +274,14 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
   var eventSlug = $routeParams.eventSlug;
   var slug = $routeParams.slug;
   app.loadRoot($http, function (root) {
-    $http.get(app.wrapAjax(root.findQueryByRel("event by-slug").expand({"slug": eventSlug})), {cache: true}).success(function (eventCollection) {
+    $http.get(root.findQueryByRel("event by-slug").expand({"slug": eventSlug}), {cache: true}).success(function (eventCollection) {
       var event = EmsEvent(toCollection(eventCollection).headItem());
       $http.get(event.item.findLinkByRel("slot collection").href).success(function (data) {
         var slots = _.sortBy(toCollection(data).mapItems(EmsSlot), "start");
-        var filtered = function(session) {
+        $scope.slotsBySession = function (session) {
           if (session) {
             var durationInMinutes;
-            switch(session.object.format) {
+            switch (session.object.format) {
               case "lightning-talk":
                 durationInMinutes = 10;
                 break;
@@ -274,34 +289,35 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
                 durationInMinutes = 60;
                 break;
             }
-            return _.filter(slots, function(s) {
+            return _.filter(slots, function (s) {
               return s.duration === durationInMinutes;
             });
           }
           return slots;
-        }
-        $scope.slotsBySession = filtered;
+        };
       });
 
       $http.get(event.item.findLinkByRel("room collection").href).success(function (data) {
         $scope.rooms = toCollection(data).mapItems(EmsRoom);
+        console.log($scope.rooms);
+        if ($scope.session) {
+          console.log($scope.session.room.href)
+        }
       });
     });
 
     var query = root.findQueryByRel("event session by-slug");
     if (query) {
       var url = query.expand({"event-slug": eventSlug, "session-slug": slug});
-      $http.get(app.wrapAjax(url)).success(function (sessionCollection,status, headers) {
+      $http.get(url).success(function (sessionCollection,status, headers) {
         var collection = toCollection(sessionCollection);
         var session = EmsSession(collection.headItem());
         session.lastModified = headers("last-modified");
-        console.log("session: " + session.item.href);
         var speakerLink = session.item.findLinkByRel("speaker collection");
-        $http.get(app.wrapAjax(speakerLink.href)).success(function (speakerCollection) {
+        $http.get(speakerLink.href).success(function (speakerCollection) {
           $scope.speakers = toCollection(speakerCollection).mapItems(EmsSpeaker);
         });
         $scope.session = session;
-
         var myTags = $("#myTags");
         var avTags = [];
         if ($rootScope.allTags) {
@@ -325,7 +341,7 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
 
   $scope.updateTags = function() {
     $scope.showSuccess = false;
-    var updatedTags = $("#myTags").tagit("assignedTags");    
+    var updatedTags = $("#myTags").tagit("assignedTags");
     $scope.session.object.tags = updatedTags;
     var data = _.reduce(updatedTags, function(agg, e) {
       return agg + (agg.length > 0 ? "&" : "") + "tag=" + e;
@@ -347,7 +363,7 @@ app.controller('SingleSession', function ($scope, $routeParams, $http, $window,$
     var session = $scope.session;
     var template = session.object.toTemplate().toJSON();
     $http({
-      url: app.wrapAjax(session.item.href),
+      url: session.item.href,
       method: "PUT",
       headers: {"Content-Type": "application/vnd.collection+json", "If-Unmodified-Since": session.lastModified},
       data: template
@@ -373,7 +389,7 @@ app.updateTarget = function($http, $scope, $window, data) {
 
 app.postFormData = function($http, $scope, $window, href, data) {
   $http({
-    url: app.wrapAjax(href),
+    url: href,
     method: "POST",
     headers: {"Content-Type": "application/x-www-form-urlencoded", "If-Unmodified-Since": $scope.session.lastModified},
     data: data
@@ -390,7 +406,7 @@ app.postFormData = function($http, $scope, $window, href, data) {
 
 app.publish = function($http, $scope, $window, href, sessionsToPublish) {
   $http({
-    url: app.wrapAjax(href),
+    url: href,
     method: "POST",
     headers: {"Content-Type": "text/uri-list"},
     data: _.reduce(sessionsToPublish, function(agg, s){
