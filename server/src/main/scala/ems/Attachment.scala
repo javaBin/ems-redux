@@ -37,7 +37,7 @@ object URIAttachment {
     val mt = m.getAs[String]("mime-type").flatMap(MIMEType(_))
     val name = m.getAs[String]("name").get
     val size = m.getAs[Long]("size")
-    val lastModified = m.as[JDate]("last-modified")
+    val lastModified = m.getAsOrElse[JDate]("last-modified", new JDate())
     URIAttachment(id, href, name, size, mt, new DateTime(lastModified))
   }
 }
