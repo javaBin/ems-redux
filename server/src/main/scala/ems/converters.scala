@@ -149,8 +149,7 @@ object converters {
       val auths = if (user.authenticated) {
         List(
           ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq),
-          ValueProperty("email", Some("Email"), Some(StringValue(s.email))),
-          ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue))
+          ValueProperty("email", Some("Email"), Some(StringValue(s.email)))
         )
       } else {
         Nil
@@ -159,7 +158,8 @@ object converters {
       val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id.get)
       val data = List(
         ValueProperty("name", Some("Name"), Some(StringValue(s.name))),
-        ValueProperty("bio", Some("Bio"), s.bio.map(StringValue))
+        ValueProperty("bio", Some("Bio"), s.bio.map(StringValue)),
+        ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue))
       ) ++ auths
       val photos = s.photo.map{a =>
         val binary = builder.segments("binary", a.id.get).build()

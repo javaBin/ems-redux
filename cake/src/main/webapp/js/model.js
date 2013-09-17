@@ -65,13 +65,14 @@ function EmsSpeaker(i) {
   var obj = i.toObject();
   var result = {
     item: i,
-    object: obj
+    object: obj,
+    zipcode: obj["zip-code"]
   };
   var photo = i.findLinkByRel("photo");
   if (photo && ("image" === photo.render)) {
     result.photo = photo.href;
   }
-
+  console.log(result);
   return result;
 }
 
