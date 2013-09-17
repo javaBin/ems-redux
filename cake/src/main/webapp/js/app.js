@@ -12,7 +12,6 @@ var app = angular.module('app', ['ngRoute','ngSanitize', 'ngCookies', 'ems-filte
         'request': function(config) {
           if (config) {
             config.url = app.wrapAjax(config.url);
-            console.log(config);
           }
           return config || $q.when(config);
         }
@@ -26,7 +25,6 @@ var app = angular.module('app', ['ngRoute','ngSanitize', 'ngCookies', 'ems-filte
 
 app.wrapAjax = function (url) {
   if (url.match(/server/)) {
-    console.log(url);
     var documentLocation = URI(window.location.href);
     var parsedURI = URI(url);
     var actual = parsedURI.is("relative") ? parsedURI.absoluteTo(documentLocation) : parsedURI;

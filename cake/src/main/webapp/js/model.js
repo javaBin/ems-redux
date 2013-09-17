@@ -72,7 +72,6 @@ function EmsSpeaker(i) {
   if (photo && ("image" === photo.render)) {
     result.photo = photo.href;
   }
-  console.log(result);
   return result;
 }
 
