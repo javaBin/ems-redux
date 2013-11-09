@@ -7,6 +7,7 @@ import ems.util.URIBuilder
 import security.User
 import io.Source
 import unfiltered.response._
+import unfilteredx._
 import unfiltered.request._
 import unfiltered.directives._
 import Directives._
@@ -43,7 +44,17 @@ trait SessionResources extends ResourceHelper {
         }
       }
     }
-    val newSession = createObject(t => toSession(eventId, None, t), storage.saveSession, (s : Session) => Seq("events", eventId, "sessions", s.id.get))
+    val newSession = for {
+      base <- baseURIBuilder
+      res <- createObject(
+        t => toSession(eventId, None, t),
+        storage.saveSession,
+        (s: Session) => Seq("events", eventId, "sessions", s.id.get),
+        (s: Session) => Seq(LinkHeader(base.segments("events", eventId, "sessions", s.id.get, "speakers").build(), "speaker collection"))
+      )
+    } yield {
+      res
+    }
 
     val post = for {
       _ <- POST

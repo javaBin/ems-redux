@@ -65,7 +65,8 @@ trait ResourceHelper extends EmsDirectives {
 
   private [ems] def createObject[A <: Entity[A]](fromTemplate: (Template) => A,
                                                  saveObject: (A) => Either[Exception, A],
-                                                 segments: (A) => Seq[String])
+                                                 segments: (A) => Seq[String],
+                                                 links: (A) => Seq[LinkHeader])
                                                 (implicit user: User): Directive[HttpServletRequest, Any, ResponseFunction[Any]] = {
     for {
       _ <- POST
@@ -76,7 +77,12 @@ trait ResourceHelper extends EmsDirectives {
       extract <- parsed
       e <- saveObject(extract)
     } yield {
-      Created ~> Location(rb.segments(segments(e) : _*).build().toString)
+      val l = links(e)
+      Created ~> Location(rb.segments(segments(e) : _*).build().toString) ~> new Responder[Any] {
+        def respond(res: HttpResponse[Any]) {
+          l.foreach(_.respond(res))
+        }
+      }
     }
   }
 
