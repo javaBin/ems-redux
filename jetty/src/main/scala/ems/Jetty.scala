@@ -12,14 +12,14 @@ object Jetty extends App {
 
   private val server = unfiltered.jetty.Http(port).
     context("/admin") {
-    _.filter(new cake.Application).filter(new cake.LoginPlan).filter(new cake.EmsProxy).resources(new File(getRoot, "cake/src/main/webapp").toURI.toURL)
+    _.filter(new cake.Application).filter(new cake.LoginPlan).filter(new cake.EmsProxy).resources(new File(root, "cake/src/main/webapp").toURI.toURL)
   }.context("/server") {
     _.filter(Resources(ems.security.JAASAuthenticator))
   }
   server.underlying.setSendDateHeader(true)
   server.run( _ => println("Running server at " + port))
 
-  def getRoot: File = {
+  lazy val root: File = {
     var parent = new File(getClass.getProtectionDomain.getCodeSource.getLocation.getFile)
     while (!new File(parent, "jetty").exists()) {
       parent = parent.getAbsoluteFile.getParentFile
