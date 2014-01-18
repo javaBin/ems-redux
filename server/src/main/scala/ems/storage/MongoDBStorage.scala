@@ -28,7 +28,7 @@ trait MongoDBStorage {
 
   def saveEvent(event: Event): Either[Exception, Event] = saveOrUpdate(event, (e: Event, update) => e.toMongo(update), db("event"))
 
-  def getSlots(eventId: String): Seq[Slot] = getEvent(eventId).map(_.slots).getOrElse(Nil)
+  def getSlots(eventId: String, parent: Option[String] = None): Seq[Slot] = getEvent(eventId).map(_.slots).getOrElse(Nil)
 
   def getSlot(eventId: String, id: String): Option[Slot] = {
     getEvent(eventId).map(_.slots).getOrElse(Nil).find(s => s.id.exists(_ == id))
@@ -254,12 +254,6 @@ trait MongoDBStorage {
     }
     db("session").find(builder.result()).map(Session(_, this)).toSeq
   }
-
-  def getChangedEvents(from: DateTime): Seq[Event] = {
-    val q = "last-modified" $gte from.toDate
-    db("event").find(q).map(Event.apply).toSeq
-  }
-
 
   def shutdown() {
     db.underlying.getMongo.close()

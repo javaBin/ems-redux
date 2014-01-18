@@ -15,25 +15,34 @@ import ems.cj.LinkCount
 
 trait EventResources extends SessionResources with SpeakerResources {
 
-  def handleSlots(id: String)(implicit user: User) = {
+  def handleSlots(eventId: String, parent: Option[String] = None)(implicit user: User) = {
     val get = for {
       _ <- autocommit(GET)
-      e <- getOrElse(storage.getEvent(id), NotFound)
+      e <- getOrElse(storage.getEvent(eventId), NotFound)
       base <- baseURIBuilder
     } yield {
-      val items = e.slots.map(slotToItem(base, id))
-      val href = base.segments("events", id, "slots").build()
+      val slots = storage.getSlots(eventId, parent)
+      val items = slots.map(slotToItem(base, eventId))
+      val href = base.segments("events", eventId, "slots").build()
       CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("start", "end"))))
     }
 
     val post = createObject[Slot](
       toSlot(_: Template, None),
-      storage.saveSlot(id, _ : Slot),
-      (s: Slot) => List("events", id, "slots", s.id.get),
+      storage.saveSlot(eventId, _ : Slot),
+      (s: Slot) => List("events", eventId, "slots", s.id.get),
       (s: Slot) => Nil
     )
     get | post
   }
+
+  def handleSlot(eventId: String, id: String, parent: Option[String] = None)(implicit user: User) = for {
+    slot <- getOrElse(storage.getSlot(eventId, id), NotFound)
+    base <- baseURIBuilder
+    res <- handleObject(Some(slot), (t: Template) => toSlot(t, Some(id)),
+      storage.saveSlot(eventId, _ : Slot),
+      slotToItem(base, eventId))(identity)
+  } yield res
 
   def handleRooms(id: String)(implicit user: User) = {
     val get = for {

@@ -13,7 +13,7 @@ import ems.config.Config
 import unfiltered.directives.{Result, Directive}
 import unfiltered.directives.Directives._
 
-class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler with ChangelogResources {
+class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
   val Intent = Directive.Intent[HttpServletRequest, String]{ case ContextPath(_, path) => path }
 
   import auth._
@@ -26,15 +26,17 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
 
   private def pathMapper(implicit user: User): PartialFunction[String, HttpRequest[HttpServletRequest] => Result[Any, ResponseFunction[Any]]] = {
     case Seg(Nil) => handleRoot
-    case Seg("changelog" :: Nil) => handleChangelog
     case Seg("events" :: Nil) => handleEventList
     case Seg("events" :: id :: Nil) => handleEvent(id)
     case Seg("events" :: eventId :: "slots" :: Nil) => handleSlots(eventId)
+    case Seg("events" :: eventId :: "slots" :: id :: Nil) => handleSlot(eventId, id)
+    case Seg("events" :: eventId :: "slots" :: parentId :: "children" :: Nil) => handleSlots(eventId, Some(parentId))
+    case Seg("events" :: eventId :: "slots" :: parentId :: "children" :: id :: Nil) => handleSlot(eventId, id, Some(parentId))
     case Seg("events" :: eventId :: "tags" :: Nil) => handleAllTags(eventId)
     case Seg("events" :: eventId :: "rooms" :: Nil) => handleRooms(eventId)
     case Seg("events" :: eventId :: "sessions" :: Nil) => handleSessionList(eventId)
+    case Seg("events" :: eventId :: "sessions" :: "changelog" ::  Nil) => handleChangelog
     case Seg("events" :: eventId :: "sessions" :: id :: Nil) => handleSessionAndForms(eventId, id)
-    case Seg("events" :: eventId :: "sessions" :: sessionId :: "slot" :: Nil) => handleSessionSlot(eventId, sessionId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "room" :: Nil) => handleSessionRoom(eventId, sessionId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil) => handleSessionAttachments(eventId, sessionId)
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil) => handleSpeakers(eventId, sessionId)
@@ -42,7 +44,7 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Seg("binary" :: id :: Nil) => handleAttachment(id)
     case Seg("redirect" :: Nil) => handleRedirect
-    case _ => unfiltered.directives.Directives.failure(NotFound)
+    case _ => failure(NotFound)
   }
 
   val handleRedirect = for {

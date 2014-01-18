@@ -3,7 +3,7 @@ package ems
 import model._
 import ems.converters._
 import java.net.URI
-import ems.util.URIBuilder
+import ems.util.{RFC3339, URIBuilder}
 import security.User
 import io.Source
 import unfiltered.response._
@@ -146,31 +146,6 @@ trait SessionResources extends ResourceHelper {
     }
   } yield a
 
-  def handleSessionSlot(eventId: String, sessionId: String)(implicit u: User) = {
-    for {
-      _ <- GET
-      a <- commit(getOrElse(storage.getSession(eventId, sessionId), NotFound))
-      base <- baseURIBuilder
-    } yield {
-      HtmlContent ~> Html5(
-        <html>
-          <head><title>Rooms</title></head>
-          <body>
-            <form method="post" action={base.segments("events", eventId, "sessions", sessionId).toString}>
-              <select name="slot" id="slot">
-                {
-                storage.getSlots(eventId).map{s =>
-                  <option value={base.segments("events", eventId, "slots", s.id.get).toString}>{formatSlot(s)}</option>
-                }
-                }
-              </select>
-            </form>
-          </body>
-        </html>
-      )
-    }
-  }
-
   def handleSessionRoom(eventId: String, sessionId: String)(implicit u: User) = {
     for {
       _ <- GET
@@ -195,6 +170,27 @@ trait SessionResources extends ResourceHelper {
       )
     }
   }
+
+  def handleChangelog(implicit u: User) = for {
+    _ <- autocommit(GET)
+    _ <- authenticated(u)
+    base <- baseURIBuilder
+    href <- requestURI
+    p <- queryParams
+  } yield {
+    val query = p("from").headOption.toRight("Missing from date").right.flatMap(s => RFC3339.parseDateTime(s))
+
+    val items = query match {
+      case Right(dt) => Right(storage.getChangedSessions(dt).map(converters.sessionToItem(base)))
+      case Left(e) => Left(Error("Missing entity and " + e, None, None))
+    }
+    items.fold(
+      msg => BadRequest ~> CollectionJsonResponse(JsonCollection(href, msg)),
+      it => {
+        CollectionJsonResponse(JsonCollection(href, Nil, it.toList)) ~> CacheControl("max-age=5,no-transform")
+      })
+  }
+
 
   private def getValidURIForPublish(eventId: String, u: URI) = {
     val path = u.getPath
