@@ -1,3 +1,5 @@
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.{Path, Files}
 import sbt._
 import sbt.Keys._
 import com.earldouglas.xsbtwebplugin.WebappPlugin._
@@ -44,6 +46,11 @@ object Build extends sbt.Build {
     libraryDependencies ++= Dependencies.jetty
   ) ++ startScriptForClassesSettings).dependsOn(cake, server)
 
+  lazy val dist = module("dist")(settings = Seq(
+    Dist.defaultDist,
+    libraryDependencies ++= Dependencies.dist
+  ))
+
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],
     projectId: String = "ems-" + moduleName,
@@ -86,6 +93,9 @@ object Build extends sbt.Build {
     )
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % unfilteredVersion)
+    lazy val dist = Seq(
+      "org.eclipse.jetty.aggregate" % "jetty-all" % "9.1.0.v20131115"
+    )
 
     val config = Seq(
       "org.constretto" % "constretto-core" % "2.0.3",
@@ -105,7 +115,63 @@ object Build extends sbt.Build {
     private val unfiltered = Seq(
       "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
       "net.databinder" %% "unfiltered-directives" % unfilteredVersion,
+      "org.slf4j" % "slf4j-api" % "1.7.5",
+      "org.slf4j" % "slf4j-simple" % "1.7.5",
       "javax.servlet" % "servlet-api" % "2.5" % "provided"
     )
   }
+
+  object Dist {
+    import com.earldouglas.xsbtwebplugin._
+
+    val serverDist = TaskKey[File]("dist", "Creates a distributable zip file containing the publet standalone server.")
+
+    lazy val defaultDist = serverDist <<= (baseDirectory in Compile, packageBin in Compile, managedClasspath in Compile, PluginKeys.packageWar.in(server).in(Compile), PluginKeys.packageWar.in(cake).in(Compile), Keys.target, Keys.name, Keys.version) map { (base: File, runner: File, cp: Keys.Classpath, server:File, cake: File, target:File, name:String, version:String) =>
+      val distdir = target / (name +"-"+ version)
+      val zipFile = target / (name +"-"+ version +".zip")
+      IO.delete(zipFile)
+      IO.delete(distdir)
+
+      val distSrc = base / "src" / "dist"
+      val root = distdir / "root"
+      val runnerJar = root / "jetty.jar"
+      val lib = root / "lib"
+      val webapps = root / "webapps"
+
+      IO.createDirectories(Seq(distdir, root, lib, webapps))
+
+      IO.copyDirectory(distSrc, distdir, overwrite = false)
+
+      val bin = root / "bin"
+
+      def fixPermissions(path: Path) = {
+        val permissions = new java.util.HashSet(Files.getPosixFilePermissions(path))
+        permissions.add(PosixFilePermission.OWNER_EXECUTE)
+        permissions.add(PosixFilePermission.GROUP_EXECUTE)
+        permissions.add(PosixFilePermission.OTHERS_EXECUTE)
+        Files.setPosixFilePermissions(path, permissions)
+      }
+
+      IO.listFiles(bin).foreach(f => fixPermissions(f.toPath))
+
+      IO.copyFile(runner, runnerJar)
+
+      cp.foreach(f => IO.copyFile(f.data, lib / f.data.getName))
+
+      val runnerFile = root / "jetty.jar"
+      IO.copyFile(runner, runnerFile)
+
+      val serverFile = webapps / "server.war"
+      IO.copyFile(server, serverFile)
+
+      val cakeFile = webapps / "admin.war"
+      IO.copyFile(cake, cakeFile)
+
+      def entries(f: File):List[File] = f :: (if (f.isDirectory) IO.listFiles(f).toList.flatMap(entries) else Nil)
+
+      IO.zip(entries(distdir).map(d => (d, d.getAbsolutePath.substring(distdir.getParent.length))), zipFile)
+      zipFile
+    }
+  }
 }
+
