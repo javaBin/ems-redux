@@ -293,11 +293,14 @@ object Format {
     case LightningTalk.name => Some(LightningTalk)
     case Panel.name => Some(Panel)
     case BoF.name => Some(BoF)
+    case Workshop.name => Some(Workshop)
     case _ => None
   }
 
 
   case object Presentation extends Format("presentation")
+
+  case object Workshop extends Format("workshop")
 
   case object LightningTalk extends Format("lightning-talk")
 
