@@ -80,6 +80,7 @@ object Build extends sbt.Build {
 
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
       "net.hamnaberg.rest" %% "scala-json-collection" % "2.2",
+      "com.andersen-gott" %% "scravatar" % "1.0.2",
       "org.jsoup" % "jsoup" % "1.7.2",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",

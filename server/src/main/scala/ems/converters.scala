@@ -8,6 +8,7 @@ import ems.util.RFC3339
 import java.util.Locale
 import net.hamnaberg.json.collection.Value._
 import security.User
+import scravatar.Gravatar
 
 
 object converters {
@@ -167,7 +168,9 @@ object converters {
           Link(binary, "photo", None, None, Some(Render.IMAGE)),
           Link(URIBuilder.apply("http://proxy.boxresizer.com/convert?resize=100x100").queryParam("source", binary.toString).build(), "thumbnail", None, None, Some(Render.IMAGE))
         )
-      }.getOrElse(Nil)
+      }.getOrElse(List(
+        Link(URI.create(Gravatar(s.email).default(scravatar.IdentIcon).size(100).avatarUrl), "thumbnail", None, None, Some(Render.IMAGE))
+      ))
       Item(
         base.build(),
         data,
