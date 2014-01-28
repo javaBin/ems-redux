@@ -15,5 +15,6 @@ for line in $(app cat-conf -g jetty | cut -f 2- -d .)
 do
   ARGS="$ARGS -D$line"
 done
+echo "Running java ${ARGS}"
 exec java ${ARGS} \
    2>&1

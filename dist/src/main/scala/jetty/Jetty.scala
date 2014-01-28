@@ -10,7 +10,7 @@ import java.io.File
 object Jetty extends App {
   val home = new File(Properties.envOrElse("EMS_HOME", Properties.propOrElse("EMS_HOME", "."))).getAbsoluteFile
 
-  val server = new Server(Properties.propOrElse("jetty.port", "8081").toInt)
+  val server = new Server(Properties.propOrElse("port", "8081").trim.toInt)
 
   server.setStopAtShutdown(true)
   server.setSessionIdManager(new HashSessionIdManager())

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+if [ ! -d $APP_HOME/etc ]; then
+  cp -a $APP_HOME/current/etc $APP_HOME/etc
+fi

@@ -128,7 +128,7 @@ object Build extends sbt.Build {
 
     val serverDist = TaskKey[File]("dist", "Creates a distributable zip file containing the publet standalone server.")
 
-    lazy val defaultDist = serverDist <<= (baseDirectory in Compile, packageBin in Compile, managedClasspath in Compile, PluginKeys.packageWar.in(server).in(Compile), PluginKeys.packageWar.in(cake).in(Compile), Keys.target, Keys.name, Keys.version) map { (base: File, runner: File, cp: Keys.Classpath, server:File, cake: File, target:File, name:String, version:String) =>
+    lazy val defaultDist = serverDist <<= (baseDirectory in Compile, packageBin in Compile, managedClasspath in Compile, sourceDirectory.in(config).in(Compile), PluginKeys.packageWar.in(server).in(Compile), PluginKeys.packageWar.in(cake).in(Compile), Keys.target, Keys.name, Keys.version) map { (base: File, runner: File, cp: Keys.Classpath, configSrc:File, server:File, cake: File, target:File, name:String, version:String) =>
       val distdir = target / (name +"-"+ version)
       val zipFile = target / (name +"-"+ version +".zip")
       IO.delete(zipFile)
@@ -138,6 +138,7 @@ object Build extends sbt.Build {
       val root = distdir / "root"
       val runnerJar = root / "jetty.jar"
       val lib = root / "lib"
+      val etc = root / "etc"
       val webapps = root / "webapps"
 
       IO.createDirectories(Seq(distdir, root, lib, webapps))
@@ -148,15 +149,11 @@ object Build extends sbt.Build {
 
       IO.copyFile(runner, runnerJar)
 
+      IO.copyFile(configSrc / "resources" / "config.ini", etc / "config.ini")
 
-      val runnerFile = root / "jetty.jar"
-      IO.copyFile(runner, runnerFile)
+      IO.copyFile(server, webapps / "server.war")
 
-      val serverFile = webapps / "server.war"
-      IO.copyFile(server, serverFile)
-
-      val cakeFile = webapps / "admin.war"
-      IO.copyFile(cake, cakeFile)
+      IO.copyFile(cake, webapps / "admin.war")
 
       def entries(f: File):List[File] = f :: (if (f.isDirectory) IO.listFiles(f).toList.flatMap(entries) else Nil)
 
