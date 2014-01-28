@@ -1,5 +1,5 @@
-import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.{Path, Files}
+
+import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveOutputStream, ZipFile}
 import sbt._
 import sbt.Keys._
 import com.earldouglas.xsbtwebplugin.WebappPlugin._
@@ -81,6 +81,7 @@ object Build extends sbt.Build {
     lazy val server = joda ++ testDeps ++ unfiltered ++ Seq(
       "net.hamnaberg.rest" %% "scala-json-collection" % "2.2",
       "com.andersen-gott" %% "scravatar" % "1.0.2",
+      "com.sksamuel.scrimage" %% "scrimage-core" % "1.3.12",
       "org.jsoup" % "jsoup" % "1.7.2",
       "commons-io" % "commons-io" % "2.3",
       "org.mongodb" %% "casbah-core" % "2.5.0",
@@ -143,21 +144,10 @@ object Build extends sbt.Build {
 
       IO.copyDirectory(distSrc, distdir, overwrite = false)
 
-      val bin = root / "bin"
-
-      def fixPermissions(path: Path) = {
-        val permissions = new java.util.HashSet(Files.getPosixFilePermissions(path))
-        permissions.add(PosixFilePermission.OWNER_EXECUTE)
-        permissions.add(PosixFilePermission.GROUP_EXECUTE)
-        permissions.add(PosixFilePermission.OTHERS_EXECUTE)
-        Files.setPosixFilePermissions(path, permissions)
-      }
-
-      IO.listFiles(bin).foreach(f => fixPermissions(f.toPath))
+      cp.foreach(f => IO.copyFile(f.data, lib / f.data.getName))
 
       IO.copyFile(runner, runnerJar)
 
-      cp.foreach(f => IO.copyFile(f.data, lib / f.data.getName))
 
       val runnerFile = root / "jetty.jar"
       IO.copyFile(runner, runnerFile)
@@ -170,7 +160,29 @@ object Build extends sbt.Build {
 
       def entries(f: File):List[File] = f :: (if (f.isDirectory) IO.listFiles(f).toList.flatMap(entries) else Nil)
 
-      IO.zip(entries(distdir).map(d => (d, d.getAbsolutePath.substring(distdir.getParent.length))), zipFile)
+      def zip(files: Seq[File], file: File) {
+        val entries = files.map{ f =>
+          val path = f.getAbsolutePath.substring(distdir.toString.length)
+          val e = new ZipArchiveEntry(f, if (path.startsWith("/")) path.substring(1) else path)
+          if (path.contains("bin") || path.contains("hooks") && f.isFile) {
+            e.setUnixMode(0755)
+          }
+          (f, e)
+        }
+
+        val os = new ZipArchiveOutputStream(file)
+        entries.foreach{case (f, e) =>
+          os.putArchiveEntry(e)
+          if (!f.isDirectory) {
+            IO.transfer(f, os)
+          }
+          os.closeArchiveEntry()
+        }
+        os.close()
+      }
+      
+      zip(entries(distdir).tail, zipFile)
+      println("Wrote " + zipFile)
       zipFile
     }
   }
