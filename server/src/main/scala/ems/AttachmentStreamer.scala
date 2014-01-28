@@ -4,14 +4,23 @@ import unfiltered.response.{ContentType, ResponseStreamer}
 import java.io.{InputStream, OutputStream}
 import unfilteredx.{DispositionType, ContentDisposition}
 import ems.storage.BinaryStorage
+import com.sksamuel.scrimage.Image
 
 object AttachmentStreamer {
-  def apply(attachment: Attachment, storage: BinaryStorage) = {
+  def apply(attachment: Attachment, storage: BinaryStorage, size: Option[String] = None) = {
     val ct: MIMEType = attachment.mediaType.filterNot(_ == MIMEType.OctetStream).orElse(MIMEType.fromFilename(attachment.name.toLowerCase)).getOrElse(MIMEType.OctetStream)
+
     ContentType(ct.toString) ~> ContentDisposition(DispositionType.ATTACHMENT, Some(attachment.name)).toResponseHeader ~> new ResponseStreamer {
       def stream(os: OutputStream) {
         val stream = storage.getStream(attachment)
-        Streaming.copy(stream, os, closeOS = false)
+        val sz = size.flatMap(ImageSize)
+        sz match {
+          case Some(ImageSize(_, width, height)) if MIMEType.ImageAll.includes(ct) => {
+            Image(stream).scaleTo(width, height).write(os)
+          }
+          case _ =>
+            Streaming.copy(stream, os, closeOS = false)
+        }
       }
     }
   }
@@ -31,4 +40,19 @@ object Streaming {
       if (os != null && closeOS) os.close()
     }
   }
+}
+
+sealed abstract class ImageSize(val name: String, val width: Int, val height: Int) {
+  override def toString = width + "x" + height
+}
+
+object ImageSize extends ((String) => Option[ImageSize]) {
+  def apply(name: String): Option[ImageSize] = name match {
+    case Thumb.name => Some(Thumb)
+    case _ => None
+  }
+
+  def unapply(is: ImageSize) = Some((is.name, is.width, is.height))
+
+  case object Thumb extends ImageSize("thumb", 100, 100)
 }

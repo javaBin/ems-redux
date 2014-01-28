@@ -5,6 +5,7 @@ import unfiltered.request._
 import unfiltered.directives._
 import Directives._
 import ems.security.User
+import com.sksamuel.scrimage.Image
 
 trait AttachmentHandler extends ResourceHelper {
 
@@ -12,8 +13,9 @@ trait AttachmentHandler extends ResourceHelper {
     val get = for {
       _ <- GET
       b <- getOrElse(storage.binary.getAttachment(id), NotFound)
+      params <- queryParams
     } yield {
-      AttachmentStreamer(b, storage.binary)
+      AttachmentStreamer(b, storage.binary, params("size").headOption)
     }
     val delete = for {
       _ <- DELETE

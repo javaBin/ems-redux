@@ -166,10 +166,10 @@ object converters {
         val binary = builder.segments("binary", a.id.get).build()
         List(
           Link(binary, "photo", None, None, Some(Render.IMAGE)),
-          Link(URIBuilder.apply("http://proxy.boxresizer.com/convert?resize=100x100").queryParam("source", binary.toString).build(), "thumbnail", None, None, Some(Render.IMAGE))
+          Link(URIBuilder(binary).queryParam("size", ImageSize.Thumb.name).build(), "thumbnail", None, Some(ImageSize.Thumb.toString), Some(Render.IMAGE))
         )
       }.getOrElse(List(
-        Link(URI.create(Gravatar(s.email).default(scravatar.IdentIcon).size(100).avatarUrl), "thumbnail", None, None, Some(Render.IMAGE))
+        Link(URI.create(Gravatar(s.email).default(scravatar.IdentIcon).size(100).avatarUrl), "thumbnail", None, Some("gravatar"), Some(Render.IMAGE))
       ))
       Item(
         base.build(),
