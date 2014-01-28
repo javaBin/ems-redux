@@ -5,6 +5,7 @@ import java.net.URI
 import org.constretto._
 import Constretto._
 import scala.util.Properties
+import org.constretto.internal.store.SystemPropertiesStore
 
 case class ServerConfig(binary: File, mongo: String, root: URI)
 
@@ -21,7 +22,8 @@ object Config {
         "classpath:config.ini",
         "file:/opt/jb/ems-redux/config.ini",
         s"file:$APP_HOME/etc/config.ini"
-      )
+      ),
+      new SystemPropertiesStore()
     ))
   }
 
@@ -37,4 +39,8 @@ object Config {
   val cache: CacheConfig = CacheConfig(
     constretto[Int]("cache.events"), constretto[Int]("cache.sessions")
   )
+
+  override def toString = {
+    List(server.toString, crypt.toString, cache.toString).mkString("Config:\n", "\n", "\n")
+  }
 }

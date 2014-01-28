@@ -6,7 +6,7 @@ exec 2>&1
 
 CLASSPATH="$APP_HOME/current/lib/*:$APP_HOME/current/jetty.jar"
 
-ARGS="-DEMS_HOME=$APP_HOME/current -cp $CLASSPATH jetty.Jetty"
+ARGS="-cp $CLASSPATH -DEMS_HOME=$APP_HOME/current -DAPP_HOME=$APP_HOME"
 
 echo "Starting jetty with classpath: $CLASSPATH"
 
@@ -15,6 +15,6 @@ for line in $(app cat-conf -g jetty | cut -f 2- -d .)
 do
   ARGS="$ARGS -D$line"
 done
-echo "Running java ${ARGS}"
-exec java ${ARGS} \
+echo "Running java ${ARGS} jetty.Jetty"
+exec java ${ARGS} jetty.Jetty \
    2>&1
