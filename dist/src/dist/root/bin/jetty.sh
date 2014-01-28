@@ -4,11 +4,9 @@ mkdir -p "$APP_HOME/logs"
 exec >> "$APP_HOME/logs/ems.out"
 exec 2>&1
 
-echo "INSTANCE DIRECTORY IS: $APPSH_INSTANCE_HOME"
-
 CLASSPATH="$APP_HOME/current/lib/*:$APP_HOME/current/jetty.jar"
 
-ARGS="-DAPP_HOME=$APP_HOME -cp $CLASSPATH jetty.Jetty"
+ARGS="-DEMS_HOME=$APP_HOME/current -cp $CLASSPATH jetty.Jetty"
 
 echo "Starting jetty with classpath: $CLASSPATH"
 

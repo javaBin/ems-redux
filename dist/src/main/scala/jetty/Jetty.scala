@@ -8,7 +8,7 @@ import org.eclipse.jetty.webapp.WebAppContext
 import java.io.File
 
 object Jetty extends App {
-  val home = new File(Properties.envOrElse("APP_HOME", ".")).getAbsoluteFile
+  val home = new File(Properties.envOrElse("EMS_HOME", Properties.propOrElse("EMS_HOME", "."))).getAbsoluteFile
 
   val server = new Server(Properties.propOrElse("jetty.port", "8081").toInt)
 
@@ -24,7 +24,7 @@ object Jetty extends App {
       new File(home, "webapps/admin.war").toString,
       "/admin"
     ))
-    collection.getHandlers.foreach(h => h.asInstanceOf[WebAppContext].setParentLoaderPriority(false))
+    collection.getHandlers.foreach(h => h.asInstanceOf[WebAppContext].setParentLoaderPriority(true))
     collection
   })
 

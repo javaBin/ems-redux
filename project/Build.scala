@@ -96,7 +96,8 @@ object Build extends sbt.Build {
 
     lazy val jetty = Seq("net.databinder" %% "unfiltered-jetty" % unfilteredVersion)
     lazy val dist = Seq(
-      "org.eclipse.jetty.aggregate" % "jetty-all" % "9.1.0.v20131115"
+      "org.eclipse.jetty.aggregate" % "jetty-all" % "9.1.0.v20131115",
+      "org.slf4j" % "slf4j-simple" % "1.7.5"
     )
 
     val config = Seq(
@@ -118,7 +119,6 @@ object Build extends sbt.Build {
       "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
       "net.databinder" %% "unfiltered-directives" % unfilteredVersion,
       "org.slf4j" % "slf4j-api" % "1.7.5",
-      "org.slf4j" % "slf4j-simple" % "1.7.5",
       "javax.servlet" % "servlet-api" % "2.5" % "provided"
     )
   }
