@@ -34,8 +34,8 @@ ZIP=$(_readWithDefault $DEFAULT_ZIP)
 ask "Til test eller prod? [test]"
 ENV=$(_readWithDefault "test")
 
-ask "Er? [test]"
-ENV=$(_readWithDefault "test")
+ask "Er det første gang du deployer til dette miljøet? [y|N]"
+FIRST_TIME=$(_readWithDefault "n")
 
 if [ ! -f $ZIP ]; then
     fail "Fant ikke $ZIP :("
@@ -47,14 +47,25 @@ fi
 
 if [ $ENV == "prod" ]; then
     HOST="212.71.237.26"
+    EMS_BASE="/home/javabin/web/ems"
 elif [ $ENV == "test" ]; then
     HOST="212.71.238.251"
+    EMS_BASE="/home/javabin/web/ems"
 else
     fail "Det du sa gav null mening!"
 fi
 
-info "Deployer til $ENV på $HOST:$BASE med zip $ZIP"
-scp $ZIP javabin@$HOST:/home/javabin/web/ems
+info "Deployer zip $ZIP til $ENV på $HOST:$BASE/ems.zip"
+scp $ZIP javabin@$HOST:$EMS_BASE/ems.zip
 
-info "Oppdaterer og restarter EMS"
-ssh javabin@$HOST "cd /home/javabin/web/ems/ems && app upgrade && app restart"
+if [ $FIRST_TIME == 'y' -o $FIRST_TIME == 'Y' ]; then
+    info "Initierer app.sh for EMS"
+    ssh javabin@$HOST "cd $EMS_BASE && \
+                       app init -d ems file $EMS_BASE/ems.zip"
+    info "Starter EMS"
+    ssh javabin@$HOST "cd $EMS_BASE/ems && app start"
+else
+    info "Oppdaterer og restarter EMS"
+    ssh javabin@$HOST "cd $EMS_BASE/ems && \
+                       app upgrade && app restart"
+fi
