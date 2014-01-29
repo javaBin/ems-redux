@@ -1,24 +1,24 @@
 
-import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveOutputStream, ZipFile}
+import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveOutputStream}
 import sbt._
 import sbt.Keys._
 import com.earldouglas.xsbtwebplugin.WebappPlugin._
 import com.typesafe.sbt.SbtStartScript._
+import aether.Aether._
 
 object Build extends sbt.Build {
 
   val liftJSONversion = "2.4"
 
   lazy val buildSettings = Defaults.defaultSettings ++ Seq(
-    organization := "no.java",
-    scalaVersion := "2.10.1",
+    organization := "no.java.ems",
+    scalaVersion := "2.10.3",
     scalacOptions := Seq("-deprecation"),
     pomIncludeRepository := {
       x => false
     },
-    resolvers += Resolvers.sonatypeNexusSnapshots,
     crossPaths := false
-  )
+  ) ++ aetherPublishBothSettings
 
   //TODO: Sbt should produce a POM artifact with modules for the aggregates
   lazy val root = Project(
@@ -48,8 +48,11 @@ object Build extends sbt.Build {
 
   lazy val dist = module("dist")(settings = Seq(
     Dist.defaultDist,
-    libraryDependencies ++= Dependencies.dist
-  ))
+    libraryDependencies ++= Dependencies.dist,
+    publishArtifact in (Compile, packageDoc) := false,
+    publishArtifact in (Compile, packageSrc) := false
+    ) ++ addArtifact(Artifact("ems-dist", "zip", "zip", "appsh"), Dist.serverDist in Compile)
+  )
 
   private def module(moduleName: String)(
     settings: Seq[Setting[_]],
@@ -126,7 +129,7 @@ object Build extends sbt.Build {
   object Dist {
     import com.earldouglas.xsbtwebplugin._
 
-    val serverDist = TaskKey[File]("dist", "Creates a distributable zip file containing the publet standalone server.")
+    val serverDist = TaskKey[File]("dist", "Creates a app.sh zip file.")
 
     lazy val defaultDist = serverDist <<= (baseDirectory in Compile, packageBin in Compile, managedClasspath in Compile, sourceDirectory.in(config).in(Compile), PluginKeys.packageWar.in(server).in(Compile), PluginKeys.packageWar.in(cake).in(Compile), Keys.target, Keys.name, Keys.version) map { (base: File, runner: File, cp: Keys.Classpath, configSrc:File, server:File, cake: File, target:File, name:String, version:String) =>
       val distdir = target / (name +"-"+ version)
