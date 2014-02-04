@@ -62,6 +62,8 @@ if [ $FIRST_TIME == 'y' -o $FIRST_TIME == 'Y' ]; then
     info "Initierer app.sh for EMS"
     ssh javabin@$HOST "cd $EMS_BASE && \
                        app init -d ems file $EMS_BASE/ems.zip"
+    info "Symlinker inn config-filen"
+    ssh javabin@$HOST "ln -s $EMS_BASE/config.ini $EMS_BASE/ems/etc/config.ini"
     info "Starter EMS"
     ssh javabin@$HOST "cd $EMS_BASE/ems && app start"
 else
