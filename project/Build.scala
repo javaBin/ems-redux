@@ -1,4 +1,5 @@
 
+import java.io.FileWriter
 import org.apache.commons.compress.archivers.zip.{ZipArchiveEntry, ZipArchiveOutputStream}
 import sbt._
 import sbt.Keys._
@@ -29,9 +30,19 @@ object Build extends sbt.Build {
     )
   ) aggregate(config, server, cake, jetty)
 
+  lazy val buildInfo = resourceGenerators in Compile <+=
+    (resourceManaged in Compile, version) map { (dir, v) =>
+      val file = dir / "build-info.properties"
+      val contents = "version=%s\ngit-sha=%s\n".format(v, Version.gitSha)
+      IO.write(file, contents)
+      Seq(file)
+    }
+
+
   lazy val config = module("config")(settings = Seq(
-    libraryDependencies ++= Dependencies.config
-  ) ++ webappSettings)
+    libraryDependencies ++= Dependencies.config,
+    buildInfo
+  ))
 
   lazy val server = module("server")(settings = Seq(
     libraryDependencies ++= Dependencies.server
@@ -71,7 +82,6 @@ object Build extends sbt.Build {
         }
     }
   }
-
 
   object Resolvers {
     val sonatypeNexusSnapshots = "Sonatype Nexus Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"

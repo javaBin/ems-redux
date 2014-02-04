@@ -12,6 +12,14 @@ import ems.storage.FilesystemBinaryStorage
 import ems.config.Config
 import unfiltered.directives.{Result, Directive}
 import unfiltered.directives.Directives._
+import org.json4s._
+import scala.Some
+import unfiltered.response.ContentType
+import unfiltered.response.ResponseString
+import org.json4s.native.JsonMethods._
+import scala.Some
+import unfiltered.response.ContentType
+import unfiltered.response.ResponseString
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
   val Intent = Directive.Intent[HttpServletRequest, String]{ case ContextPath(_, path) => path }
@@ -43,6 +51,14 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Seg("binary" :: id :: Nil) => handleAttachment(id)
     case Seg("redirect" :: Nil) => handleRedirect
+    case Seg("app-info" :: Nil) => {
+      for {
+        _ <- GET
+        res <- getOrElse(handleAppInfo, NotFound)
+      } yield {
+        res
+      }
+    }
     case _ => failure(NotFound)
   }
 
@@ -99,6 +115,26 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
       ), Some("Event or Session By Slug"))
     )))
   }
+
+  private def handleAppInfo = scala.util.Try {
+    import scala.collection.JavaConverters._
+
+    val properties = new java.util.Properties()
+    val stream = classOf[Resources].getResourceAsStream("/build-info.properties")
+    try {
+      properties.load(stream)
+    } finally {
+      stream.close()
+    }
+
+    val scalaProps = properties.asScala.mapValues(JString)
+    if (scalaProps.isEmpty) {
+      NotFound
+    }
+    else {
+      ContentType("application/json") ~> ResponseString(compact(render(JObject(scalaProps.toList))) + "\n")
+    }
+  }.toOption
 }
 
 object Resources {
