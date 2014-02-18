@@ -46,10 +46,10 @@ if [ $ENV != "test" -a $ENV != "prod" ]; then
 fi
 
 if [ $ENV == "prod" ]; then
-    HOST="212.71.237.26"
+    HOST="2014.javazone.no"
     EMS_BASE="/home/javabin/web/ems"
 elif [ $ENV == "test" ]; then
-    HOST="212.71.238.251"
+    HOST="test.2014.javazone.no"
     EMS_BASE="/home/javabin/web/ems"
 else
     fail "Det du sa gav null mening!"
