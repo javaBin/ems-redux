@@ -131,8 +131,7 @@ trait SessionResources extends ResourceHelper {
   private def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => {
-      val updated = toSession(eventId, Some(sessionId), t)
-      storage.getSession(eventId, sessionId).map(s => updated.copy(tags = s.tags ++ updated.tags)).getOrElse(updated)
+      toSession(eventId, Some(sessionId), t)
     }, storage.saveSession, sessionToItem(base)) {
       c =>
         val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords").
