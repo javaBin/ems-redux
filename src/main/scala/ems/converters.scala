@@ -8,6 +8,7 @@ import ems.util.RFC3339
 import java.util.Locale
 import net.hamnaberg.json.collection.Value._
 import security.User
+import org.joda.time.{Duration, Minutes}
 import scravatar.Gravatar
 
 
@@ -45,17 +46,19 @@ object converters {
     r => {
       val properties = Map(
         "start" -> Some(RFC3339.format(r.start)),
-        "end" -> Some(RFC3339.format(r.end))
+        "duration" -> Some(r.duration)
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", eventId, "slots", r.id.get).build()
-      Item(href, properties,  Nil)
+      Item(href, properties,  List(Link(URIBuilder(href).segments("children").build(), "slot collection")))
     }
   }
 
-  def toSlot(template: Template, id: Option[String] = None): Slot = Slot(
+  def toSlot(template: Template, eventId: String, parent: Option[String] = None, id: Option[String] = None): Slot = Slot(
     id,
+    eventId,
     template.getPropertyValue("start").map(v => RFC3339.parseDateTime(v.toString).right.get).get,
-    template.getPropertyValue("end").map(v => RFC3339.parseDateTime(v.toString).right.get).get
+    template.getPropertyValue("duration").map(v => Minutes.minutes(v.toString.toInt).toStandardDuration).get,
+    parent
   )
 
   def toRoom(template: Template, id: Option[String] = None): Room = Room(
@@ -112,14 +115,10 @@ object converters {
     )
     links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name))).toSeq
-    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot)))).toSeq
+    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item")).toSeq
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
 
     links.result()
-  }
-
-  def formatSlot(slot: Slot): String = {
-    RFC3339.format(slot.start) + "+" + RFC3339.format(slot.end)
   }
 
   def attachmentToItem(baseURIBuilder: URIBuilder): (URIAttachment) => (Item) = {
@@ -183,7 +182,7 @@ object converters {
   def toEvent(template: Template, id: Option[String] = None): Event = {
     val name = template.getPropertyValue("name").map(_.value.toString).get
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
-    Event(id, name, Slug.makeSlug(name), venue, Nil, Nil)
+    Event(id, name, Slug.makeSlug(name), venue, Nil)
   }
 
   private def toAbstract(template: Template): Abstract = {
@@ -253,6 +252,7 @@ object converters {
     case x: Long => NumberValue(BigDecimal(x))
     case x: Double => NumberValue(BigDecimal(x))
     case x: Boolean => BooleanValue(x)
+    case x: Duration => NumberValue(x.getStandardMinutes)
     case null => NullValue
     case _ => throw new IllegalArgumentException("Unknown value " + any.getClass)
   }

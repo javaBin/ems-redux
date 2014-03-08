@@ -20,17 +20,17 @@ trait EventResources extends SessionResources with SpeakerResources {
       _ <- GET
       _ <- commit
       e <- getOrElse(storage.getEvent(eventId), NotFound)
+      req <- requestURIBuilder
       base <- baseURIBuilder
     } yield {
       val slots = storage.getSlots(eventId, parent)
       val items = slots.map(slotToItem(base, eventId))
-      val href = base.segments("events", eventId, "slots").build()
-      CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("start", "end"))))
+      CollectionJsonResponse(JsonCollection(req.emptyParams().build(), Nil, items.toList, Nil, Some(makeTemplate("start", "duration"))))
     }
 
     val post = createObject[Slot](
-      toSlot(_: Template, None),
-      storage.saveSlot(eventId, _ : Slot),
+      toSlot(_: Template, eventId, parent, None),
+      storage.saveSlot(_ : Slot),
       (s: Slot) => List("events", eventId, "slots", s.id.get),
       (s: Slot) => Nil
     )
@@ -38,10 +38,10 @@ trait EventResources extends SessionResources with SpeakerResources {
   }
 
   def handleSlot(eventId: String, id: String, parent: Option[String] = None)(implicit user: User) = for {
-    slot <- getOrElse(storage.getSlot(eventId, id), NotFound)
+    slot <- getOrElse(storage.getSlot(id), NotFound)
     base <- baseURIBuilder
-    res <- handleObject(Some(slot), (t: Template) => toSlot(t, Some(id)),
-      storage.saveSlot(eventId, _ : Slot),
+    res <- handleObject(Some(slot), (t: Template) => toSlot(t, eventId, parent, Some(id)),
+      storage.saveSlot(_ : Slot),
       slotToItem(base, eventId))(identity)
   } yield res
 
@@ -65,6 +65,15 @@ trait EventResources extends SessionResources with SpeakerResources {
     )
     get | post
   }
+
+  def handleRoom(eventId: String, id: String)(implicit user: User) = for {
+    room <- getOrElse(storage.getRoom(eventId, id), NotFound)
+    base <- baseURIBuilder
+    res <- handleObject(Some(room), (t: Template) => toRoom(t, Some(id)),
+      storage.saveRoom(eventId, _ : Room),
+      roomToItem(base, eventId))(identity)
+  } yield res
+
 
   def handleEventList(implicit user:User): ResponseDirective = {
     val get = for {

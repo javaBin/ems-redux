@@ -5,7 +5,7 @@ import com.mongodb.casbah.Imports._
 import java.util
 import util.{Date => JDate}
 
-case class Event(id: Option[String], name: String, slug: String, venue: String, rooms: Seq[Room], slots: Seq[Slot], lastModified: DateTime = new DateTime()) extends Entity[Event] {
+case class Event(id: Option[String], name: String, slug: String, venue: String, rooms: Seq[Room], lastModified: DateTime = new DateTime()) extends Entity[Event] {
   type T = Event
 
   def withId(id: String) = copy(id = Some(id))
@@ -24,8 +24,7 @@ case class Event(id: Option[String], name: String, slug: String, venue: String, 
     } else {
       val obj = MongoDBObject(
         "_id" -> id.getOrElse(util.UUID.randomUUID().toString),
-        "rooms" -> rooms.map(_.toMongo),
-        "slots" -> slots.map(_.toMongo)
+        "rooms" -> rooms.map(_.toMongo)
       ) ++ base
       obj
     }
@@ -41,7 +40,6 @@ object Event {
       m.as[String]("slug"),
       m.getAsOrElse("venue", "Unknown"),
       m.getAsOrElse[Seq[DBObject]]("rooms", Seq()).map(Room.apply),
-      m.getAsOrElse[Seq[DBObject]]("slots", Seq()).map(Slot.apply),
       new DateTime(m.getAsOrElse[JDate]("last-modified", new JDate()))
     )
   }

@@ -94,7 +94,7 @@ trait SessionResources extends ResourceHelper {
       val tags = params.get("tag").filterNot(_.isEmpty)
       val slot = params.get("slot").flatMap(_.headOption).flatMap{ slot =>
         val id = URIBuilder(slot).path.last.seg
-        storage.getSlot(eventId, id)
+        storage.getSlot(id)
       }
       val room = params.get("room").flatMap(_.headOption).flatMap{ room =>
         val id = URIBuilder(room).path.last.seg

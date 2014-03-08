@@ -183,7 +183,7 @@ object Session {
     val abs = Abstract(dbo)
     val eventId = m.get("eventId").map(_.toString).getOrElse(throw new IllegalArgumentException("No eventId"))
     val event = storage.getEvent(eventId).getOrElse(throw new IllegalArgumentException("No Event"))
-    val slot = event.slots.find(_.id == m.get("slotId").map(_.toString))
+    val slot = m.get("slotId").map(_.toString).flatMap(storage.getSlot)
     val room = event.rooms.find(_.id == m.get("roomId").map(_.toString))
     val speakers = m.getAsOrElse[Seq[_]]("speakers", Seq()).map {
       case x: DBObject => x

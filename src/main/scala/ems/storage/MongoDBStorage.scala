@@ -30,35 +30,19 @@ trait MongoDBStorage {
 
   def saveEvent(event: Event): Either[Throwable, Event] = saveOrUpdate(event, (e: Event, update) => e.toMongo(update), db("event"))
 
-  def getSlots(eventId: String, parent: Option[String] = None): Seq[Slot] = getEvent(eventId).map(_.slots).getOrElse(Nil)
-
-  def getSlot(eventId: String, id: String): Option[Slot] = {
-    getEvent(eventId).map(_.slots).getOrElse(Nil).find(s => s.id.exists(_ == id))
+  def getSlots(eventId: String, parent: Option[String] = None): Seq[Slot] = {
+    val obj = MongoDBObject("eventId" -> eventId, "parentId" -> parent.orNull)
+    db("slot").find(obj).map(Slot.apply).toVector
   }
 
-  def saveSlot(eventId: String, slot: Slot): Either[Throwable, Slot] = nonFatalCatch.either {
-    val slotId = slot.id.getOrElse(util.UUID.randomUUID().toString)
+  def getAllSlots(eventId: String): Seq[SlotTree] = getSlots(eventId).map(s => SlotTree(s, getSlots(s.eventId, s.id)))
 
-    val update = db("event").findOne(
-      MongoDBObject("_id" -> eventId, "slots._id" -> slotId), MongoDBObject()
-    ).isDefined
+  def getSlot(id: String): Option[Slot] = {
+    db("slot").findOne(MongoDBObject("_id" -> id)).map(Slot.apply)
+  }
 
-    val result = if (update) {
-      val dbObject: MongoDBObject = slot.toMongo
-      val toSave = dbObject.foldLeft(MongoDBObject.newBuilder){case (mongo, (key, value)) => mongo += ("slots.$." + key -> value) }.result()
-      db("event").update(
-        MongoDBObject("_id" -> eventId, "slots._id" -> slotId),
-        MongoDBObject("$set" -> toSave)
-      )
-    }
-    else {
-      db("event").update(
-        MongoDBObject("_id" -> eventId),
-        MongoDBObject("$push" -> MongoDBObject("slots" -> slot.toMongo))
-      )
-    }
-
-    slot
+  def saveSlot(slot: Slot): Either[Throwable, Slot] = {
+    saveOrUpdate(slot, (s: Slot, update: Boolean) => s.toMongo, db("slot"))
   }
 
   def removeSlot(eventId: String, id: String): Either[Throwable, String] = Left(new UnsupportedOperationException())
