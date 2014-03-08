@@ -46,10 +46,10 @@ if [ $ENV != "test" -a $ENV != "prod" ]; then
 fi
 
 if [ $ENV == "prod" ]; then
-    HOST="212.71.237.26"
+    HOST="2014.javazone.no"
     EMS_BASE="/home/javabin/web/ems"
 elif [ $ENV == "test" ]; then
-    HOST="212.71.238.251"
+    HOST="test.2014.javazone.no"
     EMS_BASE="/home/javabin/web/ems"
 else
     fail "Det du sa gav null mening!"
@@ -63,9 +63,9 @@ if [ $FIRST_TIME == 'y' -o $FIRST_TIME == 'Y' ]; then
     ssh javabin@$HOST "cd $EMS_BASE && \
                        app init -d ems file $EMS_BASE/ems.zip"
     info "Symlinker inn config-filen"
-    ssh javabin@$HOST "ln -s $EMS_BASE/config.ini $EMS_BASE/ems/etc/config.ini"
+    ssh javabin@$HOST "rm $EMS_BASE/ems/etc/config.ini && ln -s $EMS_BASE/config.ini $EMS_BASE/ems/etc/config.ini"
     info "Starter EMS"
-    ssh javabin@$HOST "cd $EMS_BASE/ems && app start"
+    ssh javabin@$HOST "cd $EMS_BASE/ems && app conf set jetty.CONSTRETTO_TAGS $ENV && app start"
 else
     info "Oppdaterer og restarter EMS"
     ssh javabin@$HOST "cd $EMS_BASE/ems && \
