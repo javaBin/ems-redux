@@ -164,6 +164,10 @@ object Session {
     Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, false, tags, keywords, Nil)
   }
 
+  def apply(eventId: String, abs: Abstract, state: State, tags: Set[Tag], keywords: Set[Keyword], published: Boolean): Session = {
+    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, published, tags, keywords, Nil)
+  }
+
   def apply(eventId: String, title: String, format: Format, speakers: Seq[Speaker]): Session = {
     val ab = Abstract(title, format = format)
     Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, State.Pending, false, Set(), Set(), speakers, Nil)

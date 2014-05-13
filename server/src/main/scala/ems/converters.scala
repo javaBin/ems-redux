@@ -75,7 +75,8 @@ object converters {
         "format" -> Some(s.abs.format.toString),
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
-        "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty)
+        "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty),
+        "published" -> Some(s.published)
       ) ++ handlePrivateProperties(u, s)
       val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
 
@@ -203,7 +204,8 @@ object converters {
     val state = template.getPropertyValue("state").map(x => State(x.value.toString))
     val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
     val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
-    val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword])
+    val published = template.getPropertyValue("published").map(x => x.value.toString.toBoolean).getOrElse(false)
+    val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword], published);
     sess.copy(id = id)
   }
 

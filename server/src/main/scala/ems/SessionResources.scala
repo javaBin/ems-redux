@@ -32,7 +32,7 @@ trait SessionResources extends ResourceHelper {
           val sessions = storage.getSessions(eventId)(u)
           val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
           val items = filtered.map(sessionToItem(rb))
-          val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "tags", "keywords").
+          val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "tags", "keywords", "published").
             addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
             addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
             addProperty(ValueProperty("level").apply(ValueOptions, Level.values.map(l => ValueOption(l.name))))
@@ -134,7 +134,7 @@ trait SessionResources extends ResourceHelper {
       toSession(eventId, Some(sessionId), t)
     }, storage.saveSession, sessionToItem(base)) {
       c =>
-        val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords").
+        val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords", "published").
           addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
           addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
           addProperty(ValueProperty("state").apply(ValueOptions, State.values.map(s => ValueOption(s.name)))).
