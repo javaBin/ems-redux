@@ -13,9 +13,6 @@ import ems.config.Config
 import unfiltered.directives.{Result, Directive}
 import unfiltered.directives.Directives._
 import org.json4s._
-import scala.Some
-import unfiltered.response.ContentType
-import unfiltered.response.ResponseString
 import org.json4s.native.JsonMethods._
 import scala.Some
 import unfiltered.response.ContentType
@@ -126,13 +123,16 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     } finally {
       stream.close()
     }
+    val dbStatus = storage.status()
+    properties.put("db-connection", dbStatus)
 
     val scalaProps = properties.asScala.mapValues(JString)
     if (scalaProps.isEmpty) {
       NotFound
     }
     else {
-      ContentType("application/json") ~> ResponseString(compact(render(JObject(scalaProps.toList))) + "\n")
+      val returnCode = if (dbStatus == "ok") Ok else InternalServerError
+      returnCode ~> ContentType("application/json") ~> ResponseString(compact(render(JObject(scalaProps.toList))) + "\n")
     }
   }.toOption
 }

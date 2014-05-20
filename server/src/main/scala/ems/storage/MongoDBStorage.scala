@@ -7,6 +7,7 @@ import java.util
 import util.UUID
 import model._
 import org.joda.time.DateTime
+import com.mongodb.casbah.commons.MongoDBObject
 
 trait MongoDBStorage {
 
@@ -253,6 +254,17 @@ trait MongoDBStorage {
       builder += "published" -> true
     }
     db("session").find(builder.result()).map(Session(_, this)).toSeq
+  }
+
+  def status(): String = {
+    try {
+      db.command(MongoDBObject("ping" -> 1)).get("ok").toString match {
+        case "1.0" => "ok"
+        case _ => "down"
+      }
+    } catch {
+      case e: Exception => "down"
+    }
   }
 
   def shutdown() {
