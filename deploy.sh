@@ -31,8 +31,8 @@ DEFAULT_ZIP=`find . -name ems*.zip`
 ask "Hvor ligger zip-filen? [$DEFAULT_ZIP]"
 ZIP=$(_readWithDefault $DEFAULT_ZIP)
 
-ask "Til test eller prod? [test]"
-ENV=$(_readWithDefault "test")
+ask "Til dev, test eller prod? [dev]"
+ENV=$(_readWithDefault "dev")
 
 ask "Er det første gang du deployer til dette miljøet? [y|N]"
 FIRST_TIME=$(_readWithDefault "n")
@@ -41,8 +41,8 @@ if [ ! -f $ZIP ]; then
     fail "Fant ikke $ZIP :("
 fi
 
-if [ $ENV != "test" -a $ENV != "prod" ]; then
-    fail "Miljø må være enten 'test' eller 'prod'"
+if [ $ENV != "dev" -a $ENV != "test" -a $ENV != "prod" ]; then
+    fail "Miljø må være enten 'dev', 'test' eller 'prod'"
 fi
 
 if [ $ENV == "prod" ]; then
@@ -50,6 +50,9 @@ if [ $ENV == "prod" ]; then
     EMS_BASE="/home/javabin/web/ems"
 elif [ $ENV == "test" ]; then
     HOST="test.2014.javazone.no"
+    EMS_BASE="/home/javabin/web/ems"
+elif [ $ENV == "dev" ]; then
+    HOST="192.168.111.222"
     EMS_BASE="/home/javabin/web/ems"
 else
     fail "Det du sa gav null mening!"
@@ -71,3 +74,4 @@ else
     ssh javabin@$HOST "cd $EMS_BASE/ems && \
                        app upgrade && app restart"
 fi
+
