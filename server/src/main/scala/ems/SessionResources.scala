@@ -155,7 +155,7 @@ trait SessionResources extends ResourceHelper {
         <html>
           <head><title>Rooms</title></head>
           <body>
-            <form method="post">
+            <form method="post" action={base.segments("events", eventId, "sessions", sessionId).toString}>
               <select name="room" id="room">
                 {
                   storage.getRooms(eventId).map{r =>
