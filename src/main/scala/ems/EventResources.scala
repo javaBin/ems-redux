@@ -17,7 +17,8 @@ trait EventResources extends SessionResources with SpeakerResources {
 
   def handleSlots(eventId: String, parent: Option[String] = None)(implicit user: User) = {
     val get = for {
-      _ <- autocommit(GET)
+      _ <- GET
+      _ <- commit
       e <- getOrElse(storage.getEvent(eventId), NotFound)
       base <- baseURIBuilder
     } yield {
@@ -46,7 +47,8 @@ trait EventResources extends SessionResources with SpeakerResources {
 
   def handleRooms(id: String)(implicit user: User) = {
     val get = for {
-      _ <- autocommit(GET)
+      _ <- GET
+      _ <- commit
       e <- getOrElse(storage.getEvent(id), NotFound)
       base <- baseURIBuilder
     } yield {
@@ -64,7 +66,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     get | post
   }
 
-  def handleEventList(implicit user:User) = {
+  def handleEventList(implicit user:User): ResponseDirective = {
     val get = for {
       _ <- GET
       base <- baseURIBuilder

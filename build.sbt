@@ -6,7 +6,7 @@ scalaVersion := "2.10.3"
 
 scalacOptions := Seq("-deprecation")
 
-val unfilteredVersion = "0.6.8"
+val unfilteredVersion = "0.8.0"
 
 val joda = Seq(
   "joda-time" % "joda-time" % "2.2",
@@ -21,6 +21,7 @@ val unfiltered = Seq(
 )
 
 libraryDependencies ++= joda ++ unfiltered ++ Seq(
+  "org.ini4j" % "ini4j" % "0.5.2",
   "org.constretto" %% "constretto-scala" % "1.0",
   "org.constretto" % "constretto-core" % "2.1.4",
   "net.hamnaberg.rest" %% "scala-json-collection" % "2.2",

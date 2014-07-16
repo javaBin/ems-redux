@@ -19,7 +19,7 @@ trait ResourceHelper extends EmsDirectives {
   private [ems] def handleObject[T <: Entity[T]](obj: Option[T],
                                                  fromTemplate: (Template) => T,
                                                  saveEntity: (T) => Either[Exception, T],
-                                                 toItem: (T) => Item)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): Directive[HttpServletRequest, Any, ResponseFunction[Any]] = {
+                                                 toItem: (T) => Item)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): ResponseDirective = {
 
     val resp = (i: T) => DateResponseHeader("Last-Modified", i.lastModified) ~> CollectionJsonResponse(enrich(JsonCollection(toItem(i))))
 
@@ -41,7 +41,7 @@ trait ResourceHelper extends EmsDirectives {
     get | put
   }
 
-  private def saveFromTemplate[T <: Entity[T]](fromTemplate: (Template) => T, saveEntity: (T) => Either[Throwable, T]): Directive[HttpServletRequest, Any, ResponseFunction[Any]] = {
+  private def saveFromTemplate[T <: Entity[T]](fromTemplate: (Template) => T, saveEntity: (T) => Either[Throwable, T]): ResponseDirective = {
     for {
       parsed <- withTemplate(fromTemplate)
       extract <- parsed
@@ -49,13 +49,13 @@ trait ResourceHelper extends EmsDirectives {
     } yield NoContent
   }
 
-  private [ems] def withTemplate[T](fromTemplate: (Template) => T): Directive[HttpServletRequest, Any, Either[Throwable, T]] = {
+  private [ems] def withTemplate[T](fromTemplate: (Template) => T): Directive[HttpServletRequest, ResponseFunction[Any], Either[Throwable, T]] = {
     for {
       template <- inputStream.map(is => NativeJsonCollectionParser.parseTemplate(is))
     } yield template.right.map(fromTemplate)
   }
 
-  implicit def fromEither[T <: Entity[T]](either: Either[Throwable, T]): Directive[HttpServletRequest, Any, T] = {
+  implicit def fromEither[T <: Entity[T]](either: Either[Throwable, T]): Directive[HttpServletRequest, ResponseFunction[Any], T] = {
     either.fold(
       ex => failure(InternalServerError ~> ResponseString(ex.getMessage)),
       a => success(a)
@@ -67,7 +67,7 @@ trait ResourceHelper extends EmsDirectives {
                                                  saveObject: (A) => Either[Exception, A],
                                                  segments: (A) => Seq[String],
                                                  links: (A) => Seq[LinkHeader])
-                                                (implicit user: User): Directive[HttpServletRequest, Any, ResponseFunction[Any]] = {
+                                                (implicit user: User): ResponseDirective = {
     for {
       _ <- POST
       _ <- authenticated(user)

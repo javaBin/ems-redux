@@ -19,7 +19,7 @@ import java.io.OutputStream
 
 trait SessionResources extends ResourceHelper {
 
-  def handleSessionList(eventId: String)(implicit u: User): Directive[HttpServletRequest, Any, ResponseFunction[Any]] = {
+  def handleSessionList(eventId: String)(implicit u: User): ResponseDirective = {
     val get = for {
       _ <- GET
       params <- queryParams
@@ -84,9 +84,10 @@ trait SessionResources extends ResourceHelper {
       _ <- POST
       _ <- authenticated(u)
       ct <- contentType("application/x-www-form-urlencoded")
-      params <- autocommit(when {
+      params <- when {
         case Params(p) => p
-      }.orElse(BadRequest))
+      }.orElse(BadRequest)
+      _ <- commit
       session <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
       _ <- ifUnmodifiedSince(session.lastModified)
     } yield {
@@ -171,7 +172,8 @@ trait SessionResources extends ResourceHelper {
   }
 
   def handleChangelog(implicit u: User) = for {
-    _ <- autocommit(GET)
+    _ <- GET
+    _ <- commit
     _ <- authenticated(u)
     base <- baseURIBuilder
     href <- requestURI

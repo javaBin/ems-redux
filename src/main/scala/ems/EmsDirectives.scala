@@ -11,6 +11,8 @@ import unfilteredx._
 import net.hamnaberg.json.collection.{Error, JsonCollection}
 
 trait EmsDirectives {
+  type ResponseDirective = Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]
+
   def baseURIBuilder = request[HttpServletRequest].map(r => BaseURIBuilder(r))
 
   def baseURI = request[HttpServletRequest].map(r => BaseURI(r))
@@ -19,13 +21,13 @@ trait EmsDirectives {
 
   def requestURI = request[Any].map(r => RequestURI(r))
 
-  def ifModifiedSince(dt: DateTime, res: ResponseFunction[Any]) = Directive[Any, Any, ResponseFunction[Any]]{
+  def ifModifiedSince(dt: DateTime, res: ResponseFunction[Any]) = Directive[Any, ResponseFunction[Any], ResponseFunction[Any]]{
     case IfModifiedSinceString("*") => Result.Error(NotModified)
     case IfModifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => Result.Error(NotModified)
-    case _ => Result.Success(res)
+    case _ => Success(res)
   }
 
-  def ifUnmodifiedSince(dt: DateTime) = Directive[Any, Any, Unit]{
+  def ifUnmodifiedSince(dt: DateTime) = Directive[Any, ResponseFunction[Any], Unit]{
     case IfUnmodifiedSinceString("*") => Success(())
     case IfUnmodifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => Success(())
     case IfUnmodifiedSince(date) => Result.Error(PreconditionFailed ~> ResponseString(s"${dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate} is not equal to $date"))
