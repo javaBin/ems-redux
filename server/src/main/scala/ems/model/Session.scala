@@ -130,6 +130,8 @@ case class Session(id: Option[String],
     val base = MongoDBObject(
       "slug" -> slug,
       "tags" -> tags.map(_.name.noHtml),
+      "roomId" -> room.flatMap(_.id),
+      "slotId" -> slot.flatMap(_.id),
       "keywords" -> keywords.map(_.name.noHtml),
       "state" -> state.name,
       "last-modified" -> DateTime.now().toDate
