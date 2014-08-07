@@ -10,7 +10,7 @@ import net.hamnaberg.json.collection._
 import unfiltered.directives._
 import Directives._
 import javax.servlet.http.HttpServletRequest
-
+import scala.language.implicitConversions
 
 trait ResourceHelper extends EmsDirectives {
 
@@ -86,7 +86,6 @@ trait ResourceHelper extends EmsDirectives {
     }
   }
 
-
   private [ems] def authenticated(user: User) = {
     commit(getOrElse(Some(user).filter(_.authenticated), Forbidden))
   }
@@ -95,6 +94,4 @@ trait ResourceHelper extends EmsDirectives {
     val props = names.map(n => ValueProperty(n)).toList
     Template(props)
   }
-
-
 }

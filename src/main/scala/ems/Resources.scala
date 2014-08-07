@@ -1,22 +1,26 @@
 package ems
 
-import security.{JAASAuthenticator, User, Authenticator, Anonymous}
-import storage.{MongoSetting, MongoDBStorage}
-import unfiltered.request._
-import unfiltered.filter.Plan
-import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
-import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
-import unfiltered.filter.request.ContextPath
-import unfiltered.response._
 import ems.storage.FilesystemBinaryStorage
 import ems.config.Config
+import ems.security.{JAASAuthenticator, User, Authenticator}
+import ems.storage.{MongoSetting, MongoDBStorage}
+import ems.Links._
+
+import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
+import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
+
 import unfiltered.directives._
 import unfiltered.directives.Directives._
+
+import unfiltered.filter.Plan
+import unfiltered.filter.request.ContextPath
+import unfiltered.request._
+import unfiltered.response._
+
+import linx._
+
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import scala.Some
-import unfiltered.response.ContentType
-import unfiltered.response.ResponseString
 
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
   
@@ -39,23 +43,23 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
   }
 
   private def withUser(implicit user: User) = Intent {
-    case Seg(Nil) => handleRoot
-    case Seg("events" :: Nil) => handleEventList
-    case Seg("events" :: id :: Nil) => handleEvent(id)
-    case Seg("events" :: eventId :: "slots" :: Nil) => handleSlots(eventId)
-    case Seg("events" :: eventId :: "slots" :: id :: Nil) => handleSlot(eventId, id)
+    case Root() => handleRoot
+    case Events() => handleEventList
+    case Event(id) => handleEvent(id)
+    case Slots(eventId) => handleSlots(eventId)
+    case Slot(eventId, slotId) => handleSlot(eventId, slotId)
     case Seg("events" :: eventId :: "slots" :: id :: "children" :: Nil) => handleSlots(eventId, Some(id))
-    case Seg("events" :: eventId :: "rooms" :: Nil) => handleRooms(eventId)
-    case Seg("events" :: eventId :: "sessions" :: Nil) => handleSessionList(eventId)
-    case Seg("events" :: eventId :: "sessions" :: "tags" :: Nil) => handleAllTags(eventId)
+    case Rooms(eventId) => handleRooms(eventId)
+    case Sessions(eventId) => handleSessionList(eventId)
+    case SessionsTags(eventId) => handleAllTags(eventId)
     case Seg("events" :: eventId :: "sessions" :: "changelog" ::  Nil) => handleChangelog
-    case Seg("events" :: eventId :: "sessions" :: id :: Nil) => handleSessionAndForms(eventId, id)
-    case Seg("events" :: eventId :: "sessions" :: sessionId :: "room" :: Nil) => handleSessionRoom(eventId, sessionId)
-    case Seg("events" :: eventId :: "sessions" :: sessionId :: "attachments" :: Nil) => handleSessionAttachments(eventId, sessionId)
-    case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: Nil) => handleSpeakers(eventId, sessionId)
-    case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: Nil) => handleSpeaker(eventId, sessionId, speakerId)
-    case Seg("events" :: eventId :: "sessions" :: sessionId :: "speakers" :: speakerId :: "photo" :: Nil) => handleSpeakerPhoto(eventId, sessionId, speakerId)
-    case Seg("binary" :: id :: Nil) => handleAttachment(id)
+    case Session(eventId, id) => handleSessionAndForms(eventId, id)
+    case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
+    case SessionAttachments(eventId, sessionId) => handleSessionAttachments(eventId, sessionId)
+    case Speakers(eventId, sessionId) => handleSpeakers(eventId, sessionId)
+    case Speaker(eventId, sessionId, speakerId) => handleSpeaker(eventId, sessionId, speakerId)
+    case SpeakerPhoto(eventId, sessionId, speakerId) => handleSpeakerPhoto(eventId, sessionId, speakerId)
+    case Binary(id) => handleAttachment(id)
     case Seg("redirect" :: Nil) => handleRedirect
     case Seg("app-info" :: Nil) => {
       for {
