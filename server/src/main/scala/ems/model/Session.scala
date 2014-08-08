@@ -130,12 +130,16 @@ case class Session(id: Option[String],
     val base = MongoDBObject(
       "slug" -> slug,
       "tags" -> tags.map(_.name.noHtml),
-      "roomId" -> room.flatMap(_.id),
-      "slotId" -> slot.flatMap(_.id),
       "keywords" -> keywords.map(_.name.noHtml),
       "state" -> state.name,
       "last-modified" -> DateTime.now().toDate
     ) ++ abs.toMongo
+
+    if (!room.isEmpty)
+      base.put("roomId", room.flatMap(_.id))
+
+    if (!slot.isEmpty)
+      base.put("slotId", slot.flatMap(_.id))
 
     if (update) {
       MongoDBObject(
