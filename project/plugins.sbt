@@ -1,5 +1,5 @@
-addSbtPlugin("no.arktekk.sbt" % "aether-deploy" % "0.11")
+addSbtPlugin("no.arktekk.sbt" % "aether-deploy" % "0.13")
 
 addSbtPlugin("net.hamnaberg.sbt" % "sbt-appassembler" % "0.5.1")
 
-addSbtPlugin("net.hamnaberg.sbt" % "sbt-appsh" % "0.2.2")
+addSbtPlugin("net.hamnaberg.sbt" % "sbt-appmgr" % "0.3.1")

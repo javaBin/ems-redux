@@ -1,12 +1,10 @@
-import AppshKeys._
-
 organization := "no.java.ems"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
 scalacOptions := Seq("-deprecation", "-feature")
 
-val unfilteredVersion = "0.8.0"
+val unfilteredVersion = "0.8.1"
 
 val joda = Seq(
   "joda-time" % "joda-time" % "2.2",
@@ -49,6 +47,10 @@ appAssemblerSettings
 
 appOutput in App := target.value / "appmgr" / "root"
 
-appshSettings
+appmgrSettings
 
-appshBuild <<= appshBuild.dependsOn(appAssemble)
+appmgrBuild <<= appmgrBuild.dependsOn(appAssemble)
+
+aetherArtifact <<= (aetherArtifact, appmgrBuild) map { (art, build) =>
+  art.attach(build, "appmgr", "zip")
+}

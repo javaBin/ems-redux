@@ -1,6 +1,8 @@
 package ems
 
 import linx._
+import java.net.URI
+import util.URIBuilder
 
 object Links {
   val Events = Root / "events"
