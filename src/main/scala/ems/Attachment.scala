@@ -12,6 +12,7 @@ trait Attachment {
   def name: String
   def size: Option[Long]
   def mediaType: Option[MIMEType]
+  def lastModified: DateTime
 }
 
 case class URIAttachment(id: Option[String], href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment with Entity[Attachment] {

@@ -6,17 +6,20 @@ import unfiltered.directives._
 import Directives._
 import ems.security.User
 import com.sksamuel.scrimage.Image
+import unfilteredx._
 
 trait AttachmentHandler extends ResourceHelper {
 
   def handleAttachment(id: String)(implicit user: User) = {
+    def stream(att: Attachment, params: Map[String, Seq[String]]) = DateResponseHeader("Last-Modified", att.lastModified) ~> AttachmentStreamer(att, storage.binary, params("size").headOption)
+
     val get = for {
       _ <- GET
       b <- getOrElse(storage.binary.getAttachment(id), NotFound)
       params <- queryParams
-    } yield {
-      AttachmentStreamer(b, storage.binary, params("size").headOption)
-    }
+      res <- ifModifiedSince(b.lastModified, stream(b, params))
+    } yield res
+
     val delete = for {
       _ <- DELETE
       _ <- authenticated(user)
