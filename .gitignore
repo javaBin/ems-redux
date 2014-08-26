@@ -24,4 +24,5 @@ target
 .springBeans
 .lib/
 repl-port
-server/mongo/
+mongo/
+binary
