@@ -1,8 +1,0 @@
-.flag {
-    width: 25px;
-    height: 15px;
-    background:url(../img/flags.png) no-repeat
-}
-
-.flag.flag-gb {background-position: -25px 0}
-.flag.flag-no {background-position: 0 -15px}
