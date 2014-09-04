@@ -50,17 +50,16 @@ case class Abstract(title: String,
 object Abstract {
   def apply(dbo: DBObject): Abstract = {
     val m = wrapDBObj(dbo)
-    val asString = m.getAs[String] _
-    val format = asString("format").map(Format(_)).getOrElse(Format.Presentation)
-    val level = asString("level").map(Level(_)).getOrElse(Level.Beginner)
+    val format = m.getAs[String]("format").map(Format(_)).getOrElse(Format.Presentation)
+    val level = m.getAs[String]("level").map(Level(_)).getOrElse(Level.Beginner)
     Abstract(
       m.getAsOrElse("title", "No Title").noHtml,
-      asString("summary").map(_.noHtml),
-      asString("body").map(_.noHtml),
-      asString("audience").map(_.noHtml),
-      asString("outline").map(_.noHtml),
-      asString("equipment").map(_.noHtml),
-      asString("language").map(l => new Locale(l)).getOrElse(new Locale("no")),
+      m.getAs[String]("summary").map(_.noHtml),
+      m.getAs[String]("body").map(_.noHtml),
+      m.getAs[String]("audience").map(_.noHtml),
+      m.getAs[String]("outline").map(_.noHtml),
+      m.getAs[String]("equipment").map(_.noHtml),
+      m.getAs[String]("language").map(l => new Locale(l)).getOrElse(new Locale("no")),
       level,
       format
     )

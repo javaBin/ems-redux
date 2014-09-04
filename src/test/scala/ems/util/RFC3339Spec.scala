@@ -21,7 +21,7 @@ class RFC3339Spec extends Specification {
     }
 
     "generated must be the same as parsed" in {
-      val dt = new DateMidnight(1970, 1, 1, DateTimeZone.UTC).toDateTime
+      val dt = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeZone.UTC)
       val expected = "1970-01-01T00:00:00Z"
       val generated = RFC3339.format(dt)
       expected must beEqualTo(generated)

@@ -1,5 +1,6 @@
 package ems.storage
 
+import scala.util.control.Exception.nonFatalCatch
 import com.mongodb.casbah.Imports._
 import ems._
 import security.User
@@ -27,7 +28,7 @@ trait MongoDBStorage {
 
   def getEventsBySlug(name: String) = db("event").find(MongoDBObject("slug" -> name)).sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
 
-  def saveEvent(event: Event): Either[Exception, Event] = saveOrUpdate(event, (e: Event, update) => e.toMongo(update), db("event"))
+  def saveEvent(event: Event): Either[Throwable, Event] = saveOrUpdate(event, (e: Event, update) => e.toMongo(update), db("event"))
 
   def getSlots(eventId: String, parent: Option[String] = None): Seq[Slot] = getEvent(eventId).map(_.slots).getOrElse(Nil)
 
@@ -35,7 +36,7 @@ trait MongoDBStorage {
     getEvent(eventId).map(_.slots).getOrElse(Nil).find(s => s.id.exists(_ == id))
   }
 
-  def saveSlot(eventId: String, slot: Slot): Either[Exception, Slot] = {
+  def saveSlot(eventId: String, slot: Slot): Either[Throwable, Slot] = nonFatalCatch.either {
     val slotId = slot.id.getOrElse(util.UUID.randomUUID().toString)
 
     val update = db("event").findOne(
@@ -57,24 +58,18 @@ trait MongoDBStorage {
       )
     }
 
-    val error = result.getLastError
-    if (error.ok()) {
-      Right(slot)
-    }
-    else {
-      Left(error.getException)
-    }
+    slot
   }
 
-  def removeSlot(eventId: String, id: String): Either[Exception, String] = Left(new UnsupportedOperationException())
+  def removeSlot(eventId: String, id: String): Either[Throwable, String] = Left(new UnsupportedOperationException())
 
   def getRooms(eventId: String): Seq[Room] = getEvent(eventId).map(_.rooms).getOrElse(Nil)
 
   def getRoom(eventId: String, id: String): Option[Room] = getRooms(eventId).find(r => r.id.exists(_ == id))
 
-  def saveRoom(eventId: String, room: Room): Either[Exception, Room] = Left(new UnsupportedOperationException())
+  def saveRoom(eventId: String, room: Room): Either[Throwable, Room] = Left(new UnsupportedOperationException())
 
-  def removeRoom(eventId: String, id: String): Either[Exception, String] = Left(new UnsupportedOperationException())
+  def removeRoom(eventId: String, id: String): Either[Throwable, String] = Left(new UnsupportedOperationException())
 
   def getSessions(eventId: String)(user: User) = {
     val query = MongoDBObject.newBuilder
@@ -104,11 +99,10 @@ trait MongoDBStorage {
 
   def saveSession(session: Session) = saveOrUpdate(session, (s: Session, update) => s.toMongo(update), db("session"))
 
-  def publishSessions(eventId: String, sessions: Seq[String]): Either[Exception, Unit] = {
+  def publishSessions(eventId: String, sessions: Seq[String]): Either[Throwable, Unit] = nonFatalCatch.either {
     val result = db("session").update(MongoDBObject("eventId" -> eventId, "_id" -> MongoDBObject("$in" -> sessions)), MongoDBObject("$set" -> MongoDBObject("published" -> true)), multi = true)
 
-    val error = result.getLastError
-    if (error.ok()) Right(()) else Left(error.getException)
+    ()
   }
 
   def saveSlotInSession(eventId: String, sessionId: String, slot: Slot) = saveOrUpdate(
@@ -123,7 +117,7 @@ trait MongoDBStorage {
     db("session")
   )
 
-  def saveAttachment(eventId: String, sessionId: String, attachment: URIAttachment) = {
+  def saveAttachment(eventId: String, sessionId: String, attachment: URIAttachment) = nonFatalCatch.either {
     val withId = if (attachment.id.isDefined) attachment else attachment.withId(util.UUID.randomUUID().toString)
     val speakerId = withId.id.get
     val update = db("session").findOne(
@@ -144,37 +138,23 @@ trait MongoDBStorage {
         MongoDBObject("$push" -> MongoDBObject("attachments" -> dbObject))
       )
     }
-
-    val error = result.getLastError
-    if (error.ok()) {
-      Right(withId)
-    }
-    else {
-      Left(error.getException)
-    }
+    withId
   }
 
-  def removeAttachment(eventId: String, sessionId: String, id: String) = {
+  def removeAttachment(eventId: String, sessionId: String, id: String) = nonFatalCatch.either {
     val result = db("session").update(
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "attachments._id" -> id),
       MongoDBObject("$pull" -> MongoDBObject("attachments.$._id" -> id))
     )
 
-    val error = result.getLastError
-
-    if (error.ok()) {
-      Right("OK")
-    }
-    else {
-      Left(error.getException)
-    }
+    "OK"
   }
 
   def getSpeaker(eventId: String, sessionId: String, speakerId: String) = {
     getSession(eventId, sessionId).flatMap(_.speakers.find(_.id.exists(_ == speakerId)))
   }
 
-  def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = {
+  def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = nonFatalCatch.either {
     val withId = if (speaker.id.isDefined) speaker else speaker.withId(util.UUID.randomUUID().toString)
     val speakerId = withId.id.get
     val update = db("session").findOne(
@@ -196,45 +176,27 @@ trait MongoDBStorage {
       )
     }
 
-    val error = result.getLastError
-    if (error.ok()) {
-      Right(withId)
-    }
-    else {
-      Left(error.getException)
-    }
+    withId
   }
 
-  def updateSpeakerWithPhoto(eventId: String, sessionId: String, speakerId: String, photo: Attachment with Entity[Attachment]) = {
+  def updateSpeakerWithPhoto(eventId: String, sessionId: String, speakerId: String, photo: Attachment with Entity[Attachment]) = nonFatalCatch.either {
     val toSave = MongoDBObject("speakers.$.photo" -> photo.id.get)
     val result = db("session").update(
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "speakers._id" -> speakerId),
       MongoDBObject("$set" -> toSave)
     )
-    val error = result.getLastError
-    if (error.ok()) {
-      Right(photo)
-    }
-    else {
-      Left(error.getException)
-    }
+    photo
   }
 
-  def removeSpeaker(eventId: String, sessionId: String, speakerId: String) = {
+  def removeSpeaker(eventId: String, sessionId: String, speakerId: String) = nonFatalCatch.either {
     val res = db("session").update(
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId),
       MongoDBObject("$pull" -> MongoDBObject("sessions" -> MongoDBObject("_id" -> speakerId)))
     )
-    val error = res.getLastError
-    if (error.ok()) {
-      Right("OK")
-    }
-    else {
-      Left(error.getException)
-    }
+    "OK"
   }
 
-  def importSession(session: Session): Either[Exception, Session] = {
+  def importSession(session: Session): Either[Throwable, Session] = {
     val either = saveOrUpdate(session, (o: Session, update) => o.toMongo(update), db("session"), fromImport = true)
     session.speakers.foreach(sp => sp.photo.foreach(ph => updateSpeakerWithPhoto(session.eventId, session.id.get, sp.id.get, ph).fold(
       ex => throw ex,
@@ -243,7 +205,7 @@ trait MongoDBStorage {
     either
   }
 
-  def importEvent(event: Event): Either[Exception, Event] = {
+  def importEvent(event: Event): Either[Throwable, Event] = {
     saveOrUpdate(event, (o: Event, update) => o.toMongo(update), db("event"), fromImport = true)
   }
 
@@ -271,7 +233,7 @@ trait MongoDBStorage {
     db.underlying.getMongo.close()
   }
 
-  private def saveOrUpdate[A <: Entity[A]](entity: A, toMongoDBObject: (A, Boolean) => DBObject, coll: MongoCollection, fromImport: Boolean = false): Either[Exception, A] = {
+  private def saveOrUpdate[A <: Entity[A]](entity: A, toMongoDBObject: (A, Boolean) => DBObject, coll: MongoCollection, fromImport: Boolean = false): Either[Throwable, A] = nonFatalCatch.either {
     val objectWithId = withId(entity)
     val update = if (fromImport) coll.findOne(MongoDBObject("_id" -> entity.id.get), MongoDBObject()).isDefined else entity.id.isDefined
     val toSave = toMongoDBObject(objectWithId, update)
@@ -281,13 +243,7 @@ trait MongoDBStorage {
     else {
       coll.insert(toSave, WriteConcern.Safe)
     }
-    val lastError = coll.lastError()
-    if (lastError.ok()) {
-      Right(objectWithId)
-    }
-    else {
-      Left(lastError.getException)
-    }
+    objectWithId
   }
 
   private def withId[A <: Entity[A]](entity: A): A = {

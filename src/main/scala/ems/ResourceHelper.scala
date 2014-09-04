@@ -18,7 +18,7 @@ trait ResourceHelper extends EmsDirectives {
 
   private [ems] def handleObject[T <: Entity[T]](obj: Option[T],
                                                  fromTemplate: (Template) => T,
-                                                 saveEntity: (T) => Either[Exception, T],
+                                                 saveEntity: (T) => Either[Throwable, T],
                                                  toItem: (T) => Item)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): ResponseDirective = {
 
     val resp = (i: T) => DateResponseHeader("Last-Modified", i.lastModified) ~> CollectionJsonResponse(enrich(JsonCollection(toItem(i))))
@@ -64,7 +64,7 @@ trait ResourceHelper extends EmsDirectives {
 
 
   private [ems] def createObject[A <: Entity[A]](fromTemplate: (Template) => A,
-                                                 saveObject: (A) => Either[Exception, A],
+                                                 saveObject: (A) => Either[Throwable, A],
                                                  segments: (A) => Seq[String],
                                                  links: (A) => Seq[LinkHeader])
                                                 (implicit user: User): ResponseDirective = {
