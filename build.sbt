@@ -1,10 +1,10 @@
 organization := "no.java.ems"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.4"
 
 scalacOptions := Seq("-deprecation", "-feature")
 
-val unfilteredVersion = "0.8.1"
+val unfilteredVersion = "0.8.3"
 
 val joda = Seq(
   "joda-time" % "joda-time" % "2.2",
@@ -15,7 +15,7 @@ val unfiltered = Seq(
   "net.databinder" %% "unfiltered-filter" % unfilteredVersion,
   "net.databinder" %% "unfiltered-directives" % unfilteredVersion,
   "net.databinder" %% "unfiltered-jetty" % unfilteredVersion,
-  "com.jteigen" %% "linx" % "0.1",
+  "com.jteigen" %% "linx" % "0.2",
   "org.slf4j" % "slf4j-api" % "1.7.7"
 )
 
