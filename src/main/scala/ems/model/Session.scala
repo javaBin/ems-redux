@@ -303,6 +303,7 @@ object Format {
     case Panel.name => Some(Panel)
     case BoF.name => Some(BoF)
     case Workshop.name => Some(Workshop)
+    case ThunderTalk.name => Some(ThunderTalk)
     case _ => None
   }
 
@@ -313,12 +314,14 @@ object Format {
 
   case object LightningTalk extends Format("lightning-talk")
 
+  case object ThunderTalk extends Format("thunder-talk")
+
   case object Panel extends Format("panel")
 
   case object BoF extends Format("bof")
 
 
-  val values: Seq[Format] = Seq(Presentation, LightningTalk, Panel, BoF)
+  val values: Seq[Format] = Seq(Presentation, LightningTalk, Workshop, ThunderTalk, Panel, BoF)
 }
 
 sealed abstract class State(val name: String) {
