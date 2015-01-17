@@ -40,6 +40,10 @@ pomIncludeRepository := {
 
 crossPaths := false
 
+publishTo := Some("JavaBin Nexus repo" at "http://ymse.javazone.no/nexus/content/repositories/snapshots")
+
+credentials += Credentials(Path.userHome / ".javabin.credentials")
+
 aetherPublishBothSettings
 
 appAssemblerSettings
