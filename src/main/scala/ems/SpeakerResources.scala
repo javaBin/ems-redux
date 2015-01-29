@@ -55,7 +55,8 @@ trait SpeakerResources extends ResourceHelper {
          speaker,
          (t: Template) => toSpeaker(t, Some(speakerId)),
          storage.saveSpeaker(eventId, sessionId, _: Speaker),
-         speakerToItem(base, eventId, sessionId)
+         speakerToItem(base, eventId, sessionId),
+         Some((_: Speaker) => storage.removeSpeaker(eventId, sessionId, speakerId))
        )(identity)
     } yield {
       res

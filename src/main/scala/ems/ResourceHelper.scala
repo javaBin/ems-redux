@@ -19,7 +19,8 @@ trait ResourceHelper extends EmsDirectives {
   private [ems] def handleObject[T <: Entity[T]](obj: Option[T],
                                                  fromTemplate: (Template) => T,
                                                  saveEntity: (T) => Either[Throwable, T],
-                                                 toItem: (T) => Item)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): ResponseDirective = {
+                                                 toItem: (T) => Item,
+                                                 removeEntity: Option[(T) => Either[Throwable, Unit]] = None)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): ResponseDirective = {
 
     val resp = (i: T) => DateResponseHeader("Last-Modified", i.lastModified) ~> CollectionJsonResponse(enrich(JsonCollection(toItem(i))))
 
@@ -38,7 +39,16 @@ trait ResourceHelper extends EmsDirectives {
       res <- saveFromTemplate(fromTemplate, saveEntity)
     } yield res
 
-    get | put
+    val delete = for {
+      _ <- DELETE
+      _ <- authenticated(user)
+      a <- getOrElse(obj, NotFound)
+      _ <- ifUnmodifiedSince(a.lastModified)
+      f <- getOrElse(removeEntity, Forbidden)
+      _ <- fromEither(f(a))
+    } yield NoContent
+
+    get | put | delete
   }
 
   private def saveFromTemplate[T <: Entity[T]](fromTemplate: (Template) => T, saveEntity: (T) => Either[Throwable, T]): ResponseDirective = {
@@ -55,7 +65,7 @@ trait ResourceHelper extends EmsDirectives {
     } yield template.right.map(fromTemplate)
   }
 
-  implicit def fromEither[T <: Entity[T]](either: Either[Throwable, T]): Directive[HttpServletRequest, ResponseFunction[Any], T] = {
+  implicit def fromEither[T](either: Either[Throwable, T]): Directive[HttpServletRequest, ResponseFunction[Any], T] = {
     either.fold(
       ex => failure(InternalServerError ~> ResponseString(ex.getMessage)),
       a => success(a)

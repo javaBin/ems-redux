@@ -179,6 +179,8 @@ trait MongoDBStorage {
     withId
   }
 
+  def removeSession(sessionId: String): Either[Throwable, Unit] = nonFatalCatch.either(db("session").remove(MongoDBObject("_id" -> sessionId)))
+
   def updateSpeakerWithPhoto(eventId: String, sessionId: String, speakerId: String, photo: Attachment with Entity[Attachment]) = nonFatalCatch.either {
     val toSave = MongoDBObject("speakers.$.photo" -> photo.id.get)
     val result = db("session").update(
@@ -188,12 +190,11 @@ trait MongoDBStorage {
     photo
   }
 
-  def removeSpeaker(eventId: String, sessionId: String, speakerId: String) = nonFatalCatch.either {
-    val res = db("session").update(
+  def removeSpeaker(eventId: String, sessionId: String, speakerId: String): Either[Throwable, Unit] = nonFatalCatch.either {
+    db("session").update(
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId),
       MongoDBObject("$pull" -> MongoDBObject("sessions" -> MongoDBObject("_id" -> speakerId)))
     )
-    "OK"
   }
 
   def importSession(session: Session): Either[Throwable, Session] = {
@@ -244,6 +245,12 @@ trait MongoDBStorage {
       coll.insert(toSave, WriteConcern.Safe)
     }
     objectWithId
+  }
+
+  private def delete[A <: Entity[A]](entity: A, coll: MongoCollection): Either[Throwable, Unit] = nonFatalCatch.either {
+    entity.id.foreach{ id =>
+      coll.remove(MongoDBObject("_id" -> id))
+    }
   }
 
   private def withId[A <: Entity[A]](entity: A): A = {

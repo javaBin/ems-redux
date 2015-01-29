@@ -133,7 +133,7 @@ trait SessionResources extends ResourceHelper {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => {
       toSession(eventId, Some(sessionId), t)
-    }, storage.saveSession, sessionToItem(base)) {
+    }, storage.saveSession, sessionToItem(base), Some((_: Session) => storage.removeSession(sessionId))) {
       c =>
         val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords", "published").
           addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
