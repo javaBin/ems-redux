@@ -25,11 +25,11 @@ import org.json4s.native.JsonMethods._
 class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
   
   case class Mapping[X](from: HttpRequest[HttpServletRequest] => X) {
-      def apply(intent: PartialFunction[X, Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]]): unfiltered.Cycle.Intent[HttpServletRequest, Any] =
-        Directive.Intent {
-          case req if intent.isDefinedAt(from(req)) => intent(from(req))
-        }
-    }
+    def apply(intent: PartialFunction[X, Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]]): unfiltered.Cycle.Intent[HttpServletRequest, Any] =
+      Directive.Intent {
+        case req if intent.isDefinedAt(from(req)) => intent(from(req))
+      }
+  }
 
 
   val Intent = Mapping[String]{ case ContextPath(_, path) => path }
@@ -70,10 +70,6 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
       }
     }
     case _ => failure(NotFound)
-  }
-
-  private def pathMapper(implicit user: User) = {
-    
   }
 
   val handleRedirect = for {

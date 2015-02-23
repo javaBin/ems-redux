@@ -30,7 +30,8 @@ libraryDependencies ++= joda ++ unfiltered ++ Seq(
   "org.mongodb" %% "casbah-core" % "2.7.3",
   "org.mongodb" %% "casbah-gridfs" % "2.7.3",
   "org.mongodb" %% "casbah-query" % "2.7.3",
-  "org.specs2" %% "specs2" % "2.4.2" % "test"
+  "org.specs2" %% "specs2" % "2.4.2" % "test",
+  "de.svenkubiak" % "jBCrypt" % "0.4"
 )
 
 

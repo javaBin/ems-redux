@@ -11,7 +11,9 @@ import unfilteredx._
 trait AttachmentHandler extends ResourceHelper {
 
   def handleAttachment(id: String)(implicit user: User) = {
-    def stream(att: Attachment, params: Map[String, Seq[String]]) = DateResponseHeader("Last-Modified", att.lastModified) ~> AttachmentStreamer(att, storage.binary, params("size").headOption)
+    def stream(att: Attachment, params: Map[String, Seq[String]]) = {
+      DateResponseHeader("Last-Modified", att.lastModified) ~> AttachmentStreamer(att, storage.binary, params("size").headOption)
+    }
 
     val get = for {
       _ <- GET
