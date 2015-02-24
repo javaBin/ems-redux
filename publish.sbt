@@ -26,6 +26,8 @@ appmgrSettings
 
 appmgrBuild <<= appmgrBuild.dependsOn(appAssemble)
 
+appmgrLauncher in Appmgr := (appmgrLauncher in Appmgr).value.map(_.copy(command = "jetty", name = "ems"))
+
 aetherArtifact <<= (aetherArtifact, appmgrBuild) map { (art, build) =>
   art.attach(build, "appmgr", "zip")
 }
