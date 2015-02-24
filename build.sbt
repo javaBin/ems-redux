@@ -33,28 +33,3 @@ libraryDependencies ++= joda ++ unfiltered ++ Seq(
   "org.specs2" %% "specs2" % "2.4.2" % "test",
   "de.svenkubiak" % "jBCrypt" % "0.4"
 )
-
-
-pomIncludeRepository := {
-  x => false
-}
-
-crossPaths := false
-
-publishTo := Some("JavaBin Nexus repo" at "http://ymse.javazone.no/nexus/content/repositories/snapshots")
-
-credentials += Credentials(Path.userHome / ".javabin.credentials")
-
-aetherPublishBothSettings
-
-appAssemblerSettings
-
-appOutput in App := target.value / "appmgr" / "root"
-
-appmgrSettings
-
-appmgrBuild <<= appmgrBuild.dependsOn(appAssemble)
-
-aetherArtifact <<= (aetherArtifact, appmgrBuild) map { (art, build) =>
-  art.attach(build, "appmgr", "zip")
-}
