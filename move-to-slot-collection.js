@@ -36,6 +36,9 @@ while(events.hasNext()) {
   var event = events.next();
   allEvents.push(event._id);
   event.slots.forEach(function(s) {
+    if (isString(s.end)) {
+      s.end = ISODate(s.end);
+    }
     var start = s.start.getTime();
     var end = s.end.getTime();
     slots.push({
@@ -58,36 +61,26 @@ while(events.hasNext()) {
   allUsedSlots[event._id] = usedSlots;
 }
 
-var slots = [];
+var filteredSlots = [];
 
 allEvents.forEach(function(e) {
+  var slots2 = [];
   var used = allUsedSlots[e];
   var availableSlots = allSlots[e];
   var filtered = availableSlots.filter(function(s){
     return cont(used, s._id);
   });
-  var group = arrGroupBy(filtered, function(s){
-    return s.duration;
-  });
-  var lightning = group[10];
-  var talks = group[60] || [];
-  talks.forEach(function(s) {
-    var start = s.start.getTime();
-    var stop = start + (s.duration * 60 * 1000);
-    lightning.forEach(function(s2) {
-      var start2 = s2.start.getTime()
-      var stop2 = start2 + (s2.duration * 60 * 1000);
-      if (start <= start2 && stop >= stop2) {
-        s2.parentId = s._id;
-        slots.push(s2);
-      }
-    });
-
-    slots.push(s);
-  });
+  if (filtered.length > 0) {
+     slots2.push(filtered);
+     filtered.forEach(function(e){
+        filteredSlots.push(e);
+     });
+  }
 });
 
+print("Inserting " + filteredSlots.length + " slots");
 
-slots.forEach(function(s) {
+filteredSlots.forEach(function(s) {
   db.slot.insert(s);
-})
+});
+
