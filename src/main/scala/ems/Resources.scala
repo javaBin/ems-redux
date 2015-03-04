@@ -8,6 +8,7 @@ import ems.Links._
 
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
+import org.joda.time.DateTime
 
 import unfiltered.directives._
 import unfiltered.directives.Directives._
@@ -127,26 +128,22 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
   }
 
   private def handleAppInfo = scala.util.Try {
-    import scala.collection.JavaConverters._
+    import org.json4s._
 
-    val properties = new java.util.Properties()
-    val stream = classOf[Resources].getResourceAsStream("/build-info.properties")
-    try {
-      properties.load(stream)
-    } finally {
-      stream.close()
-    }
     val dbStatus = storage.status()
-    properties.put("db-connection", dbStatus)
 
-    val scalaProps = properties.asScala.mapValues(JString)
-    if (scalaProps.isEmpty) {
-      NotFound
-    }
-    else {
-      val returnCode = if (dbStatus == "ok") Ok else InternalServerError
-      returnCode ~> ContentType("application/json") ~> ResponseString(compact(render(JObject(scalaProps.toList))) + "\n")
-    }
+    val json = JObject(
+     "build-info" -> JObject(
+       "sha" -> JString(ems.BuildInfo.sha),
+       "version" -> JString(ems.BuildInfo.version),
+       ("build-time", JString(new DateTime(ems.BuildInfo.buildTime).toString()))
+     ),
+     "db-connection" -> JString(dbStatus)
+    )
+
+    val returnCode = if (dbStatus == "ok") Ok else InternalServerError
+    returnCode ~> ContentType("application/json") ~> ResponseString(compact(render(json)) + "\n")
+
   }.toOption
 }
 

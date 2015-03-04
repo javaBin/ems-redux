@@ -34,3 +34,17 @@ libraryDependencies ++= joda ++ unfiltered ++ Seq(
   "org.specs2" %% "specs2" % "2.4.2" % "test",
   "de.svenkubiak" % "jBCrypt" % "0.4"
 )
+
+buildInfoSettings
+
+sourceGenerators in Compile <+= buildInfo
+
+buildInfoKeys := Seq[BuildInfoKey](
+  scalaVersion,
+  BuildInfoKey.action("version") { (version in ThisBuild ).value },
+  BuildInfoKey.action("buildTime") { System.currentTimeMillis },
+  BuildInfoKey.action("branch"){ Git.branch },
+  BuildInfoKey.action("sha"){ Git.sha }
+)
+
+buildInfoPackage := "ems"
