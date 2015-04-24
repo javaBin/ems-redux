@@ -49,11 +49,11 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
     case Event(id) => handleEvent(id)
     case Slots(eventId) => handleSlots(eventId)
     case Slot(eventId, slotId) => handleSlot(eventId, slotId)
-    case Seg("events" :: eventId :: "slots" :: id :: "children" :: Nil) => handleSlots(eventId, Some(id))
+    case SlotChildren(eventId, slotId) => handleSlots(eventId, Some(slotId))
     case Rooms(eventId) => handleRooms(eventId)
     case Sessions(eventId) => handleSessionList(eventId)
     case SessionsTags(eventId) => handleAllTags(eventId)
-    case Seg("events" :: eventId :: "sessions" :: "changelog" ::  Nil) => handleChangelog
+    case SessionsChangelog(eventId) => handleChangelog
     case Session(eventId, id) => handleSessionAndForms(eventId, id)
     case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
     case SessionAttachments(eventId, sessionId) => handleSessionAttachments(eventId, sessionId)

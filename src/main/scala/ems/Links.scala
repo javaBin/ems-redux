@@ -9,10 +9,12 @@ object Links {
   val Event  = Events / 'eventId
   val Slots = Event / "slots"
   val Slot = Slots / 'slotId
-  val Rooms = Event / "rooms"  
+  val SlotChildren = Slot / "children"
+  val Rooms = Event / "rooms"
   val Room = Rooms / 'roomId
   val Sessions = Event / "sessions"
-  val SessionsTags = Sessions / "tags" 
+  val SessionsChangelog = Sessions / "changelog"
+  val SessionsTags = Sessions / "tags"
   val Session = Sessions / 'sessionId
   val SessionSlot = Session / "slot"
   val SessionRoom = Session / "room"
