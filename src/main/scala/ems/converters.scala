@@ -46,7 +46,8 @@ object converters {
     r => {
       val properties = Map(
         "start" -> Some(RFC3339.format(r.start)),
-        "duration" -> Some(r.duration)
+        "duration" -> Some(r.duration),
+        "end" -> Some(RFC3339.format(r.start.plus(r.duration)))
       ).map(toProperty).toList
       val href = baseBuilder.segments("events", eventId, "slots", r.id.get).build()
       Item(href, properties,  List(Link(URIBuilder(href).segments("children").build(), "slot collection")))
