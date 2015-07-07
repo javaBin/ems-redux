@@ -7,10 +7,10 @@ crossPaths := false
 
 publishTo <<= (version) apply {
   (v: String) => if (v.trim().endsWith("SNAPSHOT")) {
-    Some("JavaBin Nexus repo" at "http://178.79.190.206/nexus/content/repositories/snapshots")
+    Some("JavaBin Nexus repo" at "http://nye.java.no/nexus/content/repositories/snapshots")
   }
   else {
-    Some("JavaBin Nexus repo" at "http://178.79.190.206/nexus/content/repositories/releases")
+    Some("JavaBin Nexus repo" at "http://nye.java.no/nexus/content/repositories/releases")
   }
 }
 
