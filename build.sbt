@@ -44,9 +44,9 @@ libraryDependencies ++= joda ++ unfiltered ++ Seq(
   "org.scalaz.stream" %% "scalaz-stream" % "0.7.1a" % "test"
 )
 
-buildInfoSettings
+enablePlugins(BuildInfoPlugin)
 
-sourceGenerators in Compile <+= buildInfo
+buildInfoPackage := "ems"
 
 buildInfoKeys := Seq[BuildInfoKey](
   scalaVersion,
@@ -55,5 +55,3 @@ buildInfoKeys := Seq[BuildInfoKey](
   BuildInfoKey.action("branch"){ Git.branch },
   BuildInfoKey.action("sha"){ Git.sha }
 )
-
-buildInfoPackage := "ems"

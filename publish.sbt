@@ -19,18 +19,14 @@ credentials ++= {
   if (cred.exists) Seq(Credentials(cred)) else Nil
 }
 
-aetherPublishBothSettings
+overridePublishBothSettings
 
-appAssemblerSettings
+target in App := target.value / "appmgr" / "root"
 
-appOutput in App := target.value / "appmgr" / "root"
-
-appmgrSettings
-
-appmgrBuild <<= appmgrBuild.dependsOn(appAssemble)
+packageBin in Appmgr <<= (packageBin in Appmgr).dependsOn(packageBin in App)
 
 appmgrLauncher in Appmgr := (appmgrLauncher in Appmgr).value.map(_.copy(command = "jetty", name = "ems"))
 
-aetherArtifact <<= (aetherArtifact, appmgrBuild) map { (art, build) =>
+aether.AetherKeys.aetherArtifact <<= (aether.AetherKeys.aetherArtifact, (packageBin in Appmgr)) map { (art, build) =>
   art.attach(build, "appmgr", "zip")
 }
