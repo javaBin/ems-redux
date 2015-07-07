@@ -14,7 +14,10 @@ publishTo <<= (version) apply {
   }
 }
 
-credentials += Credentials(Path.userHome / ".sbt" / "javabin.credentials")
+credentials ++= {
+  val cred = Path.userHome / ".sbt" / "javabin.credentials"
+  if (cred.exists) Seq(Credentials(cred)) else Nil
+}
 
 aetherPublishBothSettings
 
