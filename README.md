@@ -1,5 +1,7 @@
 ems-redux
 =========
+[![Build Status](https://travis-ci.org/javaBin/ems-redux.svg)](https://travis-ci.org/javaBin/ems-redux)
+
 API for exposing Events and their sessions with speakers.
 
 EMS uses [Collection+JSON](http://www.amundsen.com/media-types/collection/) and further constrains the media-type.
