@@ -7,7 +7,7 @@ credentials ++= {
 } yield 
   Credentials(
     "Sonatype Nexus Repository Manager", 
-    "oss.sonatype.org", 
+    "nye.java.no", 
     username, 
     password
   )).toSeq
