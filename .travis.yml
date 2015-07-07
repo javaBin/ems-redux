@@ -1,9 +1,12 @@
 env:
   global:
-    - secure: "WS1mI5TayUX3wFXutNXfYGPWucYrUCA1P77orziKgVSGnS53Aaywta63Wwa1aeaddqQSNAT4BlL+tZgBFBqnNJ0aKxSR8VgNHp9IOMue/VunEyxlBuN6vP5GdoSCv9Nim6eJyBz6Vj6JQP7eA43K4rLcKHNJjevchX2wgHYO8AE="
-    - secure: "mzci+VpoNBNs0LQhVKjwpG+QVg8nBB4qFe6ThkbvjZI14hp/8NPILpLTMQW+dYD5+p/pGv8EgVWr1evE1nLuPHqZSDwg2dFl0s0FVRwPsg0M2rQ3bDdb5pRpAPgnZVOiVNcpytpmDyRhgK/sjcYMoBc4jkX3UzH2R5kaEsiwcv4="
+  - secure: WS1mI5TayUX3wFXutNXfYGPWucYrUCA1P77orziKgVSGnS53Aaywta63Wwa1aeaddqQSNAT4BlL+tZgBFBqnNJ0aKxSR8VgNHp9IOMue/VunEyxlBuN6vP5GdoSCv9Nim6eJyBz6Vj6JQP7eA43K4rLcKHNJjevchX2wgHYO8AE=
+  - secure: mzci+VpoNBNs0LQhVKjwpG+QVg8nBB4qFe6ThkbvjZI14hp/8NPILpLTMQW+dYD5+p/pGv8EgVWr1evE1nLuPHqZSDwg2dFl0s0FVRwPsg0M2rQ3bDdb5pRpAPgnZVOiVNcpytpmDyRhgK/sjcYMoBc4jkX3UzH2R5kaEsiwcv4=
 language: scala
 jdk:
-  - oraclejdk8
+- oraclejdk8
 after_success:
-  - "[[ $TRAVIS_BRANCH == \"master\" ]] && { sbt publish; };"
+- '[[ $TRAVIS_BRANCH == "master" ]] && { sbt publish; };'
+notifications:
+  slack:
+    secure: KDzP3BaLAx4UjTqO/ozVPWaVMnrqIbYOKtBe0QQBa5GU28p8DVzyfM+tBxFW7d89KxJk3wIUIvIfy7z7ngOWSPSDIMkg9FswlPcfwXXZfoTJKzwEmlu7Z2Q/hpWBDAuFOxxy4IQ79Ot7hs2n1GyaY8jCcrSYZNoWIUFEtiFgh9A=
