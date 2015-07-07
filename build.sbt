@@ -12,6 +12,8 @@ val unfilteredVersion = "0.8.4"
 
 val casbahVersion = "2.8.1"
 
+resolvers += "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases"
+
 val joda = Seq(
   "joda-time" % "joda-time" % "2.2",
   "org.joda" % "joda-convert" % "1.2"
@@ -38,7 +40,8 @@ libraryDependencies ++= joda ++ unfiltered ++ Seq(
   "org.mongodb" %% "casbah-gridfs" % casbahVersion,
   "org.mongodb" %% "casbah-query" % casbahVersion,
   "org.specs2" %% "specs2-core" % "3.6.2" % "test",
-  "de.svenkubiak" % "jBCrypt" % "0.4"
+  "de.svenkubiak" % "jBCrypt" % "0.4",
+  "org.scalaz.stream" %% "scalaz-stream" % "0.7.1a" % "test"
 )
 
 buildInfoSettings
