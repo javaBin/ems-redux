@@ -1,5 +1,7 @@
 organization := "no.java.ems"
 
+name := "ems"
+
 scalaVersion := "2.11.4"
 
 scalacOptions := Seq("-deprecation", "-feature")
