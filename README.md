@@ -22,6 +22,7 @@ MUST be written to allow for this. Old clients MUST ignore unknown properties.
 An event is a primary object type in EMS. An event consists of the following fields:
 
 * `name` required, string.
+* `venue` optional, string.
 * `start` optional, `DateTime`.
 * `end` optional, `DateTime`. If this appears, it MUST be a datetime after `start`.
 

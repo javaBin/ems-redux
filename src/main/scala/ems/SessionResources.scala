@@ -36,7 +36,7 @@ trait SessionResources extends ResourceHelper {
             addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
             addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
             addProperty(ValueProperty("level").apply(ValueOptions, Level.values.map(l => ValueOption(l.name))))
-          val coll = JsonCollection(href, Nil, items, List(
+          val coll = JsonCollection(href, Nil, items.toList, List(
             Query(href, "session by-slug", List(ValueProperty("slug")), Some("By Slug")),
             Query(href, "session by-tags", List(ValueProperty("tags")), Some("By Tags"))
           )).withTemplate(template)

@@ -10,7 +10,7 @@ import model._
 import org.joda.time.DateTime
 import com.mongodb.casbah.commons.MongoDBObject
 
-trait MongoDBStorage {
+trait MongoDBStorage extends DBStorage {
 
   import com.mongodb.casbah.commons.conversions.scala._
 
@@ -20,22 +20,22 @@ trait MongoDBStorage {
 
   def binary: BinaryStorage
 
-  def getEvents() = db("event").find().sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
+  def getEvents() = db("event").find().sort(MongoDBObject("name" -> 1)).map(Event.apply).toVector
 
   def getEventsWithSessionCount(user: User) = getEvents().map(e => EventWithSessionCount(e, e.id.map(id => getSessionCount(id)(user)).getOrElse(0)))
 
   def getEvent(id: String) = db("event").findOneByID(id).map(Event.apply)
 
-  def getEventsBySlug(name: String) = db("event").find(MongoDBObject("slug" -> name)).sort(MongoDBObject("name" -> 1)).map(Event.apply).toList
+  def getEventsBySlug(name: String) = db("event").find(MongoDBObject("slug" -> name)).sort(MongoDBObject("name" -> 1)).map(Event.apply).toVector
 
   def saveEvent(event: Event): Either[Throwable, Event] = saveOrUpdate(event, (e: Event, update) => e.toMongo(update), db("event"))
 
-  def getSlots(eventId: String, parent: Option[String] = None): Seq[Slot] = {
+  def getSlots(eventId: String, parent: Option[String] = None): Vector[Slot] = {
     val obj = MongoDBObject("eventId" -> eventId, "parentId" -> parent.orNull)
     db("slot").find(obj).map(Slot.apply).toVector
   }
 
-  def getAllSlots(eventId: String): Seq[SlotTree] = getSlots(eventId).map(s => SlotTree(s, getSlots(s.eventId, s.id)))
+  def getAllSlots(eventId: String): Vector[SlotTree] = getSlots(eventId).map(s => SlotTree(s, getSlots(s.eventId, s.id)))
 
   def getSlot(id: String): Option[Slot] = {
     db("slot").findOne(MongoDBObject("_id" -> id)).map(Slot.apply)
@@ -47,9 +47,9 @@ trait MongoDBStorage {
 
   def removeSlot(eventId: String, id: String): Either[Throwable, String] = Left(new UnsupportedOperationException())
 
-  def getRooms(eventId: String): Seq[Room] = getEvent(eventId).map(_.rooms).getOrElse(Nil)
+  def getRooms(eventId: String): Vector[Room] = getEvent(eventId).map(_.rooms).getOrElse(Nil).toVector
 
-  def getRoom(eventId: String, id: String): Option[Room] = getRooms(eventId).find(r => r.id.exists(_ == id))
+  def getRoom(eventId: String, id: String): Option[Room] = getRooms(eventId).find(r => r.id.contains(id))
 
   def saveRoom(eventId: String, room: Room): Either[Throwable, Room] = Left(new UnsupportedOperationException())
 
@@ -61,7 +61,7 @@ trait MongoDBStorage {
     if (!user.authenticated) {
       query += "published" -> true
     }
-    db("session").find(query.result()).sort(MongoDBObject("title" -> 1)).map(Session(_, this)).toList
+    db("session").find(query.result()).sort(MongoDBObject("title" -> 1)).map(Session(_, this)).toVector
   }
 
   def getSessionCount(eventId: String)(user: User): Int = {
@@ -75,7 +75,7 @@ trait MongoDBStorage {
 
   def getSessionsBySlug(eventId: String, slug: String) = db("session").find(
     MongoDBObject("eventId" -> eventId, "slug" -> slug)
-  ).sort(MongoDBObject("abstract" -> MongoDBObject("title" -> 1))).map(Session(_, this)).toList
+  ).sort(MongoDBObject("abstract" -> MongoDBObject("title" -> 1))).map(Session(_, this)).toVector
 
   def getSession(eventId: String, id: String) = db("session").findOne(
     MongoDBObject("_id" -> id, "eventId" -> eventId)
@@ -109,7 +109,7 @@ trait MongoDBStorage {
     ).isDefined
 
     val dbObject: MongoDBObject = withId.toMongo
-    val result = if (update) {
+    if (update) {
       val toSave = dbObject.foldLeft(MongoDBObject.newBuilder){case (mongo, (key, value)) => mongo += ("attachments.$." + key -> value) }.result()
       db("session").update(
         MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "attachments._id" -> speakerId),
@@ -126,16 +126,15 @@ trait MongoDBStorage {
   }
 
   def removeAttachment(eventId: String, sessionId: String, id: String) = nonFatalCatch.either {
-    val result = db("session").update(
+    db("session").update(
       MongoDBObject("_id" -> sessionId, "eventId" -> eventId, "attachments._id" -> id),
       MongoDBObject("$pull" -> MongoDBObject("attachments.$._id" -> id))
     )
-
-    "OK"
+    ()
   }
 
   def getSpeaker(eventId: String, sessionId: String, speakerId: String) = {
-    getSession(eventId, sessionId).flatMap(_.speakers.find(_.id.exists(_ == speakerId)))
+    getSession(eventId, sessionId).flatMap(_.speakers.find(_.id.contains(speakerId)))
   }
 
   def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker) = nonFatalCatch.either {
@@ -194,13 +193,13 @@ trait MongoDBStorage {
     saveOrUpdate(event, (o: Event, update) => o.toMongo(update), db("event"), fromImport = true)
   }
 
-  def getChangedSessions(from: DateTime)(implicit u: User): Seq[Session] = {
+  def getChangedSessions(from: DateTime)(implicit u: User): Vector[Session] = {
     val builder = MongoDBObject.newBuilder
     builder ++= ("last-modified" $gte from.toDate)
     if (!u.authenticated) {
       builder += "published" -> true
     }
-    db("session").find(builder.result()).map(Session(_, this)).toSeq
+    db("session").find(builder.result()).map(Session(_, this)).toVector
   }
 
   def status(): String = {

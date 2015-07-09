@@ -11,6 +11,15 @@ case class ServerConfig(binary: File, mongo: String)
 
 case class CacheConfig(events: Int = 30, sessions: Int = 30)
 
+case class SqlConfig(host: String = "localhost",
+                     port: Int = 5432,
+                     database: String = "ems",
+                     username: String = "ems",
+                     password: String = "ems") {
+  val url = s"jdbc:postgresql://$host:$port/$database"
+  val driver = "org.postgresql.Driver"
+}
+
 object Config {
   val APP_HOME = Properties.envOrElse("APP_HOME", Properties.propOrElse("app.home", "."))
 
