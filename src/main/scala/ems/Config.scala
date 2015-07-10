@@ -31,6 +31,7 @@ object SessionPermalinks {
       if (!f.exists) {
         f = new File(new File(Config.APP_HOME), "current/etc/permalinks.json")
       }
+      f
     }
     def toMap(jO: JObject) = jO.values.foldLeft(Map.empty[String, Map[String, URITemplate]]){case (m, (k,v)) => m.updated(k, (v match {
       case j: Map[_, _] => j.map{case (k,v) => k.toString -> URITemplate(v.toString)}.toMap
