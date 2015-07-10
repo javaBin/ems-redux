@@ -1,5 +1,6 @@
 package ems.storage
 
+/*
 import scala.util.control.Exception.nonFatalCatch
 import com.mongodb.casbah.Imports._
 import ems._
@@ -241,3 +242,4 @@ trait MongoDBStorage extends DBStorage {
   }
 
 }
+*/

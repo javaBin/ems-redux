@@ -56,6 +56,8 @@ trait DBStorage {
 
   def removeAttachment(eventId: String, sessionId: String, id: String): Either[Throwable, Unit]
 
+  def getSpeakers(eventId: String, sessionId: String): Vector[Speaker]
+
   def getSpeaker(eventId: String, sessionId: String, speakerId: String): Option[Speaker]
 
   def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker): Either[Throwable, Speaker]

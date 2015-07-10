@@ -1,9 +1,7 @@
 package ems
 
-import ems.storage.FilesystemBinaryStorage
-import ems.config.Config
+import ems.storage.DBStorage
 import ems.security.{JAASAuthenticator, User, Authenticator}
-import ems.storage.{MongoSetting, MongoDBStorage}
 import ems.Links._
 
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
@@ -20,10 +18,9 @@ import unfiltered.response._
 
 import linx._
 
-import org.json4s._
 import org.json4s.native.JsonMethods._
 
-class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
+class Resources(override val storage: DBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
   
   case class Mapping[X](from: HttpRequest[HttpServletRequest] => X) {
     def apply(intent: PartialFunction[X, Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]]): unfiltered.Cycle.Intent[HttpServletRequest, Any] =
@@ -36,8 +33,6 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
   val Intent = Mapping[String]{ case ContextPath(_, path) => path }
 
   import auth._
-
-  def this() = this(Resources.storage, JAASAuthenticator)
 
   def intent = {
     case Authenticated(uf) => uf(u => withUser(u))
@@ -148,11 +143,6 @@ class Resources(override val storage: MongoDBStorage, auth: Authenticator[HttpSe
 }
 
 object Resources {
-  object storage extends MongoDBStorage {
-    val MongoSetting(db) = Some(Config.server.mongo)
-    val binary = new FilesystemBinaryStorage(Config.server.binary)
-  }
-
-  def apply(authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)
+  def apply(storage: DBStorage, authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)
 
 }

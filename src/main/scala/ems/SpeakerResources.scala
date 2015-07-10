@@ -18,7 +18,8 @@ trait SpeakerResources extends ResourceHelper {
       href <- requestURI
       session <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
     } yield {
-      val items = session.speakers.map(speakerToItem(base, eventId, sessionId)).toList
+      val speakers = storage.getSpeakers(eventId, sessionId)
+      val items = speakers.map(speakerToItem(base, eventId, sessionId)).toList
       CollectionJsonResponse(JsonCollection(href, Nil, items, Nil, Some(makeTemplate("name", "email", "bio", "zip-code", "tags"))))
     }
 
@@ -30,7 +31,8 @@ trait SpeakerResources extends ResourceHelper {
       either <- withTemplate(t => toSpeaker(t, None))
       speaker <- either
     } yield {
-      val exists = session.speakers.exists(_.email == speaker.email)
+      val speakers = storage.getSpeakers(eventId, sessionId)
+      val exists = speakers.exists(_.email == speaker.email)
       if (exists) {
         BadRequest ~> ResponseString("There already exists a speaker with this email")
       }

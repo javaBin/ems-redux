@@ -2,7 +2,7 @@ package ems
 
 import model.Entity
 import security.User
-import storage.MongoDBStorage
+import ems.storage.DBStorage
 import unfiltered.response._
 import unfiltered.request._
 import unfilteredx._
@@ -14,7 +14,7 @@ import scala.language.implicitConversions
 
 trait ResourceHelper extends EmsDirectives {
 
-  def storage: MongoDBStorage
+  def storage: DBStorage
 
   private [ems] def handleObject[T <: Entity[T]](obj: Option[T],
                                                  fromTemplate: (Template) => T,

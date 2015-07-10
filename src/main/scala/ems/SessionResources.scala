@@ -69,7 +69,7 @@ trait SessionResources extends ResourceHelper {
     _ <- GET
     _ <- authenticated(u)
   } yield {
-    val tags = storage.getSessions(eventId)(u).flatMap(_.tags.map(_.name).toSeq).toSet[String]
+    val tags = storage.getSessions(eventId)(u).flatMap(_.abs.tags.map(_.name).toSeq).toSet[String]
     JsonContent ~> new ResponseStreamer {
       import org.json4s._
       import org.json4s.native.JsonMethods._
@@ -227,7 +227,7 @@ trait SessionResources extends ResourceHelper {
       base <- baseURIBuilder
       obj <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
     } yield {
-      val items = obj.attachments.map(attachmentToItem(base))
+      val items = obj.abs.attachments.map(attachmentToItem(base))
       CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
     }
 
@@ -265,7 +265,7 @@ trait SessionResources extends ResourceHelper {
   }
 
   private def toURIAttachment(base: URIBuilder, attachment: Attachment with Entity[Attachment]) = {
-    if (!attachment.id.isDefined) {
+    if (attachment.id.isEmpty) {
       throw new IllegalStateException("Tried to convert an unsaved Attachment; Failure")
     }
     URIAttachment(None, base.segments(attachment.id.get).build(), attachment.name, attachment.size, attachment.mediaType)

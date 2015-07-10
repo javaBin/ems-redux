@@ -80,7 +80,7 @@ object converters {
         "format" -> Some(s.abs.format.toString),
         "level" -> Some(s.abs.level.toString),
         "state" -> Some(s.state.toString),
-        "keywords" -> Some(s.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty),
+        "keywords" -> Some(s.abs.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty),
         "published" -> Some(s.published)
       ) ++ handlePrivateProperties(u, s)
       val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
@@ -94,7 +94,7 @@ object converters {
   private def handlePrivateProperties(u: User, s: Session): Seq[(String, Option[Any])] = {
     if (u.authenticated) {
       Seq(
-        "tags" -> Some(s.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty)),
+        "tags" -> Some(s.abs.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty)),
         "outline" -> s.abs.outline,
         "equipment" -> s.abs.equipment
       )
@@ -115,10 +115,10 @@ object converters {
       Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room")),
       Link(baseURIBuilder.segments("events", s.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
-    links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
+    links ++= s.abs.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name))).toSeq
     links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot)))).toSeq
-    links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
+    //links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
     links ++= permalinks.expand(s.eventId, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
     links.result()
   }
@@ -188,7 +188,7 @@ object converters {
   def toEvent(template: Template, id: Option[String] = None): Event = {
     val name = template.getPropertyValue("name").map(_.value.toString).get
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
-    Event(id, name, Slug.makeSlug(name), venue, Nil)
+    Event(id, name, Slug.makeSlug(name), venue)
   }
 
   private def toAbstract(template: Template): Abstract = {
@@ -201,16 +201,17 @@ object converters {
     val format = template.getPropertyValue("format").map(x => Format(x.value.toString))
     val level = template.getPropertyValue("level").map(x => Level(x.value.toString))
     val language = template.getPropertyValue("lang").map(x => new Locale(x.value.toString))
-    Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation))
+    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
+    val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
+
+    Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), keywords.toSet[Keyword], tags.toSet[Tag])
   }
 
   def toSession(eventId: String, id: Option[String], template: Template): Session = {
     val abs = toAbstract(template)
     val state = template.getPropertyValue("state").map(x => State(x.value.toString))
-    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
-    val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
-    val published = template.getPropertyValue("published").map(x => x.value.toString.toBoolean).getOrElse(false)
-    val sess = Session(eventId, abs, state.getOrElse(State.Pending), tags.toSet[Tag], keywords.toSet[Keyword], published);
+    val published = template.getPropertyValue("published").exists(x => x.value.toString.toBoolean)
+    val sess = Session(eventId, abs, state.getOrElse(State.Pending), published);
     sess.copy(id = id)
   }
 

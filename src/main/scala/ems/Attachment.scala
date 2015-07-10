@@ -17,30 +17,7 @@ trait Attachment {
 
 case class URIAttachment(id: Option[String], href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment with Entity[Attachment] {
   def data = href.toURL.openStream()
-
-  def toMongo: DBObject = MongoDBObject(
-    "_id" -> id.get,
-    "href" -> href.toString,
-    "name" -> name,
-    "mime-type" -> mediaType.map(_.toString),
-    "size" -> size,
-    "last-modified" -> lastModified.toDate
-  )
-
   def withId(id: String) = copy(id = Some(id))
-}
-
-object URIAttachment {
-  def apply(dbo: DBObject): URIAttachment = {
-    val m = wrapDBObj(dbo)
-    val id = m.getAs[String]("_id")
-    val href = URI.create(m.getAs[String]("href").get)
-    val mt = m.getAs[String]("mime-type").flatMap(MIMEType(_))
-    val name = m.getAs[String]("name").get
-    val size = m.getAs[Long]("size")
-    val lastModified = m.getAsOrElse[JDate]("last-modified", new JDate())
-    URIAttachment(id, href, name, size, mt, new DateTime(lastModified))
-  }
 }
 
 case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment

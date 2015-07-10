@@ -52,7 +52,7 @@ trait EventResources extends SessionResources with SpeakerResources {
       e <- getOrElse(storage.getEvent(id), NotFound)
       base <- baseURIBuilder
     } yield {
-      val items = e.rooms.map(roomToItem(base, id))
+      val items = storage.getRooms(id).map(roomToItem(base, id))
       val href = base.segments("events", id, "rooms").build()
       CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("name"))))
     }
