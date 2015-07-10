@@ -10,9 +10,10 @@ import net.hamnaberg.json.collection.Value._
 import security.User
 import org.joda.time.{Duration, Minutes}
 import scravatar.Gravatar
-
+import config.SessionPermalinks
 
 object converters {
+  val permalinks: SessionPermalinks = SessionPermalinks.fromConstrettoTags()
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
@@ -118,7 +119,7 @@ object converters {
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name))).toSeq
     links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot)))).toSeq
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
-
+    links ++= permalinks.expand(s.eventId, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
     links.result()
   }
 

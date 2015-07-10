@@ -1,0 +1,12 @@
+{
+  "test": {
+    "cee37cc1-5399-47ef-9418-21f9b6444bfa": "http://test.jz13.java.no/presentation.html?id={href}",
+    "9f40063a-5f20-4d7b-b1e8-ed0c6cc18a5f": "http://test.2014.javazone.no/presentation.html?id={href}",
+    "e213acd2-ad9e-4bba-a5aa-87d47fed5d08": "http://test.2015.javazone.no/details.html?talk={href}"
+  },
+  "prod": {
+    "cee37cc1-5399-47ef-9418-21f9b6444bfa": "http://jz13.java.no/presentation.html?id={href}",
+    "9f40063a-5f20-4d7b-b1e8-ed0c6cc18a5f": "http://2014.javazone.no/presentation.html?id={href}",
+    "0e6d98e9-5b06-42e7-b275-6abadb498c81": "http://2015.javazone.no/details.html?talk={href}"
+  }
+}

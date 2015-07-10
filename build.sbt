@@ -36,6 +36,8 @@ libraryDependencies ++= joda ++ unfiltered ++ Seq(
   "com.sksamuel.scrimage" %% "scrimage-core" % "1.4.2",
   "org.jsoup" % "jsoup" % "1.8.2",
   "commons-io" % "commons-io" % "2.3",
+  "commons-codec" % "commons-codec" % "1.10",
+  "no.arktekk" %% "uri-template" % "1.0.2",
   "org.mongodb" %% "casbah-core" % casbahVersion,
   "org.mongodb" %% "casbah-gridfs" % casbahVersion,
   "org.mongodb" %% "casbah-query" % casbahVersion,
