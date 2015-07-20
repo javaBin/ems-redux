@@ -11,7 +11,7 @@ import net.hamnaberg.json.collection._
 
 trait SpeakerResources extends ResourceHelper {
 
-  def handleSpeakers(eventId: String, sessionId: String)(implicit user: User) = {
+  def handleSpeakers(eventId: UUID, sessionId: UUID)(implicit user: User) = {
     val get = for {
       _ <- GET
       base <- baseURIBuilder
@@ -49,7 +49,7 @@ trait SpeakerResources extends ResourceHelper {
     get | post
   }
 
-  def handleSpeaker(eventId: String, sessionId: String, speakerId: String)(implicit user: User) = {
+  def handleSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID)(implicit user: User) = {
     val speaker = storage.getSpeaker(eventId, sessionId, speakerId)
     for {
       base <- baseURIBuilder
@@ -65,7 +65,7 @@ trait SpeakerResources extends ResourceHelper {
     }
   }
 
-  def handleSpeakerPhoto(eventId: String, sessionId: String, speakerId: String)(implicit user: User) = {
+  def handleSpeakerPhoto(eventId: UUID, sessionId: UUID, speakerId: UUID)(implicit user: User) = {
     val get = for {
       _ <- GET
       base <- baseURIBuilder

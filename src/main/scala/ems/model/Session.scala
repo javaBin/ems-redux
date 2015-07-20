@@ -1,6 +1,6 @@
-package ems.model
+package ems
+package model
 
-import ems.{Attachment, URIAttachment}
 import org.joda.time.DateTime
 import java.util.Locale
 
@@ -43,11 +43,11 @@ case class Abstract(title: String,
 
 }
 
-case class Session(id: Option[String],
-                   eventId: String,
+case class Session(id: Option[UUID],
+                   eventId: UUID,
                    slug: String,
-                   room: Option[Room],
-                   slot: Option[Slot],
+                   room: Option[UUID],
+                   slot: Option[UUID],
                    abs: Abstract,
                    state: State,
                    published: Boolean,
@@ -62,9 +62,9 @@ case class Session(id: Option[String],
 
   def withSummary(input: String) = withAbstract(abs.withSummary(input))
 
-  def withRoom(room: Room) = copy(room = Some(room))
+  def withRoom(room: UUID) = copy(room = Some(room))
 
-  def withSlot(slot: Slot) = copy(slot = Some(slot))
+  def withSlot(slot: UUID) = copy(slot = Some(slot))
 
   def withFormat(format: Format) = withAbstract(abs.withFormat(format))
 
@@ -74,32 +74,34 @@ case class Session(id: Option[String],
 
   def withAbstract(abs: Abstract) = copy(abs = abs)
 
-  def withId(id: String) = copy(id = Some(id))
+  def withId(id: UUID) = copy(id = Some(id))
 }
 
 object Session {
-  def apply(eventId: String, abs: Abstract): Session = {
+  def apply(eventId: UUID, abs: Abstract): Session = {
     Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, State.Pending, false)
   }
 
-  def apply(eventId: String, abs: Abstract, state: State): Session = {
+  def apply(eventId: UUID, abs: Abstract, state: State): Session = {
     Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, false)
   }
 
-  def apply(eventId: String, abs: Abstract, state: State, published: Boolean): Session = {
+  def apply(eventId: UUID, abs: Abstract, state: State, published: Boolean): Session = {
     Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, published)
   }
 
-  def apply(eventId: String, title: String, format: Format): Session = {
+  def apply(eventId: UUID, title: String, format: Format): Session = {
     val ab = Abstract(title, format = format, tags = Set.empty, keywords = Set.empty)
     Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, State.Pending, false)
   }
 }
 
-case class Speaker(id: Option[String], name: String, email: String, zipCode: Option[String] = None, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity[Attachment]] = None, lastModified: DateTime = DateTime.now()) extends Entity[Speaker] {
+case class EnrichedSession(session: Session, room: Option[Room], slot: Option[Slot], speakers: Vector[Speaker])
+
+case class Speaker(id: Option[UUID], name: String, email: String, zipCode: Option[String] = None, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity[Attachment]] = None, lastModified: DateTime = DateTime.now()) extends Entity[Speaker] {
   type T = Speaker
 
-  def withId(id: String) = copy(id = Some(id))
+  def withId(id: UUID) = copy(id = Some(id))
 }
 
 sealed abstract class Level(val name: String) {

@@ -1,6 +1,6 @@
-package ems.storage
+package ems
+package storage
 
-import ems.{MIMEType, Attachment}
 import java.io.{FileOutputStream, FileInputStream, File}
 import java.util.{UUID, Properties}
 import org.apache.commons.io.IOUtils
@@ -10,7 +10,7 @@ class FilesystemBinaryStorage(val baseDirectory: File) extends BinaryStorage {
     throw new IllegalStateException(baseDirectory.getAbsolutePath + " did not exist, and we were unable to create it. ")
   }
 
-  def getAttachment(id: String) = {
+  def getAttachment(id: UUID) = {
     val file = Some(getFile(id)).filter(f => f.exists && f.canRead)
     file.map{ f =>
       val metadata = loadMetadata(id)
@@ -20,8 +20,8 @@ class FilesystemBinaryStorage(val baseDirectory: File) extends BinaryStorage {
 
   def saveAttachment(att: Attachment) = {
     val id = att match {
-      case x: FileAttachment => x.id.getOrElse(UUID.randomUUID().toString)
-      case x => UUID.randomUUID().toString
+      case x: FileAttachment => x.id.getOrElse(randomUUID)
+      case x => randomUUID
     }
     val file = getFile(id)
     val parent = file.getParentFile
@@ -42,7 +42,7 @@ class FilesystemBinaryStorage(val baseDirectory: File) extends BinaryStorage {
   }
 
 
-  def removeAttachment(id: String) {
+  def removeAttachment(id: UUID) {
     val file = getFile(id)
     if (file.exists && file.canWrite) {
       getMetadataFile(id).delete
@@ -54,11 +54,11 @@ class FilesystemBinaryStorage(val baseDirectory: File) extends BinaryStorage {
     }
   }
 
-  private def getMetadataFile(id: String): File = new File(getFile(id).getAbsolutePath + ".metadata")
+  private def getMetadataFile(id: UUID): File = new File(getFile(id).getAbsolutePath + ".metadata")
 
-  private def getFile(id: String): File = new File(new File(baseDirectory, id.substring(0, 2)), id)
+  private def getFile(id: UUID): File = new File(new File(baseDirectory, id.toString.substring(0, 2)), id)
 
-  private def loadMetadata(id: String): Map[String, String] = {
+  private def loadMetadata(id: UUID): Map[String, String] = {
     import collection.JavaConverters._
     val properties = {
       val p = new Properties()

@@ -1,15 +1,16 @@
-package ems.storage
+package ems
+package storage
 
 import ems.{StreamingAttachment, URIAttachment, Attachment}
 import ems.model.Entity
 import java.io.InputStream
 
 trait BinaryStorage {
-  def getAttachment(id: String): Option[Attachment with Entity[Attachment]]
+  def getAttachment(id: UUID): Option[Attachment with Entity[Attachment]]
 
   def saveAttachment(att: Attachment): Attachment with Entity[Attachment]
 
-  def removeAttachment(id: String)
+  def removeAttachment(id: UUID)
 
   def getStream(att: Attachment): InputStream = att match {
     case u: URIAttachment => u.data

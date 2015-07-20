@@ -33,7 +33,7 @@ object converters {
     }
   }
 
-  def roomToItem(baseBuilder: URIBuilder, eventId: String): (Room) => Item = {
+  def roomToItem(baseBuilder: URIBuilder, eventId: UUID): (Room) => Item = {
     r => {
       val properties = Map(
         "name" -> Some(r.name)
@@ -43,7 +43,7 @@ object converters {
     }
   }
 
-  def slotToItem(baseBuilder: URIBuilder, eventId: String): (Slot) => Item = {
+  def slotToItem(baseBuilder: URIBuilder, eventId: UUID): (Slot) => Item = {
     r => {
       val properties = Map(
         "start" -> Some(RFC3339.format(r.start)),
@@ -55,7 +55,7 @@ object converters {
     }
   }
 
-  def toSlot(template: Template, eventId: String, parent: Option[String] = None, id: Option[String] = None): Slot = Slot(
+  def toSlot(template: Template, eventId: UUID, parent: Option[UUID] = None, id: Option[UUID] = None): Slot = Slot(
     id,
     eventId,
     template.getPropertyValue("start").map(v => RFC3339.parseDateTime(v.toString).right.get).get,
@@ -63,8 +63,9 @@ object converters {
     parent
   )
 
-  def toRoom(template: Template, id: Option[String] = None): Room = Room(
+  def toRoom(template: Template, eventId: UUID, id: Option[UUID] = None): Room = Room(
     id,
+    eventId,
     template.getPropertyValue("name").map(_.toString).get
   )
 
@@ -116,16 +117,14 @@ object converters {
       Link(baseURIBuilder.segments("events", s.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
     links ++= s.abs.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
-    links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.id.get).build(), "room item", Some(r.name))).toSeq
-    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.id.get).build(), "slot item", Some(formatSlot(slot)))).toSeq
+    //links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.get.toString).build(), "room item", Some(r.name))).toSeq
+    //links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.get.toString).build(), "slot item", Some(formatSlot(slot)))).toSeq
     //links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
     links ++= permalinks.expand(s.eventId, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
     links.result()
   }
 
-  def formatSlot(slot: Slot): String = {
-    RFC3339.format(slot.start) + "+" + RFC3339.format(slot.start.plus(slot.duration))
-  }
+  def formatSlot(slot: Slot): String = slot.formatted
 
   def attachmentToItem(baseURIBuilder: URIBuilder): (URIAttachment) => (Item) = {
     a => {
@@ -151,7 +150,7 @@ object converters {
     }
   }
 
-  def speakerToItem(builder: URIBuilder, eventId: String, sessionId: String)(implicit user: User): (Speaker) => (Item) = {
+  def speakerToItem(builder: URIBuilder, eventId: UUID, sessionId: UUID)(implicit user: User): (Speaker) => (Item) = {
     s => {
       val auths = if (user.authenticated) {
         List(
@@ -185,7 +184,7 @@ object converters {
     }
   }
 
-  def toEvent(template: Template, id: Option[String] = None): Event = {
+  def toEvent(template: Template, id: Option[UUID] = None): Event = {
     val name = template.getPropertyValue("name").map(_.value.toString).get
     val venue = template.getPropertyValue("venue").map(_.value.toString).get
     Event(id, name, Slug.makeSlug(name), venue)
@@ -207,15 +206,15 @@ object converters {
     Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), keywords.toSet[Keyword], tags.toSet[Tag])
   }
 
-  def toSession(eventId: String, id: Option[String], template: Template): Session = {
+  def toSession(eventId: UUID, id: Option[UUID], template: Template): Session = {
     val abs = toAbstract(template)
     val state = template.getPropertyValue("state").map(x => State(x.value.toString))
     val published = template.getPropertyValue("published").exists(x => x.value.toString.toBoolean)
-    val sess = Session(eventId, abs, state.getOrElse(State.Pending), published);
+    val sess = Session(eventId, abs, state.getOrElse(State.Pending), published)
     sess.copy(id = id)
   }
 
-  def toSpeaker(template: Template, id: Option[String] = None): Speaker = {
+  def toSpeaker(template: Template, id: Option[UUID] = None): Speaker = {
     val name = template.getPropertyValue("name").get.value.toString
     val email = template.getPropertyValue("email").get.value.toString
     val bio = template.getPropertyValue("bio").map(_.value.toString)
@@ -224,7 +223,7 @@ object converters {
     Speaker(id, name, email, zipCode, bio, tags)
   }
 
-  def toAttachment(template: Template, id: Option[String] = None): URIAttachment = {
+  def toAttachment(template: Template, id: Option[UUID] = None): URIAttachment = {
     val href = template.getPropertyValue("href").map(x => URI.create(x.value.toString)).get
     val name = template.getPropertyValue("name").get.value.toString
     val sizeFilter: PartialFunction[Value[_], Long] = {

@@ -1,11 +1,12 @@
-package ems.model
+package ems
+package model
 
 import org.joda.time.DateTime
 
 trait Entity[T] {
-  def id: Option[String]
+  def id: Option[UUID]
 
   def lastModified: DateTime
 
-  def withId(id: String): T
+  def withId(id: UUID = randomUUID): T
 }

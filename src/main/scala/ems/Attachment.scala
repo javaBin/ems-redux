@@ -15,9 +15,9 @@ trait Attachment {
   def lastModified: DateTime
 }
 
-case class URIAttachment(id: Option[String], href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment with Entity[Attachment] {
+case class URIAttachment(id: Option[UUID], href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment with Entity[Attachment] {
   def data = href.toURL.openStream()
-  def withId(id: String) = copy(id = Some(id))
+  def withId(id: UUID) = copy(id = Some(id))
 }
 
 case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment

@@ -19,7 +19,7 @@ import java.io.OutputStream
 
 trait SessionResources extends ResourceHelper {
 
-  def handleSessionList(eventId: String)(implicit u: User): ResponseDirective = {
+  def handleSessionList(eventId: UUID)(implicit u: User): ResponseDirective = {
     val get = for {
       _ <- GET
       params <- queryParams
@@ -65,7 +65,7 @@ trait SessionResources extends ResourceHelper {
     get | post
   }
 
-  def handleAllTags(eventId: String)(implicit u: User) = for {
+  def handleAllTags(eventId: UUID)(implicit u: User) = for {
     _ <- GET
     _ <- authenticated(u)
   } yield {
@@ -79,7 +79,7 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  def handleSessionAndForms(eventId: String, sessionId: String)(implicit u: User) = {
+  def handleSessionAndForms(eventId: UUID, sessionId: UUID)(implicit u: User) = {
     val form = for {
       _ <- POST
       _ <- authenticated(u)
@@ -93,11 +93,11 @@ trait SessionResources extends ResourceHelper {
     } yield {
       val tags = params.get("tag").filterNot(_.isEmpty)
       val slot = params.get("slot").flatMap(_.headOption).flatMap{ slot =>
-        val id = URIBuilder(slot).path.last.seg
+        val id = UUIDFromString(URIBuilder(slot).path.last.seg)
         storage.getSlot(id)
       }
       val room = params.get("room").flatMap(_.headOption).flatMap{ room =>
-        val id = URIBuilder(room).path.last.seg
+        val id = UUIDFromString(URIBuilder(room).path.last.seg)
         storage.getRoom(eventId, id)
       }
       //TODO: improve this.
@@ -106,10 +106,10 @@ trait SessionResources extends ResourceHelper {
         updated = updated.withTags(tags.get.map(Tag).toSet[Tag])
       }
       if (slot.isDefined) {
-        updated = updated.withSlot(slot.get)
+        updated = updated.withSlot(slot.flatMap(_.id).get)
       }
       if (room.isDefined) {
-        updated = updated.withRoom(room.get)
+        updated = updated.withRoom(room.flatMap(_.id).get)
       }
       if (updated == session) {
         NoContent
@@ -129,7 +129,7 @@ trait SessionResources extends ResourceHelper {
     form | cj
   }
 
-  private def handleSession(eventId: String, sessionId: String)(implicit u: User) = for {
+  private def handleSession(eventId: UUID, sessionId: UUID)(implicit u: User) = for {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => {
       toSession(eventId, Some(sessionId), t)
@@ -146,7 +146,7 @@ trait SessionResources extends ResourceHelper {
     }
   } yield a
 
-  def handleSessionRoom(eventId: String, sessionId: String)(implicit u: User) = {
+  def handleSessionRoom(eventId: UUID, sessionId: UUID)(implicit u: User) = {
     for {
       _ <- GET
       a <- commit(getOrElse(storage.getSession(eventId, sessionId), NotFound))
@@ -193,13 +193,13 @@ trait SessionResources extends ResourceHelper {
   }
 
 
-  private def getValidURIForPublish(eventId: String, u: URI) = {
+  private def getValidURIForPublish(eventId: UUID, u: URI): List[UUID] = {
     val path = u.getPath
     val index = path.indexOf(s"/events/$eventId/sessions/")
-    if (index > 0) Seq(path.substring(path.lastIndexOf("/") + 1)) else Nil
+    if (index > 0) UUIDFromStringOpt(path.substring(path.lastIndexOf("/") + 1)).toList else Nil
   }
 
-  private def publishNow(eventId: String, list: URIList) = {
+  private def publishNow(eventId: UUID, list: URIList) = {
     val sessions = list.list.flatMap(getValidURIForPublish(eventId, _))
     storage.publishSessions(eventId, sessions).fold(
       ex => BadRequest,
@@ -207,7 +207,7 @@ trait SessionResources extends ResourceHelper {
     )
   }
 
-  private def publish(eventId: String)(implicit user: User) = for {
+  private def publish(eventId: UUID)(implicit user: User) = for {
     _ <- POST
     _ <- authenticated(user)
     _ <- contentType("text/uri-list")
@@ -220,7 +220,7 @@ trait SessionResources extends ResourceHelper {
     publishNow(eventId, res)
   }
 
-  def handleSessionAttachments(eventId: String, sessionId: String)(implicit user: User) = {
+  def handleSessionAttachments(eventId: UUID, sessionId: UUID)(implicit user: User) = {
     val get = for {
       _ <- GET
       href <- requestURI

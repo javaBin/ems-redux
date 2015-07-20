@@ -12,61 +12,61 @@ trait DBStorage {
 
   def getEventsWithSessionCount(user: User): Vector[EventWithSessionCount]
 
-  def getEvent(id: String): Option[Event]
+  def getEvent(id: UUID): Option[Event]
 
   def getEventsBySlug(name: String): Vector[Event]
 
   def saveEvent(event: Event): Either[Throwable, Event]
 
-  def getSlots(eventId: String, parent: Option[String] = None): Vector[Slot]
+  def getSlots(eventId: UUID, parent: Option[UUID] = None): Vector[Slot]
 
-  def getAllSlots(eventId: String): Vector[SlotTree]
+  def getAllSlots(eventId: UUID): Vector[SlotTree]
 
-  def getSlot(id: String): Option[Slot]
+  def getSlot(id: UUID): Option[Slot]
 
   def saveSlot(slot: Slot): Either[Throwable, Slot]
 
-  def removeSlot(eventId: String, id: String): Either[Throwable, String]
+  def removeSlot(eventId: UUID, id: UUID): Either[Throwable, String]
 
-  def getRooms(eventId: String): Vector[Room]
+  def getRooms(eventId: UUID): Vector[Room]
 
-  def getRoom(eventId: String, id: String): Option[Room]
+  def getRoom(eventId: UUID, id: UUID): Option[Room]
 
-  def saveRoom(eventId: String, room: Room): Either[Throwable, Room]
+  def saveRoom(eventId: UUID, room: Room): Either[Throwable, Room]
 
-  def removeRoom(eventId: String, id: String): Either[Throwable, String]
+  def removeRoom(eventId: UUID, id: UUID): Either[Throwable, String]
 
-  def getSessions(eventId: String)(user: User) : Vector[Session]
+  def getSessions(eventId: UUID)(user: User) : Vector[Session]
 
-  def getSessionCount(eventId: String)(user: User): Int
+  def getSessionCount(eventId: UUID)(user: User): Int
 
-  def getSessionsBySlug(eventId: String, slug: String): Vector[Session]
+  def getSessionsBySlug(eventId: UUID, slug: String): Vector[Session]
 
-  def getSession(eventId: String, id: String): Option[Session]
+  def getSession(eventId: UUID, id: UUID): Option[Session]
 
   def saveSession(session: Session): Either[Throwable, Session]
 
-  def publishSessions(eventId: String, sessions: Seq[String]): Either[Throwable, Unit]
+  def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit]
 
-  def saveSlotInSession(eventId: String, sessionId: String, slot: Slot): Either[Throwable, Session]
+  def saveSlotInSession(eventId: UUID, sessionId: UUID, slot: Slot): Either[Throwable, Session]
 
-  def saveRoomInSession(eventId: String, sessionId: String, room: Room): Either[Throwable, Session]
+  def saveRoomInSession(eventId: UUID, sessionId: UUID, room: Room): Either[Throwable, Session]
 
-  def saveAttachment(eventId: String, sessionId: String, attachment: URIAttachment): Either[Throwable, Unit]
+  def saveAttachment(eventId: UUID, sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit]
 
-  def removeAttachment(eventId: String, sessionId: String, id: String): Either[Throwable, Unit]
+  def removeAttachment(eventId: UUID, sessionId: UUID, id: UUID): Either[Throwable, Unit]
 
-  def getSpeakers(eventId: String, sessionId: String): Vector[Speaker]
+  def getSpeakers(eventId: UUID, sessionId: UUID): Vector[Speaker]
 
-  def getSpeaker(eventId: String, sessionId: String, speakerId: String): Option[Speaker]
+  def getSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID): Option[Speaker]
 
-  def saveSpeaker(eventId: String, sessionId: String, speaker: Speaker): Either[Throwable, Speaker]
+  def saveSpeaker(eventId: UUID, sessionId: UUID, speaker: Speaker): Either[Throwable, Speaker]
 
-  def removeSession(sessionId: String): Either[Throwable, Unit]
+  def removeSession(sessionId: UUID): Either[Throwable, Unit]
 
-  def updateSpeakerWithPhoto(eventId: String, sessionId: String, speakerId: String, photo: Attachment with Entity[Attachment]):  Either[Throwable, Unit]
+  def updateSpeakerWithPhoto(eventId: UUID, sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]):  Either[Throwable, Unit]
 
-  def removeSpeaker(eventId: String, sessionId: String, speakerId: String): Either[Throwable, Unit]
+  def removeSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID): Either[Throwable, Unit]
 
   def getChangedSessions(from: DateTime)(implicit u: User): Vector[Session]
 

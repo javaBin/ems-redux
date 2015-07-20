@@ -15,7 +15,7 @@ import ems.cj.LinkCount
 
 trait EventResources extends SessionResources with SpeakerResources {
 
-  def handleSlots(eventId: String, parent: Option[String] = None)(implicit user: User) = {
+  def handleSlots(eventId: UUID, parent: Option[UUID] = None)(implicit user: User) = {
     val get = for {
       _ <- GET
       _ <- commit
@@ -37,7 +37,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     get | post
   }
 
-  def handleSlot(eventId: String, id: String, parent: Option[String] = None)(implicit user: User) = for {
+  def handleSlot(eventId: UUID, id: UUID, parent: Option[UUID] = None)(implicit user: User) = for {
     slot <- getOrElse(storage.getSlot(id), NotFound)
     base <- baseURIBuilder
     res <- handleObject(Some(slot), (t: Template) => toSlot(t, eventId, parent, Some(id)),
@@ -45,7 +45,7 @@ trait EventResources extends SessionResources with SpeakerResources {
       slotToItem(base, eventId))(identity)
   } yield res
 
-  def handleRooms(id: String)(implicit user: User) = {
+  def handleRooms(id: UUID)(implicit user: User) = {
     val get = for {
       _ <- GET
       _ <- commit
@@ -58,7 +58,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     }
 
     val post = createObject[Room](
-      toRoom(_: Template, None),
+      toRoom(_: Template, id, None),
       storage.saveRoom(id, _ : Room),
       (r: Room) => List("events", id, "rooms", r.id.get),
       (r: Room) => Nil
@@ -66,10 +66,10 @@ trait EventResources extends SessionResources with SpeakerResources {
     get | post
   }
 
-  def handleRoom(eventId: String, id: String)(implicit user: User) = for {
+  def handleRoom(eventId: UUID, id: UUID)(implicit user: User) = for {
     room <- getOrElse(storage.getRoom(eventId, id), NotFound)
     base <- baseURIBuilder
-    res <- handleObject(Some(room), (t: Template) => toRoom(t, Some(id)),
+    res <- handleObject(Some(room), (t: Template) => toRoom(t, eventId, Some(id)),
       storage.saveRoom(eventId, _ : Room),
       roomToItem(base, eventId))(identity)
   } yield res
@@ -107,7 +107,7 @@ trait EventResources extends SessionResources with SpeakerResources {
     get | post
   }
 
-  def handleEvent(id: String)(implicit user:User) = for {
+  def handleEvent(id: UUID)(implicit user:User) = for {
     event <- getOrElse(storage.getEvent(id), NotFound)
     base <- baseURIBuilder
     res <- handleObject(Some(event), (t: Template) => toEvent(t, Some(id)), storage.saveEvent, eventToItem(base)) {
