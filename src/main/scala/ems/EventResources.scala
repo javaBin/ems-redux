@@ -38,7 +38,7 @@ trait EventResources extends SessionResources with SpeakerResources {
   }
 
   def handleSlot(eventId: UUID, id: UUID, parent: Option[UUID] = None)(implicit user: User) = for {
-    slot <- getOrElse(storage.getSlot(id), NotFound)
+    slot <- getOrElse(storage.getSlot(eventId, id), NotFound)
     base <- baseURIBuilder
     res <- handleObject(Some(slot), (t: Template) => toSlot(t, eventId, parent, Some(id)),
       storage.saveSlot(_ : Slot),

@@ -94,7 +94,7 @@ trait SessionResources extends ResourceHelper {
       val tags = params.get("tag").filterNot(_.isEmpty)
       val slot = params.get("slot").flatMap(_.headOption).flatMap{ slot =>
         val id = UUIDFromString(URIBuilder(slot).path.last.seg)
-        storage.getSlot(id)
+        storage.getSlot(eventId, id)
       }
       val room = params.get("room").flatMap(_.headOption).flatMap{ room =>
         val id = UUIDFromString(URIBuilder(room).path.last.seg)
@@ -171,7 +171,7 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  def handleChangelog(implicit u: User) = for {
+  def handleChangelog(eventId: UUID)(implicit u: User) = for {
     _ <- GET
     _ <- commit
     _ <- authenticated(u)
@@ -182,7 +182,7 @@ trait SessionResources extends ResourceHelper {
     val query = p("from").headOption.toRight("Missing from date").right.flatMap(s => RFC3339.parseDateTime(s))
 
     val items = query match {
-      case Right(dt) => Right(storage.getChangedSessions(dt).map(converters.sessionToItem(base)))
+      case Right(dt) => Right(storage.getChangedSessions(eventId, dt).map(converters.sessionToItem(base)))
       case Left(e) => Left(Error("Missing entity and " + e, None, None))
     }
     items.fold(

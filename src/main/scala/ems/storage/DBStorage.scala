@@ -20,9 +20,7 @@ trait DBStorage {
 
   def getSlots(eventId: UUID, parent: Option[UUID] = None): Vector[Slot]
 
-  def getAllSlots(eventId: UUID): Vector[SlotTree]
-
-  def getSlot(id: UUID): Option[Slot]
+  def getSlot(eventId: UUID, id: UUID): Option[Slot]
 
   def saveSlot(slot: Slot): Either[Throwable, Slot]
 
@@ -37,8 +35,6 @@ trait DBStorage {
   def removeRoom(eventId: UUID, id: UUID): Either[Throwable, String]
 
   def getSessions(eventId: UUID)(user: User) : Vector[Session]
-
-  def getSessionCount(eventId: UUID)(user: User): Int
 
   def getSessionsBySlug(eventId: UUID, slug: String): Vector[Session]
 
@@ -56,19 +52,19 @@ trait DBStorage {
 
   def removeAttachment(eventId: UUID, sessionId: UUID, id: UUID): Either[Throwable, Unit]
 
-  def getSpeakers(eventId: UUID, sessionId: UUID): Vector[Speaker]
+  def getSpeakers(sessionId: UUID): Vector[Speaker]
 
-  def getSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID): Option[Speaker]
+  def getSpeaker(sessionId: UUID, speakerId: UUID): Option[Speaker]
 
-  def saveSpeaker(eventId: UUID, sessionId: UUID, speaker: Speaker): Either[Throwable, Speaker]
+  def saveSpeaker(sessionId: UUID, speaker: Speaker): Either[Throwable, Speaker]
 
   def removeSession(sessionId: UUID): Either[Throwable, Unit]
 
-  def updateSpeakerWithPhoto(eventId: UUID, sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]):  Either[Throwable, Unit]
+  def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]):  Either[Throwable, Unit]
 
-  def removeSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID): Either[Throwable, Unit]
+  def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit]
 
-  def getChangedSessions(from: DateTime)(implicit u: User): Vector[Session]
+  def getChangedSessions(eventId: UUID, from: DateTime)(implicit u: User): Vector[Session]
 
   def status(): String
 

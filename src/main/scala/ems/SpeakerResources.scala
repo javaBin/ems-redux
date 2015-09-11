@@ -18,7 +18,7 @@ trait SpeakerResources extends ResourceHelper {
       href <- requestURI
       session <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
     } yield {
-      val speakers = storage.getSpeakers(eventId, sessionId)
+      val speakers = storage.getSpeakers(sessionId)
       val items = speakers.map(speakerToItem(base, eventId, sessionId)).toList
       CollectionJsonResponse(JsonCollection(href, Nil, items, Nil, Some(makeTemplate("name", "email", "bio", "zip-code", "tags"))))
     }
@@ -31,13 +31,13 @@ trait SpeakerResources extends ResourceHelper {
       either <- withTemplate(t => toSpeaker(t, None))
       speaker <- either
     } yield {
-      val speakers = storage.getSpeakers(eventId, sessionId)
+      val speakers = storage.getSpeakers(sessionId)
       val exists = speakers.exists(_.email == speaker.email)
       if (exists) {
         BadRequest ~> ResponseString("There already exists a speaker with this email")
       }
       else {
-        storage.saveSpeaker(eventId, sessionId, speaker).fold(
+        storage.saveSpeaker(sessionId, speaker).fold(
           ex => InternalServerError ~> ResponseString(ex.getMessage),
           saved => {
             val href = base.segments("events", eventId, "sessions", sessionId, "speakers", saved.id.get).build()
@@ -50,15 +50,15 @@ trait SpeakerResources extends ResourceHelper {
   }
 
   def handleSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID)(implicit user: User) = {
-    val speaker = storage.getSpeaker(eventId, sessionId, speakerId)
+    val speaker = storage.getSpeaker(sessionId, speakerId)
     for {
       base <- baseURIBuilder
       res <- handleObject(
          speaker,
          (t: Template) => toSpeaker(t, Some(speakerId)),
-         storage.saveSpeaker(eventId, sessionId, _: Speaker),
+         storage.saveSpeaker(sessionId, _: Speaker),
          speakerToItem(base, eventId, sessionId),
-         Some((_: Speaker) => storage.removeSpeaker(eventId, sessionId, speakerId))
+         Some((_: Speaker) => storage.removeSpeaker(sessionId, speakerId))
        )(identity)
     } yield {
       res
@@ -69,7 +69,7 @@ trait SpeakerResources extends ResourceHelper {
     val get = for {
       _ <- GET
       base <- baseURIBuilder
-      speaker <- getOrElse(storage.getSpeaker(eventId, sessionId, speakerId), NotFound)
+      speaker <- getOrElse(storage.getSpeaker(sessionId, speakerId), NotFound)
     } yield {
       speaker.photo.map(i => Redirect(base.segments("binary", i.id.get).toString())).getOrElse(NotFound)
     }
@@ -84,12 +84,12 @@ trait SpeakerResources extends ResourceHelper {
       ct <- imageType
       cd <- contentDisposition
       base <- baseURIBuilder
-      speaker <- getOrElse(storage.getSpeaker(eventId, sessionId, speakerId), NotFound)
+      speaker <- getOrElse(storage.getSpeaker(sessionId, speakerId), NotFound)
       is <- inputStream
     } yield {
       speaker.photo.foreach(ph => storage.binary.removeAttachment(ph.id.get))
       val binary = storage.binary.saveAttachment(StreamingAttachment(cd.filename.orElse(cd.filenameSTAR.map(_.filename)).get, None, MIMEType(ct), is))
-      storage.updateSpeakerWithPhoto(eventId, sessionId, speakerId, binary).fold(
+      storage.updateSpeakerWithPhoto(sessionId, speakerId, binary).fold(
         ex => InternalServerError ~> ResponseString(ex.getMessage),
         _ => Created ~> Location(base.segments("binary", binary.id.get).toString())
       )

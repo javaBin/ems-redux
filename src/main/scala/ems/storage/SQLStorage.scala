@@ -8,7 +8,7 @@ import java.util.Locale
 import doobie.imports._
 import ems.model._
 import ems.security.User
-import org.joda.time.DateTime
+import org.joda.time.{Minutes, Duration, DateTime}
 import org.postgresql.util.PGobject
 import scalaz.concurrent.Task
 import argonaut._, Argonaut._
@@ -55,7 +55,7 @@ object Codecs {
 class SQLStorage(xa: Transactor[Task], binaryStorage: BinaryStorage) extends DBStorage {
   import Codecs._
 
-  implicit val JsonMeta: Meta[Json] = 
+  implicit val JsonMeta: Meta[Json] =
   Meta.other[PGobject]("jsonb").nxmap[Json](
     a => Parse.parse(a.getValue).leftMap[Json](sys.error).merge, // failure raises an exception
     a => new PGobject <| (_.setType("jsonb")) <| (_.setValue(a.nospaces))
@@ -63,41 +63,71 @@ class SQLStorage(xa: Transactor[Task], binaryStorage: BinaryStorage) extends DBS
 
   def codecMeta[A >: Null : CodecJson: TypeTag]: Meta[A] =
   Meta[Json].nxmap[A](
-    _.as[A].result.fold(p => sys.error(p._1), identity), 
+    _.as[A].result.fold(p => sys.error(p._1), identity),
     _.asJson
   )
 
-  implicit val jodaTimeMeta: Meta[DateTime] = Meta[Timestamp].xmap(d => new DateTime(d), t => new Timestamp(t.getMillis))
+  implicit val dateTimeMeta: Meta[DateTime] = Meta[Timestamp].xmap(d => new DateTime(d), t => new Timestamp(t.getMillis))
+  implicit val durationMeta: Meta[Duration] = Meta[Long].xmap(d => Minutes.minutes(d.toInt).toStandardDuration, t => t.getStandardMinutes)
   implicit val stateMeta: Meta[State] = Meta[String].xmap(v => State(v), _.name)
   implicit val abstractMeta: Meta[Abstract] = codecMeta[Abstract]
 
+  override def binary: BinaryStorage = binaryStorage
 
-  object Queries {
-    val events: Query0[Event] = sql"select id,name,venue,lastModified from event".query[Event]
-    def numSessions(eventId: String): Query0[Long] = sql"select count(*) from session where eventId = $eventId".query[Long]
-  }
+  override def shutdown(): Unit = ()
 
-  def getEvents() = {
-    val query = Queries.events.vector
+  override def getEvents() = {
+    val query = sql"select e.id,e.name,e.venue,e.slug,e.lastmodified".query[Event].vector
     xa.trans(query).run
   }
 
-  def getEventsWithSessionCount(user: User) = {
-    ???
-
+  override def getEventsWithSessionCount(user: User) = {
+    val auth = if (user.authenticated) "" else "and published = true"
+    val withSessions = sql"select e.id,e.name,e.venue,e.slug,e.lastmodified,count(s.*) as sessionCount from event e left join session s on s.eventId = e.id group $auth by e.id".query[(Event, Long)].vector
+    val q = withSessions.map(_.map{case (e, count) => EventWithSessionCount(e, count.toInt)})
+    xa.trans(q).run
   }
 
-  override def binary: BinaryStorage = binaryStorage
+  override def getEventsBySlug(name: String): Vector[Event] = {
+    val query = sql"select id,name,venue,slug,lastModified from event where slug = $name".query[Event].vector
+    xa.trans(query).run
+  }
 
-  override def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit] = ???
+  override def getEvent(id: UUID): Option[Event] = {
+    val query = sql"select id,name,venue,slug,lastModified from event where id = $id".query[Event].option
+    xa.trans(query).run
+  }
 
-  override def saveSession(session: Session): Either[Throwable, Session] = ???
+  override def saveEvent(event: Event): Either[Throwable, Event] = ???
 
-  override def saveAttachment(eventId: UUID, sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit] = ???
+  override def getRooms(eventId: UUID): Vector[Room] = {
+    val query = sql"select id,eventId,name,lastModified from room where eventId = $eventId".query[Room].vector
+    xa.trans(query).run
+  }
 
-  override def getRooms(eventId: UUID): Vector[Room] = ???
+  override def getRoom(eventId: UUID, id: UUID): Option[Room] = {
+    val query = sql"select id,eventId,name,lastModified from room where id = $id and eventId = $eventId".query[Room].option
+    xa.trans(query).run
+  }
 
-  override def saveSpeaker(eventId: UUID, sessionId: UUID, speaker: Speaker): Either[Throwable, Speaker] = ???
+  override def saveRoom(eventId: UUID, room: Room): Either[Throwable, Room] = ???
+
+  override def removeRoom(eventId: UUID, id: UUID): Either[Throwable, String] = ???
+
+  override def getSlot(eventId: UUID, id: UUID): Option[Slot] = {
+    val query = sql"select id,eventId,start,duration,parentId,lastModified from slot where id = $id and eventId = $eventId".query[Slot].option
+    xa.trans(query).run
+  }
+
+  override def getSlots(eventId: UUID, parent: Option[UUID]): Vector[Slot] = {
+    val parentSql = if (parent.isDefined) s"and parentId = '${parent.get.toString}'" else ""
+    val query = sql"select id,eventId,start,duration,parentId,lastModified from slot where eventId = $eventId $parentSql".query[Slot].vector
+    xa.trans(query).run
+  }
+
+  override def saveSlot(slot: Slot): Either[Throwable, Slot] = ???
+
+  override def removeSlot(eventId: UUID, id: UUID): Either[Throwable, String] = ???
 
   override def getSessions(eventId: UUID)(user: User): Vector[Session] = {
     val published = if (user.authenticated) "" else "AND published=false"
@@ -105,53 +135,45 @@ class SQLStorage(xa: Transactor[Task], binaryStorage: BinaryStorage) extends DBS
     xa.trans(query).run
   }
 
-  override def shutdown(): Unit = ???
+  override def getSessionsBySlug(eventId: UUID, slug: String): Vector[Session] = {
+    val query = sql"select id,eventId,slug,abstract,state,published,roomId,slotId,lastModified from session s where eventId = $eventId and slug = $slug".query[Session].vector
+    xa.trans(query).run
+  }
 
-  override def getRoom(eventId: UUID, id: UUID): Option[Room] = ???
+  override def getSession(eventId: UUID, id: UUID): Option[Session] = {
+    val query = sql"select id,eventId,slug,abstract,state,published,roomId,slotId,lastModified from session s where eventId = $eventId and id = $id".query[Session].option
+    xa.trans(query).run
+  }
 
-  override def removeSlot(eventId: UUID, id: UUID): Either[Throwable, String] = ???
+  override def getChangedSessions(eventId: UUID, from: DateTime)(implicit u: User): Vector[Session] = {
+    val query = sql"select id,eventId,slug,abstract,state,published,roomId,slotId,lastModified from session s where eventId = $eventId and lastModified > $from".query[Session].vector
+    xa.trans(query).run
+  }
 
-  override def getSlot(id: UUID): Option[Slot] = ???
-
-  override def getSlots(eventId: UUID, parent: Option[UUID]): Vector[Slot] = ???
-
-  override def getSessionsBySlug(eventId: UUID, slug: String): Vector[Session] = ???
-
-  override def saveRoom(eventId: UUID, room: Room): Either[Throwable, Room] = ???
-
-  override def getChangedSessions(from: DateTime)(implicit u: User): Vector[Session] = ???
-
-  override def getEventsBySlug(name: String): Vector[Event] = ???
-
-  override def getSessionCount(eventId: UUID)(user: User): Int = ???
-
-  override def getEvent(id: UUID): Option[Event] = ???
+  override def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit] = ???
 
   override def saveSlotInSession(eventId: UUID, sessionId: UUID, slot: Slot): Either[Throwable, Session] = ???
 
+  override def saveRoomInSession(eventId: UUID, sessionId: UUID, room: Room): Either[Throwable, Session] = ???
+
+  override def saveSession(session: Session): Either[Throwable, Session] = ???
+
   override def removeSession(sessionId: UUID): Either[Throwable, Unit] = ???
 
-  override def status(): String = ???
+  override def saveAttachment(eventId: UUID, sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit] = ???
+
+  override def status(): String = "OK"
 
   override def removeAttachment(eventId: UUID, sessionId: UUID, id: UUID): Either[Throwable, Unit] = ???
 
-  override def getSession(eventId: UUID, id: UUID): Option[Session] = ???
+  override def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit] = ???
 
-  override def removeSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID): Either[Throwable, Unit] = ???
+  override def saveSpeaker(sessionId: UUID,speaker: Speaker): Either[Throwable, Speaker] = ???
 
-  override def saveRoomInSession(eventId: UUID, sessionId: UUID, room: Room): Either[Throwable, Session] = ???
+  override def getSpeaker(sessionId: UUID, speakerId: UUID): Option[Speaker] = ???
 
-  override def saveSlot(slot: Slot): Either[Throwable, Slot] = ???
+  override def getSpeakers(sessionId: UUID): Vector[Speaker] = ???
 
-  override def getSpeaker(eventId: UUID, sessionId: UUID, speakerId: UUID): Option[Speaker] = ???
+  override def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]): Either[Throwable, Unit] = ???
 
-  override def getSpeakers(eventId: UUID, sessionId: UUID): Vector[Speaker] = ???
-
-  override def saveEvent(event: Event): Either[Throwable, Event] = ???
-
-  override def updateSpeakerWithPhoto(eventId: UUID, sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]): Either[Throwable, Unit] = ???
-
-  override def removeRoom(eventId: UUID, id: UUID): Either[Throwable, String] = ???
-
-  override def getAllSlots(eventId: UUID): Vector[SlotTree] = ???
 }

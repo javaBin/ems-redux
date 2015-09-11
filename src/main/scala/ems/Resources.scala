@@ -21,7 +21,7 @@ import linx._
 import org.json4s.native.JsonMethods._
 
 class Resources(override val storage: DBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
-  
+
   case class Mapping[X](from: HttpRequest[HttpServletRequest] => X) {
     def apply(intent: PartialFunction[X, Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]]): unfiltered.Cycle.Intent[HttpServletRequest, Any] =
       Directive.Intent {
@@ -48,7 +48,7 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     case Rooms(eventId) => handleRooms(eventId)
     case Sessions(eventId) => handleSessionList(eventId)
     case SessionsTags(eventId) => handleAllTags(eventId)
-    case SessionsChangelog(eventId) => handleChangelog
+    case SessionsChangelog(eventId) => handleChangelog(eventId)
     case Session(eventId, id) => handleSessionAndForms(eventId, id)
     case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
     case SessionAttachments(eventId, sessionId) => handleSessionAttachments(eventId, sessionId)
