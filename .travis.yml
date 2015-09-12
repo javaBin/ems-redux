@@ -3,6 +3,7 @@ env:
   - secure: WS1mI5TayUX3wFXutNXfYGPWucYrUCA1P77orziKgVSGnS53Aaywta63Wwa1aeaddqQSNAT4BlL+tZgBFBqnNJ0aKxSR8VgNHp9IOMue/VunEyxlBuN6vP5GdoSCv9Nim6eJyBz6Vj6JQP7eA43K4rLcKHNJjevchX2wgHYO8AE=
   - secure: mzci+VpoNBNs0LQhVKjwpG+QVg8nBB4qFe6ThkbvjZI14hp/8NPILpLTMQW+dYD5+p/pGv8EgVWr1evE1nLuPHqZSDwg2dFl0s0FVRwPsg0M2rQ3bDdb5pRpAPgnZVOiVNcpytpmDyRhgK/sjcYMoBc4jkX3UzH2R5kaEsiwcv4=
 language: scala
+sudo: false
 jdk:
 - oraclejdk8
 after_success:
