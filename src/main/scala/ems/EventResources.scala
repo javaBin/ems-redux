@@ -1,6 +1,5 @@
 package ems
 
-import config.Config
 import model._
 import ems.converters._
 import util.URIBuilder
@@ -93,7 +92,7 @@ trait EventResources extends SessionResources with SpeakerResources {
             })
           }
           val href = base.segments("events").build()
-          CacheControl("public, max-age=" + Config.cache.events) ~> CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("name", "venue"))))
+          CollectionJsonResponse(JsonCollection(href, Nil, items.toList, Nil, Some(makeTemplate("name", "venue"))))
         }
       }
     }

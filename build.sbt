@@ -24,20 +24,15 @@ val unfiltered = Seq(
   "org.slf4j"       %  "slf4j-simple"           % "1.7.7"
 )
 
-val doobie = Seq(
-  "org.flywaydb" %  "flyway-core"               % "3.2.1",
-  "org.tpolecat" %% "doobie-core"               % "0.2.2",
-  "org.tpolecat" %% "doobie-contrib-postgresql" % "0.2.2"
+val sql = Seq(
+  "org.flywaydb"          %  "flyway-core"              % "3.2.1",
+  "org.postgresql"        %  "postgresql"               % "9.4-1202-jdbc42",
+  "com.typesafe.slick"    %% "slick"                    % "3.0.3",
+  "com.github.tototoshi"  %% "slick-joda-mapper"        % "2.0.0"
+  //"com.typesafe.slick" %% "slick-codegen"             % "3.0.3"
 )
 
-resolvers ++= Seq(
-  "tpolecat" at "http://dl.bintray.com/tpolecat/maven",
-  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
-)
-
-libraryDependencies ++= joda ++ unfiltered ++ doobie ++ Seq(
-  "org.ini4j"             %  "ini4j"                  % "0.5.2",
-  "org.constretto"        %% "constretto-scala"       % "1.1",
+libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
   "net.hamnaberg.rest"    %% "scala-json-collection"  % "2.3",
   "com.andersen-gott"     %% "scravatar"              % "1.0.3",
   "com.sksamuel.scrimage" %% "scrimage-core"          % "1.4.2",
@@ -47,9 +42,7 @@ libraryDependencies ++= joda ++ unfiltered ++ doobie ++ Seq(
   "de.svenkubiak"         %  "jBCrypt"                % "0.4",
   "org.scalaz.stream"     %% "scalaz-stream"          % "0.7.1a",
   "io.argonaut"           %% "argonaut"               % "6.1",
-  "de.svenkubiak"         %  "jBCrypt"                % "0.4",
-  "no.arktekk"            %% "uri-template"           % "1.0.2",
-  "org.scala-lang"        %  "scala-reflect"          % scalaVersion.value
+  "no.arktekk"            %% "uri-template"           % "1.0.2"
 )
 
 enablePlugins(BuildInfoPlugin)
@@ -63,3 +56,20 @@ buildInfoKeys := Seq[BuildInfoKey](
   BuildInfoKey.action("branch"){ Git.branch },
   BuildInfoKey.action("sha"){ Git.sha }
 )
+
+
+//genTables <<= slickCodeGenTask // register manual sbt command
+//sourceGenerators in Compile <+= slickCodeGenTask // register automatic code generation on every compile, remove for only manual use
+
+// code generation task
+/*lazy val genTables = taskKey[Seq[File]]("gen-tables")
+lazy val slickCodeGenTask = (sourceManaged, dependencyClasspath in Compile, runner in Compile, streams) map { (dir, cp, r, s) =>
+  val outputDir = (dir / "slick").getPath // place generated files in sbt's managed sources folder
+  val url = "jdbc:postgresql://localhost:5432/ems"
+  val jdbcDriver = "org.postgresql.Driver"
+  val slickDriver = "slick.driver.PostgresDriver"
+  val pkg = "ems"
+  toError(r.run("slick.codegen.SourceCodeGenerator", cp.files, Array(slickDriver, jdbcDriver, url, outputDir, pkg, "ems", "ems"), s.log))
+  val fname = outputDir + "/ems/Tables.scala"
+  Seq(file(fname))
+}*/

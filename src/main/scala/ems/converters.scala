@@ -10,10 +10,11 @@ import net.hamnaberg.json.collection.Value._
 import security.User
 import org.joda.time.{Duration, Minutes}
 import scravatar.Gravatar
-import config.SessionPermalinks
+
+import scala.util.Properties
 
 object converters {
-  val permalinks: SessionPermalinks = SessionPermalinks.fromConstrettoTags()
+  val permalinks: SessionPermalinks = SessionPermalinks.fromEnvironment(Properties.propOrElse("CONSTRETTO_TAGS", "default"))
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
@@ -116,7 +117,7 @@ object converters {
       Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room")),
       Link(baseURIBuilder.segments("events", s.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
-    links ++= s.abs.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
+    //links ++= s.abs.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
     //links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.get.toString).build(), "room item", Some(r.name))).toSeq
     //links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.get.toString).build(), "slot item", Some(formatSlot(slot)))).toSeq
     //links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))

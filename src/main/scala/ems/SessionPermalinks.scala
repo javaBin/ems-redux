@@ -1,4 +1,4 @@
-package ems.config
+package ems
 
 import uritemplate._, Syntax._
 import scala.util.Properties
@@ -20,9 +20,9 @@ object SessionPermalinks {
 
   private lazy val links: Map[String, SessionPermalinks] = {
     val f = {
-      var f = new File(new File(Config.APP_HOME), "etc/permalinks.json")
+      var f = new File(Jetty.home, "etc/permalinks.json")
       if (!f.exists) {
-        f = new File(new File(Config.APP_HOME), "current/etc/permalinks.json")
+        f = new File(Jetty.home, "current/etc/permalinks.json")
       }
       f
     }
@@ -35,8 +35,5 @@ object SessionPermalinks {
     map.mapValues(m => SessionPermalinks(m))
   }
 
-  def fromConstrettoTags(): SessionPermalinks = {
-    val tags = Properties.propOrElse("CONSTRETTO_TAGS", Properties.envOrElse("CONSTRETTO_TAGS", "default"))
-    links.getOrElse(tags, SessionPermalinks(Map.empty))
-  }
+  def fromEnvironment(name: String): SessionPermalinks = links.getOrElse(name, SessionPermalinks(Map.empty))
 }

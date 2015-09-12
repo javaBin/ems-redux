@@ -1,6 +1,6 @@
 package ems.storage
 
-import ems.config.SqlConfig
+import ems.SqlConfig
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.internal.util.jdbc.DriverDataSource
 

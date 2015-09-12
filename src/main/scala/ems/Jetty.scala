@@ -3,9 +3,8 @@ package ems
 import java.io.File
 import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-import ems.config.SqlConfig
 import ems.security.{JAASAuthenticator, PropertyFileAuthenticator}
-import ems.storage.{SQLStorage, Migration}
+import ems.storage.{FilesystemBinaryStorage, SQLStorage, Migration}
 
 import scala.util.Properties
 
@@ -20,7 +19,7 @@ object Jetty extends App {
   }
 
   private val server = unfiltered.jetty.Server.http(port).context(contextPath) {
-    _.plan(Resources(new SQLStorage(???, ???),auth))
+    _.plan(Resources(new SQLStorage(new SqlConfig(),  new FilesystemBinaryStorage(new File(home, "binary"))),auth))
   }
 
   server.underlying.setSendDateHeader(true)

@@ -3,7 +3,7 @@ CREATE TABLE event (
     name            varchar(256) not null,
     venue           varchar(512) not null,
     slug            varchar(256) not null UNIQUE,
-    lastModified    timestamptz DEFAULT current_timestamp
+    lastModified    timestamptz not null DEFAULT current_timestamp
 );
 
 CREATE TABLE slot (
@@ -12,7 +12,7 @@ CREATE TABLE slot (
     parentId        uuid null,
     start           timestamptz not null,
     duration        int not null,
-    lastModified    timestamptz DEFAULT current_timestamp,
+    lastModified    timestamptz not null DEFAULT current_timestamp,
     CONSTRAINT SLOT_PK   PRIMARY KEY (id, eventId),
     CONSTRAINT SLOT_EID  FOREIGN KEY (eventId) REFERENCES event(id),
     CONSTRAINT SLOT_PID  FOREIGN KEY (parentId) REFERENCES slot(id)
@@ -22,7 +22,7 @@ CREATE TABLE room (
     id              uuid not null UNIQUE,
     eventId         uuid not null,
     name            varchar(256) not null,
-    lastModified    timestamptz DEFAULT current_timestamp,
+    lastModified    timestamptz not null DEFAULT current_timestamp,
     CONSTRAINT ROOM_PK   PRIMARY KEY (id, eventId),
     CONSTRAINT ROOM_EID  FOREIGN KEY (eventId) REFERENCES event(id)
 );
@@ -33,10 +33,10 @@ CREATE TABLE session (
     slug            varchar(256) not null,
     abstract        jsonb not null,
     state           varchar(20) not null,
-    published       boolean DEFAULT FALSE,
+    published       boolean not null DEFAULT FALSE,
     roomId          uuid,
     slotId          uuid,
-    lastModified    timestamptz DEFAULT current_timestamp,
+    lastModified    timestamptz not null DEFAULT current_timestamp,
     CONSTRAINT SESSION_PK   PRIMARY KEY (id, eventId),
     CONSTRAINT SESSION_EID  FOREIGN KEY(eventId) REFERENCES event(id),
     CONSTRAINT SESSION_RID  FOREIGN KEY(roomId) REFERENCES room(id),

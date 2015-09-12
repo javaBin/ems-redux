@@ -10,7 +10,7 @@ trait DBStorage {
 
   def getEvents(): Vector[Event]
 
-  def getEventsWithSessionCount(user: User): Vector[EventWithSessionCount]
+  def getEventsWithSessionCount(implicit user: User): Vector[EventWithSessionCount]
 
   def getEvent(id: UUID): Option[Event]
 
@@ -34,11 +34,11 @@ trait DBStorage {
 
   def removeRoom(eventId: UUID, id: UUID): Either[Throwable, String]
 
-  def getSessions(eventId: UUID)(user: User) : Vector[Session]
+  def getSessions(eventId: UUID)(implicit user: User) : Vector[Session]
 
-  def getSessionsBySlug(eventId: UUID, slug: String): Vector[Session]
+  def getSessionsBySlug(eventId: UUID, slug: String)(implicit user: User): Vector[Session]
 
-  def getSession(eventId: UUID, id: UUID): Option[Session]
+  def getSession(eventId: UUID, id: UUID)(implicit user: User): Option[Session]
 
   def saveSession(session: Session): Either[Throwable, Session]
 
@@ -64,7 +64,7 @@ trait DBStorage {
 
   def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit]
 
-  def getChangedSessions(eventId: UUID, from: DateTime)(implicit u: User): Vector[Session]
+  def getChangedSessions(eventId: UUID, from: DateTime)(implicit user: User): Vector[Session]
 
   def status(): String
 

@@ -12,9 +12,7 @@ import unfiltered.request._
 import unfiltered.directives._
 import Directives._
 import net.hamnaberg.json.collection._
-import ems.config.Config
 import ems.cj.{ValueOptions, ValueOption}
-import javax.servlet.http.HttpServletRequest
 import java.io.OutputStream
 
 trait SessionResources extends ResourceHelper {
@@ -40,7 +38,7 @@ trait SessionResources extends ResourceHelper {
             Query(href, "session by-slug", List(ValueProperty("slug")), Some("By Slug")),
             Query(href, "session by-tags", List(ValueProperty("tags")), Some("By Tags"))
           )).withTemplate(template)
-          CacheControl("max-age=" + Config.cache.sessions) ~>  CollectionJsonResponse(coll)
+          CollectionJsonResponse(coll)
         }
       }
     }
@@ -220,7 +218,7 @@ trait SessionResources extends ResourceHelper {
     publishNow(eventId, res)
   }
 
-  def handleSessionAttachments(eventId: UUID, sessionId: UUID)(implicit user: User) = {
+  /*def handleSessionAttachments(eventId: UUID, sessionId: UUID)(implicit user: User) = {
     val get = for {
       _ <- GET
       href <- requestURI
@@ -262,7 +260,7 @@ trait SessionResources extends ResourceHelper {
     } yield res
 
     get | post
-  }
+  }*/
 
   private def toURIAttachment(base: URIBuilder, attachment: Attachment with Entity[Attachment]) = {
     if (attachment.id.isEmpty) {

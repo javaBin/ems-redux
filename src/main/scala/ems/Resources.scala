@@ -51,7 +51,7 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     case SessionsChangelog(eventId) => handleChangelog(eventId)
     case Session(eventId, id) => handleSessionAndForms(eventId, id)
     case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
-    case SessionAttachments(eventId, sessionId) => handleSessionAttachments(eventId, sessionId)
+    case SessionAttachments(eventId, sessionId) => failure(NotFound)
     case Speakers(eventId, sessionId) => handleSpeakers(eventId, sessionId)
     case Speaker(eventId, sessionId, speakerId) => handleSpeaker(eventId, sessionId, speakerId)
     case SpeakerPhoto(eventId, sessionId, speakerId) => handleSpeakerPhoto(eventId, sessionId, speakerId)
@@ -68,7 +68,7 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     case _ => failure(NotFound)
   }
 
-  val handleRedirect = for {
+  def handleRedirect(implicit user: User) = for {
     _ <- GET
     base <- baseURIBuilder
     params <- QueryParams

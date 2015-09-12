@@ -14,8 +14,7 @@ case class Abstract(title: String,
                     level: Level = Level.Beginner,
                     format: Format = Format.Presentation,
                     keywords: Set[Keyword],
-                    tags: Set[Tag],
-                    attachments: Seq[URIAttachment] = Nil
+                    tags: Set[Tag]
                      ) {
   def withTitle(input: String) = copy(input)
 
@@ -32,8 +31,6 @@ case class Abstract(title: String,
   def withFormat(format: Format) = copy(format = format)
 
   def withLevel(level: Level) = copy(level = level)
-
-  def addAttachment(attachment: URIAttachment) = copy(attachments = attachments ++ Seq(attachment))
 
   def addKeyword(word: String) = copy(keywords = keywords + Keyword(word))
 
