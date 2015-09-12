@@ -2,11 +2,9 @@ package ems
 
 import model.Entity
 import org.joda.time.DateTime
-import java.io.{FileInputStream, File, InputStream}
+import java.io.InputStream
 import java.net.URI
-import java.util.{Date => JDate}
 import javax.activation.{MimetypesFileTypeMap, MimeType}
-import com.mongodb.casbah.Imports._
 
 trait Attachment {
   def name: String

@@ -30,7 +30,7 @@ CREATE TABLE room (
 CREATE TABLE session (
     id              uuid not null UNIQUE,
     eventId         uuid not null,
-    slug            varchar(256) not null UNIQUE,
+    slug            varchar(256) not null,
     abstract        jsonb not null,
     state           varchar(20) not null,
     published       boolean DEFAULT FALSE,
@@ -40,7 +40,8 @@ CREATE TABLE session (
     CONSTRAINT SESSION_PK   PRIMARY KEY (id, eventId),
     CONSTRAINT SESSION_EID  FOREIGN KEY(eventId) REFERENCES event(id),
     CONSTRAINT SESSION_RID  FOREIGN KEY(roomId) REFERENCES room(id),
-    CONSTRAINT SESSION_SID  FOREIGN KEY(slotId) REFERENCES slot(id)
+    CONSTRAINT SESSION_SID  FOREIGN KEY(slotId) REFERENCES slot(id),
+    CONSTRAINT SESSION_SLUG_UNIQUE UNIQUE (eventId, slug)
 );
 
 CREATE TABLE speaker (
@@ -50,5 +51,6 @@ CREATE TABLE speaker (
     attributes      jsonb not null,
     photo           varchar(1024),
     lastModified    timestamptz DEFAULT current_timestamp,
-    CONSTRAINT SPEAKER_PK PRIMARY KEY (id, sessionId)
+    CONSTRAINT SPEAKER_PK PRIMARY KEY (id, sessionId),
+    CONSTRAINT SPEAKER_SESSION_FK FOREIGN KEY (sessionId) REFERENCES session(id)
 );

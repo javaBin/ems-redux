@@ -10,8 +10,6 @@ scalacOptions := Seq("-deprecation", "-feature")
 
 val unfilteredVersion = "0.8.4"
 
-val casbahVersion = "2.8.1"
-
 val joda = Seq(
   "joda-time" % "joda-time"     % "2.7",
   "org.joda"  % "joda-convert"  % "1.2"
@@ -26,12 +24,6 @@ val unfiltered = Seq(
   "org.slf4j"       %  "slf4j-simple"           % "1.7.7"
 )
 
-val mongo = Seq(
-  "org.mongodb" %% "casbah-core"    % casbahVersion,
-  "org.mongodb" %% "casbah-gridfs"  % casbahVersion,
-  "org.mongodb" %% "casbah-query"   % casbahVersion
-)
-
 val doobie = Seq(
   "org.flywaydb" %  "flyway-core"               % "3.2.1",
   "org.tpolecat" %% "doobie-core"               % "0.2.2",
@@ -43,7 +35,7 @@ resolvers ++= Seq(
   "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 )
 
-libraryDependencies ++= joda ++ unfiltered ++ mongo ++ doobie ++ Seq(
+libraryDependencies ++= joda ++ unfiltered ++ doobie ++ Seq(
   "org.ini4j"             %  "ini4j"                  % "0.5.2",
   "org.constretto"        %% "constretto-scala"       % "1.1",
   "net.hamnaberg.rest"    %% "scala-json-collection"  % "2.3",
