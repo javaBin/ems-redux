@@ -29,7 +29,6 @@ val sql = Seq(
   "org.postgresql"        %  "postgresql"               % "9.4-1202-jdbc42",
   "com.typesafe.slick"    %% "slick"                    % "3.0.3",
   "com.github.tototoshi"  %% "slick-joda-mapper"        % "2.0.0"
-  //"com.typesafe.slick" %% "slick-codegen"             % "3.0.3"
 )
 
 libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
@@ -40,7 +39,6 @@ libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
   "commons-io"            %  "commons-io"             % "2.3",
   "org.specs2"            %% "specs2-core"            % "3.6.2" % "test",
   "de.svenkubiak"         %  "jBCrypt"                % "0.4",
-  "org.scalaz.stream"     %% "scalaz-stream"          % "0.7.1a",
   "io.argonaut"           %% "argonaut"               % "6.1",
   "no.arktekk"            %% "uri-template"           % "1.0.2"
 )
@@ -56,20 +54,3 @@ buildInfoKeys := Seq[BuildInfoKey](
   BuildInfoKey.action("branch"){ Git.branch },
   BuildInfoKey.action("sha"){ Git.sha }
 )
-
-
-//genTables <<= slickCodeGenTask // register manual sbt command
-//sourceGenerators in Compile <+= slickCodeGenTask // register automatic code generation on every compile, remove for only manual use
-
-// code generation task
-/*lazy val genTables = taskKey[Seq[File]]("gen-tables")
-lazy val slickCodeGenTask = (sourceManaged, dependencyClasspath in Compile, runner in Compile, streams) map { (dir, cp, r, s) =>
-  val outputDir = (dir / "slick").getPath // place generated files in sbt's managed sources folder
-  val url = "jdbc:postgresql://localhost:5432/ems"
-  val jdbcDriver = "org.postgresql.Driver"
-  val slickDriver = "slick.driver.PostgresDriver"
-  val pkg = "ems"
-  toError(r.run("slick.codegen.SourceCodeGenerator", cp.files, Array(slickDriver, jdbcDriver, url, outputDir, pkg, "ems", "ems"), s.log))
-  val fname = outputDir + "/ems/Tables.scala"
-  Seq(file(fname))
-}*/
