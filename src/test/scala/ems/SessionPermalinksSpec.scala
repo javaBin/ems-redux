@@ -1,4 +1,4 @@
-package ems.config
+package ems
 
 import org.specs2.mutable.Specification
 import java.net.URI

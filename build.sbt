@@ -39,6 +39,7 @@ libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
   "commons-io"            %  "commons-io"             % "2.3",
   "org.specs2"            %% "specs2-core"            % "3.6.2" % "test",
   "de.svenkubiak"         %  "jBCrypt"                % "0.4",
+  "org.scalaz.stream"     %% "scalaz-stream"          % "0.7.2a",
   "io.argonaut"           %% "argonaut"               % "6.1",
   "no.arktekk"            %% "uri-template"           % "1.0.2"
 )
