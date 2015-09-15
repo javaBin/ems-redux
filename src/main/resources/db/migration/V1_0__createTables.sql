@@ -50,7 +50,19 @@ CREATE TABLE speaker (
     email           varchar(512) not null,
     attributes      jsonb not null,
     photo           varchar(1024),
-    lastModified    timestamptz DEFAULT current_timestamp,
+    lastModified    timestamptz not null DEFAULT current_timestamp,
     CONSTRAINT SPEAKER_PK PRIMARY KEY (id, sessionId),
     CONSTRAINT SPEAKER_SESSION_FK FOREIGN KEY (sessionId) REFERENCES session(id)
+);
+
+CREATE TABLE session_attachment (
+    id              uuid not null,
+    sessionId       uuid not null,
+    name            varchar(512) not null,
+    href            varchar(1024) not null,
+    size            integer,
+    mimetype        varchar(512),
+    lastModified    timestamptz not null DEFAULT current_timestamp,
+    CONSTRAINT SESSION_ATT_PK PRIMARY KEY (id, sessionId),
+    CONSTRAINT SESSION_ATT_SESSION_FK FOREIGN KEY (sessionId) REFERENCES session(id)
 );

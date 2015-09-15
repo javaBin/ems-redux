@@ -220,13 +220,6 @@ trait Tables {
   /** Collection-like TableQuery object for table Slot */
   lazy val Slots = new TableQuery(tag => new Slots(tag))
 
-  /** Entity class storing rows of table Speaker
-   *  @param id Database column id SqlType(uuid)
-   *  @param sessionid Database column sessionid SqlType(uuid)
-   *  @param email Database column email SqlType(varchar), Length(512,true)
-   *  @param attributes Database column attributes SqlType(jsonb), Length(2147483647,false)
-   *  @param photo Database column photo SqlType(varchar), Length(1024,true), Default(None)
-   *  @param lastmodified Database column lastmodified SqlType(timestamptz) */
   case class SpeakerRow(id: java.util.UUID, sessionid: java.util.UUID, email: String, attributes: Json, photo: Option[String] = None, lastmodified: DateTime = DateTime.now())
   /** GetResult implicit for fetching SpeakerRow objects using plain SQL queries */
   implicit def GetResultSpeakerRow(implicit e0: GR[java.util.UUID], e1: GR[Json], e2: GR[Option[String]], e3: GR[DateTime]): GR[SpeakerRow] = GR{
@@ -260,4 +253,33 @@ trait Tables {
   }
   /** Collection-like TableQuery object for table Speaker */
   lazy val Speakers = new TableQuery(tag => new Speakers(tag))
+
+  case class SessionAttachmentRow(id: java.util.UUID, sessionid: java.util.UUID, name: String, href: String, size: Option[Long] = None, mimetype: Option[String] = None, lastmodified: DateTime = DateTime.now())
+  /** GetResult implicit for fetching SpeakerRow objects using plain SQL queries */
+  implicit def GetResultAttachmentRow(implicit e0: GR[java.util.UUID], e1: GR[String], e2: GR[Option[String]], e3: GR[Option[Long]], e4: GR[DateTime]): GR[SessionAttachmentRow] = GR{
+    prs => import prs._
+      SessionAttachmentRow.tupled((<<[java.util.UUID], <<[java.util.UUID], <<[String], <<[String], <<?[Long], <<?[String], <<[DateTime]))
+  }
+
+  /** Table description of table session_attachment. Objects of this class serve as prototypes for rows in queries. */
+  class Session_Attachments(_tableTag: Tag) extends Table[SessionAttachmentRow](_tableTag, "session_attachment") {
+    def * = (id, sessionid, name, href, size, mimetype, lastmodified) <> (SessionAttachmentRow.tupled, SessionAttachmentRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(id), Rep.Some(sessionid), Rep.Some(name), Rep.Some(href), size, mimetype, Rep.Some(lastmodified)).shaped.<>({r=>import r._; _1.map(_=> SessionAttachmentRow.tupled((_1.get, _2.get, _3.get, _4.get, _5, _6, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    val id: Rep[java.util.UUID] = column[java.util.UUID]("id")
+    val sessionid: Rep[java.util.UUID] = column[java.util.UUID]("sessionid")
+    val name: Rep[String] = column[String]("name", O.Length(512,varying=true))
+    val href: Rep[String] = column[String]("href", O.Length(1024,varying=true))
+    val mimetype: Rep[Option[String]] = column[Option[String]]("mimetype", O.Length(512,varying=true))
+    val size: Rep[Option[Long]] = column[Option[Long]]("size")
+    val lastmodified: Rep[DateTime] = column[DateTime]("lastmodified")
+
+    /** Primary key of Session_Attachments (database name speaker_pk) */
+    val pk = primaryKey("session_att_pk", (id, sessionid))
+
+    /** Foreign key referencing Session (database name speaker_session_fk) */
+    lazy val sessionFk = foreignKey("session_att_session_fk", sessionid, Sessions)(r => r.id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+  }
+  /** Collection-like TableQuery object for table Speaker */
+  lazy val Session_Attachments = new TableQuery(tag => new Session_Attachments(tag))
 }
