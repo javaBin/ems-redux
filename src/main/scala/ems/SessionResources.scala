@@ -27,9 +27,8 @@ trait SessionResources extends ResourceHelper {
       params("slug").headOption match {
         case Some(s) => storage.getSessionsBySlug(eventId, s).headOption.map(sess => Found ~> Location(URIBuilder(href).segments(sess.id.get).toString)).getOrElse(NotFound)
         case None => {
-          val sessions = storage.getSessions(eventId)(u)
-          val filtered = Some(u).filter(_.authenticated).map(_ => sessions).getOrElse(sessions.filter(_.published))
-          val items = filtered.map(sessionToItem(rb))
+          val sessions = storage.getSessionsEnriched(eventId)(u)
+          val items = sessions.map(enrichedSessionToItem(rb))
           val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "tags", "keywords", "published").
             addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
             addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
@@ -131,7 +130,7 @@ trait SessionResources extends ResourceHelper {
     base <- baseURIBuilder
     a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => {
       toSession(eventId, Some(sessionId), t)
-    }, storage.saveSession, sessionToItem(base), Some((_: Session) => storage.removeSession(sessionId))) {
+    }, storage.saveSession, (_: Session) => enrichedSessionToItem(base)(u)(storage.getSessionEnriched(eventId, sessionId).get), Some((_: Session) => storage.removeSession(sessionId))) {
       c =>
         val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords", "published").
           addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
@@ -218,21 +217,22 @@ trait SessionResources extends ResourceHelper {
     publishNow(eventId, res)
   }
 
-  /*def handleSessionAttachments(eventId: UUID, sessionId: UUID)(implicit user: User) = {
+  def handleSessionAttachments(eventId: UUID, sessionId: UUID)(implicit user: User) = {
     val get = for {
       _ <- GET
       href <- requestURI
       base <- baseURIBuilder
       obj <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
     } yield {
-      val items = obj.abs.attachments.map(attachmentToItem(base))
+      val atts = storage.getAttachments(sessionId)
+      val items = atts.map(attachmentToItem(base))
       CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
     }
 
     val cj = for {
       _ <- contentType(CollectionJsonResponse.contentType)
       either <- withTemplate(t => toAttachment(t))
-      res <- either.right.flatMap(a => storage.saveAttachment(eventId, sessionId, a)) fold(
+      res <- either.right.flatMap(a => storage.saveAttachment(sessionId, a)) fold(
         ex => failure(InternalServerError ~> ResponseString(ex.getMessage)),
         _ => success(NoContent)
         )
@@ -246,7 +246,7 @@ trait SessionResources extends ResourceHelper {
       is <- inputStream
     } yield {
       val att = storage.binary.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), is))
-      storage.saveAttachment(eventId, sessionId, toURIAttachment(base.segments("binary"), att)).fold(
+      storage.saveAttachment(sessionId, toURIAttachment(base.segments("binary"), att)).fold(
         ex => InternalServerError ~> ResponseString(ex.getMessage),
         _ => NoContent
       )
@@ -260,7 +260,7 @@ trait SessionResources extends ResourceHelper {
     } yield res
 
     get | post
-  }*/
+  }
 
   private def toURIAttachment(base: URIBuilder, attachment: Attachment with Entity[Attachment]) = {
     if (attachment.id.isEmpty) {

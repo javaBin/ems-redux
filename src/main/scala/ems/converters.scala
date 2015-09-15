@@ -70,25 +70,36 @@ object converters {
     template.getPropertyValue("name").map(_.toString).get
   )
 
+  def enrichedSessionToItem(baseBuilder: URIBuilder)(implicit u: User): (EnrichedSession) => Item = {
+    es => {
+      val filtered = toProperties(es.session)
+      val href = baseBuilder.segments("events", es.session.eventId, "sessions", es.session.id.get).build()
+      Item(href, filtered, createSessionLinks(baseBuilder, href, es))
+    }
+  }
+
+  private def toProperties(s: Session)(implicit u: User) = {
+    val properties = Map(
+      "title" -> Some(s.abs.title),
+      "slug" -> Some(s.slug),
+      "body" -> s.abs.body,
+      "summary" -> s.abs.summary,
+      "audience" -> s.abs.audience,
+      "lang" -> Some(s.abs.language.getLanguage),
+      "format" -> Some(s.abs.format.toString),
+      "level" -> Some(s.abs.level.toString),
+      "state" -> Some(s.state.toString),
+      "keywords" -> Some(s.abs.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty),
+      "published" -> Some(s.published)
+    ) ++ handlePrivateProperties(u, s)
+    properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
+  }
+
   def sessionToItem(baseBuilder: URIBuilder)(implicit u: User): (Session) => Item = {
     s => {
-      val properties = Map(
-        "title" -> Some(s.abs.title),
-        "slug" -> Some(s.slug),
-        "body" -> s.abs.body,
-        "summary" -> s.abs.summary,
-        "audience" -> s.abs.audience,
-        "lang" -> Some(s.abs.language.getLanguage),
-        "format" -> Some(s.abs.format.toString),
-        "level" -> Some(s.abs.level.toString),
-        "state" -> Some(s.state.toString),
-        "keywords" -> Some(s.abs.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty),
-        "published" -> Some(s.published)
-      ) ++ handlePrivateProperties(u, s)
-      val filtered = properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
-
+      val filtered = toProperties(s)
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
-      Item(href, filtered, createSessionLinks(baseBuilder, href, s))
+      Item(href, filtered, createSessionLinks(baseBuilder, href, EnrichedSession(s, None, None, Vector.empty, Vector.empty)))
     }
   }
 
@@ -106,7 +117,7 @@ object converters {
     }
   }
 
-  private def createSessionLinks(baseURIBuilder: URIBuilder, href: URI, s: Session): List[Link] = {
+  private def createSessionLinks(baseURIBuilder: URIBuilder, href: URI, s: EnrichedSession): List[Link] = {
     val links = List.newBuilder[Link]
 
     links ++= List(
@@ -115,13 +126,13 @@ object converters {
       Link(URIBuilder(href).segments("tags").build(), "session tag", Some("Tag session")),
       Link(URIBuilder(href).segments("slot").build(), "session slot", Some("Assign a slot")),
       Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room")),
-      Link(baseURIBuilder.segments("events", s.eventId, "sessions").build(), "publish", Some("Publish the session"))
+      Link(baseURIBuilder.segments("events", s.session.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
-    //links ++= s.abs.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
-    //links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.eventId, "rooms", r.get.toString).build(), "room item", Some(r.name))).toSeq
-    //links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.eventId, "slots", slot.get.toString).build(), "slot item", Some(formatSlot(slot)))).toSeq
-    //links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
-    links ++= permalinks.expand(s.eventId, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
+    links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
+    links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.session.eventId, "rooms", r.id.get.toString).build(), "room item", Some(r.name))).toSeq
+    links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.session.eventId, "slots", slot.id.get.toString).build(), "slot item", Some(formatSlot(slot)))).toSeq
+    links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
+    links ++= permalinks.expand(s.session.eventId, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
     links.result()
   }
 

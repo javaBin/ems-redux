@@ -36,6 +36,10 @@ trait DBStorage {
 
   def getSessions(eventId: UUID)(implicit user: User) : Vector[Session]
 
+  def getSessionsEnriched(eventId: UUID)(implicit user: User) : Vector[EnrichedSession]
+
+  def getSessionEnriched(eventId: UUID, id: UUID)(implicit user: User) : Option[EnrichedSession]
+
   def getSessionsBySlug(eventId: UUID, slug: String)(implicit user: User): Vector[Session]
 
   def getSession(eventId: UUID, id: UUID)(implicit user: User): Option[Session]
@@ -44,13 +48,13 @@ trait DBStorage {
 
   def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit]
 
-  def saveSlotInSession(eventId: UUID, sessionId: UUID, slot: Slot): Either[Throwable, Session]
+  def getAttachments(sessionId: UUID): Vector[URIAttachment]
 
-  def saveRoomInSession(eventId: UUID, sessionId: UUID, room: Room): Either[Throwable, Session]
+  def getAttachment(sessionId: UUID, id: UUID): Option[URIAttachment]
 
-  def saveAttachment(eventId: UUID, sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit]
+  def saveAttachment(sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit]
 
-  def removeAttachment(eventId: UUID, sessionId: UUID, id: UUID): Either[Throwable, Unit]
+  def removeAttachment(sessionId: UUID, id: UUID): Either[Throwable, Unit]
 
   def getSpeakers(sessionId: UUID): Vector[Speaker]
 

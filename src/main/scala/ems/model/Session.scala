@@ -52,20 +52,9 @@ case class Session(id: Option[UUID],
 
   type T = Session
 
-
-  def withTitle(input: String) = withAbstract(abs.withTitle(input))
-
-  def withBody(input: String) = withAbstract(abs.withBody(input))
-
-  def withSummary(input: String) = withAbstract(abs.withSummary(input))
-
   def withRoom(room: UUID) = copy(room = Some(room))
 
   def withSlot(slot: UUID) = copy(slot = Some(slot))
-
-  def withFormat(format: Format) = withAbstract(abs.withFormat(format))
-
-  def withLevel(level: Level) = withAbstract(abs.withLevel(level))
 
   def withTags(tags: Set[Tag]) = withAbstract(abs.withTags(tags))
 
@@ -93,7 +82,20 @@ object Session {
   }
 }
 
-case class EnrichedSession(session: Session, room: Option[Room], slot: Option[Slot], speakers: Vector[Speaker])
+case class EnrichedSession(session: Session,
+                           room: Option[Room],
+                           slot: Option[Slot],
+                           speakers: Vector[Speaker],
+                           attachments: Vector[URIAttachment]) extends Entity[EnrichedSession] {
+
+  override def id: Option[UUID] = session.id
+
+  override def withId(id: UUID): EnrichedSession = copy(session = session.withId(id))
+
+  override def lastModified: DateTime = session.lastModified
+}
+
+
 
 case class Speaker(id: Option[UUID], name: String, email: String, zipCode: Option[String] = None, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity[Attachment]] = None, lastModified: DateTime = DateTime.now()) extends Entity[Speaker] {
   type T = Speaker
