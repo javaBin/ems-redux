@@ -81,7 +81,7 @@ trait EventResources extends SessionResources with SpeakerResources {
       p <- queryParams
     } yield {
       p("slug").headOption match {
-        case Some(s) => storage.getEventsBySlug(s).headOption.map(e => Found ~> Location(base.segments("events", e.id.get).toString)).getOrElse(NotFound)
+        case Some(s) => storage.getEventBySlug(s).map(eid => SeeOther ~> Location(base.segments("events", eid).toString)).getOrElse(NotFound)
         case None => {
           val events = storage.getEventsWithSessionCount(user)
           val items = events.map{evt =>

@@ -48,7 +48,6 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     case Rooms(eventId) => handleRooms(eventId)
     case Sessions(eventId) => handleSessionList(eventId)
     case SessionsTags(eventId) => handleAllTags(eventId)
-    case SessionsChangelog(eventId) => handleChangelog(eventId)
     case Session(eventId, id) => handleSessionAndForms(eventId, id)
     case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
     case SessionAttachments(eventId, sessionId) => failure(NotFound)
@@ -78,19 +77,17 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     val result = (eventSlug, sessionSlug) match {
       case (Some(e), Some(s)) => {
         for {
-          event <- storage.getEventsBySlug(e).headOption
-          id <- event.id
-          session <- storage.getSessionsBySlug(id, s).headOption
+          eventId <- storage.getEventBySlug(e)
+          sessionId <- storage.getSessionBySlug(eventId, s)
         } yield {
-          Found ~> CacheControl("max-age=3600") ~> Location(base.segments("events", id, "sessions", session.id.get).build().toString)
+          SeeOther ~> CacheControl("max-age=3600") ~> Location(base.segments("events", eventId, "sessions", sessionId).build().toString)
         }
       }
       case (Some(e), None) => {
         for {
-          event <- storage.getEventsBySlug(e).headOption
-          id <- event.id
+          eventId <- storage.getEventBySlug(e)
         } yield {
-          Found ~> CacheControl("max-age=3600") ~> Location(base.segments("events", id).build().toString)
+          SeeOther ~> CacheControl("max-age=3600") ~> Location(base.segments("events", eventId).build().toString)
         }
       }
       case _ => None
@@ -108,10 +105,6 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
       ),
       Nil,
       List(
-        Query(base.segments("changelog").build(), "changelog", List(
-          ValueProperty("type", Some("Type")),
-          ValueProperty("from", Some("From DateTime"))
-        ), Some("Changelog")),
         Query(base.segments("events").build(), "event by-slug", List(
           ValueProperty("slug", Some("Slug"))
         ), Some("Event By Slug")),

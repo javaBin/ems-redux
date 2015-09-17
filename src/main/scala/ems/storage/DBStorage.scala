@@ -14,7 +14,7 @@ trait DBStorage {
 
   def getEvent(id: UUID): Option[Event]
 
-  def getEventsBySlug(name: String): Vector[Event]
+  def getEventBySlug(name: String): Option[UUID]
 
   def saveEvent(event: Event): Either[Throwable, Event]
 
@@ -40,7 +40,7 @@ trait DBStorage {
 
   def getSessionEnriched(eventId: UUID, id: UUID)(implicit user: User) : Option[EnrichedSession]
 
-  def getSessionsBySlug(eventId: UUID, slug: String)(implicit user: User): Vector[Session]
+  def getSessionBySlug(eventId: UUID, slug: String)(implicit user: User): Option[UUID]
 
   def getSession(eventId: UUID, id: UUID)(implicit user: User): Option[Session]
 
@@ -67,8 +67,6 @@ trait DBStorage {
   def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]):  Either[Throwable, Unit]
 
   def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit]
-
-  def getChangedSessions(eventId: UUID, from: DateTime)(implicit user: User): Vector[Session]
 
   def status(): String
 

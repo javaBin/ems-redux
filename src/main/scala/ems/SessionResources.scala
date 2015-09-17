@@ -25,7 +25,7 @@ trait SessionResources extends ResourceHelper {
     } yield {
       val href = rb.segments("events", eventId, "sessions").build()
       params("slug").headOption match {
-        case Some(s) => storage.getSessionsBySlug(eventId, s).headOption.map(sess => Found ~> Location(URIBuilder(href).segments(sess.id.get).toString)).getOrElse(NotFound)
+        case Some(s) => storage.getSessionBySlug(eventId, s).map(sessId => SeeOther ~> Location(URIBuilder(href).segments(sessId).toString)).getOrElse(NotFound)
         case None => {
           val sessions = storage.getSessionsEnriched(eventId)(u)
           val items = sessions.map(enrichedSessionToItem(rb))
@@ -34,8 +34,7 @@ trait SessionResources extends ResourceHelper {
             addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
             addProperty(ValueProperty("level").apply(ValueOptions, Level.values.map(l => ValueOption(l.name))))
           val coll = JsonCollection(href, Nil, items.toList, List(
-            Query(href, "session by-slug", List(ValueProperty("slug")), Some("By Slug")),
-            Query(href, "session by-tags", List(ValueProperty("tags")), Some("By Tags"))
+            Query(href, "session by-slug", List(ValueProperty("slug")), Some("By Slug"))
           )).withTemplate(template)
           CollectionJsonResponse(coll)
         }
@@ -168,7 +167,7 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  def handleChangelog(eventId: UUID)(implicit u: User) = for {
+  /*def handleChangelog(eventId: UUID)(implicit u: User) = for {
     _ <- GET
     _ <- commit
     _ <- authenticated(u)
@@ -187,7 +186,7 @@ trait SessionResources extends ResourceHelper {
       it => {
         CollectionJsonResponse(JsonCollection(href, Nil, it.toList)) ~> CacheControl("max-age=5,no-transform")
       })
-  }
+  }*/
 
 
   private def getValidURIForPublish(eventId: UUID, u: URI): List[UUID] = {
