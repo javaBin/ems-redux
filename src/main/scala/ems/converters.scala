@@ -175,7 +175,7 @@ object converters {
           Link(URIBuilder(binary).queryParam("size", ImageSize.Thumb.name).build(), "thumbnail", None, Some(ImageSize.Thumb.toString), Some(Render.IMAGE))
         )
       }.getOrElse(List(
-        Link(URI.create(Gravatar(s.email).default(scravatar.IdentIcon).size(100).avatarUrl), "thumbnail", None, Some("gravatar"), Some(Render.IMAGE))
+        Link(URI.create(Gravatar(s.email).default(scravatar.IdentIcon).size(100).ssl(true).avatarUrl), "thumbnail", None, Some("gravatar"), Some(Render.IMAGE))
       ))
       Item(
         base.build(),
