@@ -3,7 +3,7 @@ package ems
 import model._
 import ems.converters._
 import java.net.URI
-import ems.util.{RFC3339, URIBuilder}
+import ems.util.URIBuilder
 import security.User
 import io.Source
 import unfiltered.response._
@@ -65,7 +65,7 @@ trait SessionResources extends ResourceHelper {
     _ <- GET
     _ <- authenticated(u)
   } yield {
-    val tags = storage.getSessions(eventId)(u).flatMap(_.abs.tags.map(_.name).toSeq).toSet[String]
+    val tags = storage.getSessions(eventId)(u).flatMap(_.abs.labels.getOrElse("tags", Nil)).toSet[String]
     JsonContent ~> new ResponseStreamer {
       import org.json4s._
       import org.json4s.native.JsonMethods._
@@ -99,7 +99,7 @@ trait SessionResources extends ResourceHelper {
       //TODO: improve this.
       var updated = session
       if (tags.isDefined) {
-        updated = updated.withTags(tags.get.map(Tag).toSet[Tag])
+        updated = updated.withTags(tags.get.toSet[String])
       }
       if (slot.isDefined) {
         updated = updated.withSlot(slot.flatMap(_.id).get)
@@ -214,57 +214,5 @@ trait SessionResources extends ResourceHelper {
     )
   } yield {
     publishNow(eventId, res)
-  }
-
-  def handleSessionAttachments(eventId: UUID, sessionId: UUID)(implicit user: User) = {
-    val get = for {
-      _ <- GET
-      href <- requestURI
-      base <- baseURIBuilder
-      obj <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
-    } yield {
-      val atts = storage.getAttachments(sessionId)
-      val items = atts.map(attachmentToItem(base))
-      CollectionJsonResponse(JsonCollection(href, Nil, items.toList))
-    }
-
-    val cj = for {
-      _ <- contentType(CollectionJsonResponse.contentType)
-      either <- withTemplate(t => toAttachment(t))
-      res <- either.right.flatMap(a => storage.saveAttachment(sessionId, a)) fold(
-        ex => failure(InternalServerError ~> ResponseString(ex.getMessage)),
-        _ => success(NoContent)
-        )
-    } yield res
-
-    val binary = for {
-      ct <- commit(when{case RequestContentType(ct) => ct}.orElse(BadRequest))
-      base <- baseURIBuilder
-      href <- requestURI
-      cd <- contentDisposition
-      is <- inputStream
-    } yield {
-      val att = storage.binary.saveAttachment(StreamingAttachment(cd.filename.getOrElse(cd.filenameSTAR.get.filename), None, MIMEType(ct), is))
-      storage.saveAttachment(sessionId, toURIAttachment(base.segments("binary"), att)).fold(
-        ex => InternalServerError ~> ResponseString(ex.getMessage),
-        _ => NoContent
-      )
-    }
-
-    val post = for {
-      _ <- POST
-      _ <- authenticated(user)
-      s <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
-      res <- cj | binary
-    } yield res
-
-    get | post
-  }
-
-  private def toURIAttachment(base: URIBuilder, attachment: Attachment with Entity[Attachment]) = {
-    if (attachment.id.isEmpty) {
-      throw new IllegalStateException("Tried to convert an unsaved Attachment; Failure")
-    }
-    URIAttachment(None, base.segments(attachment.id.get).build(), attachment.name, attachment.size, attachment.mediaType)
   }
 }

@@ -1,6 +1,8 @@
 package ems
 package model
 
+import java.net.URI
+
 import org.joda.time.DateTime
 import java.util.Locale
 
@@ -13,8 +15,7 @@ case class Abstract(title: String,
                     language: Locale = new Locale("no"),
                     level: Level = Level.Beginner,
                     format: Format = Format.Presentation,
-                    keywords: Set[Keyword],
-                    tags: Set[Tag]
+                    labels: Map[String, List[String]]
                      ) {
   def withTitle(input: String) = copy(input)
 
@@ -32,11 +33,15 @@ case class Abstract(title: String,
 
   def withLevel(level: Level) = copy(level = level)
 
-  def addKeyword(word: String) = copy(keywords = keywords + Keyword(word))
+  def addLabel(name: String, word: String) = copy(labels = labels + (name -> (labels.getOrElse(name, List.empty[String]) ::: List(word))))
 
-  def addTag(word: String) = copy(tags = tags + Tag(word))
+  def setLabels(name: String, wordList: Set[String]) = copy(labels = labels + (name -> wordList.toList))
 
-  def withTags(tags: Set[Tag]) = copy(tags = tags)
+  def addKeyword(word: String) = addLabel("keywords", word)
+
+  def addTag(word: String) = addLabel("tags", word)
+
+  def withTags(tags: Set[String]) = setLabels("tags", tags)
 
 }
 
@@ -46,6 +51,7 @@ case class Session(id: Option[UUID],
                    room: Option[UUID],
                    slot: Option[UUID],
                    abs: Abstract,
+                   video: Option[URI],
                    state: State,
                    published: Boolean,
                    lastModified: DateTime = new DateTime()) extends Entity[Session] {
@@ -56,7 +62,7 @@ case class Session(id: Option[UUID],
 
   def withSlot(slot: UUID) = copy(slot = Some(slot))
 
-  def withTags(tags: Set[Tag]) = withAbstract(abs.withTags(tags))
+  def withTags(tags: Set[String]) = withAbstract(abs.withTags(tags))
 
   def withAbstract(abs: Abstract) = copy(abs = abs)
 
@@ -65,28 +71,27 @@ case class Session(id: Option[UUID],
 
 object Session {
   def apply(eventId: UUID, abs: Abstract): Session = {
-    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, State.Pending, false)
+    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, None, State.Pending, false)
   }
 
   def apply(eventId: UUID, abs: Abstract, state: State): Session = {
-    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, false)
+    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, None, state, false)
   }
 
   def apply(eventId: UUID, abs: Abstract, state: State, published: Boolean): Session = {
-    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, state, published)
+    Session(None, eventId, Slug.makeSlug(abs.title.noHtml), None, None, abs, None, state, published)
   }
 
   def apply(eventId: UUID, title: String, format: Format): Session = {
-    val ab = Abstract(title, format = format, tags = Set.empty, keywords = Set.empty)
-    Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, State.Pending, false)
+    val ab = Abstract(title, format = format, labels = Map.empty)
+    Session(None, eventId, Slug.makeSlug(title.noHtml), None, None, ab, None, State.Pending, false)
   }
 }
 
 case class EnrichedSession(session: Session,
                            room: Option[Room],
                            slot: Option[Slot],
-                           speakers: Vector[Speaker],
-                           attachments: Vector[URIAttachment]) extends Entity[EnrichedSession] {
+                           speakers: Vector[Speaker]) extends Entity[EnrichedSession] {
 
   override def id: Option[UUID] = session.id
 
@@ -97,7 +102,7 @@ case class EnrichedSession(session: Session,
 
 
 
-case class Speaker(id: Option[UUID], name: String, email: String, zipCode: Option[String] = None, bio: Option[String] = None, tags: Set[Tag] = Set.empty, photo: Option[Attachment with Entity[Attachment]] = None, lastModified: DateTime = DateTime.now()) extends Entity[Speaker] {
+case class Speaker(id: Option[UUID], name: String, email: String, zipCode: Option[String] = None, bio: Option[String] = None, labels: Map[String, List[String]] = Map.empty, photo: Option[Attachment with Entity[Attachment]] = None, lastModified: DateTime = DateTime.now()) extends Entity[Speaker] {
   type T = Speaker
 
   def withId(id: UUID) = copy(id = Some(id))

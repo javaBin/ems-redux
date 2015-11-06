@@ -36,6 +36,7 @@ CREATE TABLE session (
     published       boolean not null DEFAULT FALSE,
     roomId          uuid,
     slotId          uuid,
+    video           varchar(512),
     lastModified    timestamptz not null DEFAULT current_timestamp,
     CONSTRAINT SESSION_PK   PRIMARY KEY (id, eventId),
     CONSTRAINT SESSION_EID  FOREIGN KEY(eventId) REFERENCES event(id),
@@ -53,16 +54,4 @@ CREATE TABLE speaker (
     lastModified    timestamptz not null DEFAULT current_timestamp,
     CONSTRAINT SPEAKER_PK PRIMARY KEY (id, sessionId),
     CONSTRAINT SPEAKER_SESSION_FK FOREIGN KEY (sessionId) REFERENCES session(id)
-);
-
-CREATE TABLE session_attachment (
-    id              uuid not null,
-    sessionId       uuid not null,
-    name            varchar(512) not null,
-    href            varchar(1024) not null,
-    size            integer,
-    mimetype        varchar(512),
-    lastModified    timestamptz not null DEFAULT current_timestamp,
-    CONSTRAINT SESSION_ATT_PK PRIMARY KEY (id, sessionId),
-    CONSTRAINT SESSION_ATT_SESSION_FK FOREIGN KEY (sessionId) REFERENCES session(id)
 );

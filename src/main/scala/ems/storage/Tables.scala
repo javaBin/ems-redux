@@ -123,18 +123,18 @@ trait Tables {
    *  @param roomid Database column roomid SqlType(uuid), Default(None)
    *  @param slotid Database column slotid SqlType(uuid), Default(None)
    *  @param lastmodified Database column lastmodified SqlType(timestamptz) */
-  case class SessionRow(id: java.util.UUID, eventid: java.util.UUID, slug: String, abs: Json, state: String, published: Boolean = false, roomid: Option[java.util.UUID] = None, slotid: Option[java.util.UUID] = None, lastmodified: DateTime)
+  case class SessionRow(id: java.util.UUID, eventid: java.util.UUID, slug: String, abs: Json, state: String, published: Boolean = false, roomid: Option[java.util.UUID] = None, slotid: Option[java.util.UUID] = None, video: Option[String] = None, lastmodified: DateTime)
   /** GetResult implicit for fetching SessionRow objects using plain SQL queries */
   implicit def GetResultSessionRow(implicit e0: GR[java.util.UUID], e1: GR[String], e2: GR[Json], e3: GR[Boolean], e4: GR[Option[java.util.UUID]], e5: GR[DateTime]): GR[SessionRow] = GR{
     prs => import prs._
-    SessionRow.tupled((<<[java.util.UUID], <<[java.util.UUID], <<[String], <<[Json], <<[String], <<[Boolean], <<?[java.util.UUID], <<?[java.util.UUID], <<[DateTime]))
+    SessionRow.tupled((<<[java.util.UUID], <<[java.util.UUID], <<[String], <<[Json], <<[String], <<[Boolean], <<?[java.util.UUID], <<?[java.util.UUID], <<?[String], <<[DateTime]))
   }
   /** Table description of table session. Objects of this class serve as prototypes for rows in queries.
    *  NOTE: The following names collided with Scala keywords and were escaped: abstract */
   class Sessions(_tableTag: Tag) extends Table[SessionRow](_tableTag, "session") {
-    def * = (id, eventid, slug, abs, state, published, roomid, slotid, lastmodified) <> (SessionRow.tupled, SessionRow.unapply)
+    def * = (id, eventid, slug, abs, state, published, roomid, slotid, video, lastmodified) <> (SessionRow.tupled, SessionRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(eventid), Rep.Some(slug), Rep.Some(abs), Rep.Some(state), Rep.Some(published), roomid, slotid, Rep.Some(lastmodified)).shaped.<>({r=>import r._; _1.map(_=> SessionRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7, _8, _9.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(eventid), Rep.Some(slug), Rep.Some(abs), Rep.Some(state), Rep.Some(published), roomid, slotid, video, Rep.Some(lastmodified)).shaped.<>({r=>import r._; _1.map(_=> SessionRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7, _8, _9, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(uuid) */
     val id: Rep[java.util.UUID] = column[java.util.UUID]("id")
@@ -153,6 +153,9 @@ trait Tables {
     val roomid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("roomid", O.Default(None))
     /** Database column slotid SqlType(uuid), Default(None) */
     val slotid: Rep[Option[java.util.UUID]] = column[Option[java.util.UUID]]("slotid", O.Default(None))
+    /** Database column video SqlType(varchar), Default(None) */
+    val video: Rep[Option[String]] = column[Option[String]]("video", O.Default(None))
+
     /** Database column lastmodified SqlType(timestamptz) */
     val lastmodified: Rep[DateTime] = column[DateTime]("lastmodified")
 

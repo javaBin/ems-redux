@@ -1,6 +1,8 @@
 package ems
 package storage
 
+import java.net.URI
+
 import ems.security.User
 import model._
 import org.joda.time.DateTime
@@ -48,14 +50,6 @@ trait DBStorage {
 
   def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit]
 
-  def getAttachments(sessionId: UUID): Vector[URIAttachment]
-
-  def getAttachment(sessionId: UUID, id: UUID): Option[URIAttachment]
-
-  def saveAttachment(sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit]
-
-  def removeAttachment(sessionId: UUID, id: UUID): Either[Throwable, Unit]
-
   def getSpeakers(sessionId: UUID): Vector[Speaker]
 
   def getSpeaker(sessionId: UUID, speakerId: UUID): Option[Speaker]
@@ -64,7 +58,7 @@ trait DBStorage {
 
   def removeSession(sessionId: UUID): Either[Throwable, Unit]
 
-  def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]):  Either[Throwable, Unit]
+  def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: URI):  Either[Throwable, Unit]
 
   def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit]
 

@@ -1,10 +1,9 @@
 package ems
 
-import model.Entity
-import org.joda.time.DateTime
 import java.io.InputStream
-import java.net.URI
-import javax.activation.{MimetypesFileTypeMap, MimeType}
+import javax.activation.{MimeType, MimetypesFileTypeMap}
+
+import org.joda.time.DateTime
 
 import scala.util.Try
 
@@ -15,11 +14,6 @@ trait Attachment {
   def lastModified: DateTime
 }
 
-case class URIAttachment(id: Option[UUID], href: URI, name: String, size: Option[Long], mediaType: Option[MIMEType], lastModified: DateTime = new DateTime()) extends Attachment with Entity[Attachment] {
-  def data = href.toURL.openStream()
-  def withId(id: UUID) = copy(id = Some(id))
-}
-
 case class StreamingAttachment(name: String, size: Option[Long], mediaType: Option[MIMEType], data: InputStream, lastModified: DateTime = new DateTime()) extends Attachment
 
 case class MIMEType(major: String, minor: String, parameters: Map[String, String] = Map.empty) {
@@ -28,7 +22,7 @@ case class MIMEType(major: String, minor: String, parameters: Map[String, String
   }
 
   override def toString = {
-    val params = if (parameters.isEmpty) "" else parameters.mkString(";", ";", "")
+    val params = if (parameters.isEmpty) "" else parameters.map{case (k,v) => s"$k=$v"}.mkString(";", "; ", "")
     "%s/%s".format(major, minor) + params
   }
 }

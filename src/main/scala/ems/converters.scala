@@ -89,7 +89,6 @@ object converters {
       "format" -> Some(s.abs.format.toString),
       "level" -> Some(s.abs.level.toString),
       "state" -> Some(s.state.toString),
-      "keywords" -> Some(s.abs.keywords.toSeq.map(_.name).filterNot(_.trim.isEmpty)).filterNot(_.isEmpty),
       "published" -> Some(s.published)
     ) ++ handlePrivateProperties(u, s)
     properties.filter{case (k,v) => v.isDefined}.map(toProperty).toList
@@ -99,21 +98,23 @@ object converters {
     s => {
       val filtered = toProperties(s)
       val href = baseBuilder.segments("events", s.eventId, "sessions", s.id.get).build()
-      Item(href, filtered, createSessionLinks(baseBuilder, href, EnrichedSession(s, None, None, Vector.empty, Vector.empty)))
+      Item(href, filtered, createSessionLinks(baseBuilder, href, EnrichedSession(s, None, None, Vector.empty)))
     }
   }
 
 
   private def handlePrivateProperties(u: User, s: Session): Seq[(String, Option[Any])] = {
+    val map = s.abs.labels.toList.sortBy(_._1)
+
     if (u.authenticated) {
+      val map = s.abs.labels.toList.sortBy(_._1).map{ case (k, v) => k -> Some(v.filterNot(_.isEmpty)) }
       Seq(
-        "tags" -> Some(s.abs.tags.toSeq.map(_.name).filterNot(_.trim.isEmpty)),
         "outline" -> s.abs.outline,
         "equipment" -> s.abs.equipment
-      )
+      ) ++ map
     }
     else {
-      Nil
+      (s.abs.labels - "tags").toList.sortBy(_._1).map{ case (k, v) => k -> Some(v.filterNot(_.isEmpty)) }
     }
   }
 
@@ -128,7 +129,7 @@ object converters {
       Link(URIBuilder(href).segments("room").build(), "session room", Some("Assign a room")),
       Link(baseURIBuilder.segments("events", s.session.eventId, "sessions").build(), "publish", Some("Publish the session"))
     )
-    links ++= s.attachments.map(a => Link(if (a.href.getHost != null) a.href else baseURIBuilder.segments("binary", a.href.toString).build(), getRel(a), None, Some(a.name)))
+    links ++= s.session.video.map(href => Link(href, "alternate video"))
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.session.eventId, "rooms", r.id.get.toString).build(), "room item", Some(r.name))).toSeq
     links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.session.eventId, "slots", slot.id.get.toString).build(), "slot item", Some(formatSlot(slot)))).toSeq
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
@@ -138,40 +139,15 @@ object converters {
 
   def formatSlot(slot: Slot): String = slot.formatted
 
-  def attachmentToItem(baseURIBuilder: URIBuilder): (URIAttachment) => (Item) = {
-    a => {
-      val href = {
-        val h = a.href
-        if (!h.isAbsolute) {
-          baseURIBuilder.segments("binary", h.getPath).build()
-        }
-        else {
-          h
-        }
-      }
-      Item(
-        href,
-        List(
-          ValueProperty("href", Some("Href"), Some(StringValue(href.toString))),
-          ValueProperty("name", Some("Name"), Some(StringValue(a.name))),
-          ValueProperty("size", Some("Size"), a.size.map(s => NumberValue(BigDecimal(s)))),
-          ValueProperty("type", Some("Type"), Some(StringValue(a.mediaType.toString)))
-        ),
-        Nil
-      )
-    }
-  }
-
   def speakerToItem(builder: URIBuilder, eventId: UUID, sessionId: UUID)(implicit user: User): (Speaker) => (Item) = {
     s => {
       val auths = if (user.authenticated) {
         List(
-          ListProperty("tags", Some("Tags"), s.tags.map(t => StringValue(t.name)).toSeq),
           ValueProperty("email", Some("Email"), Some(StringValue(s.email))),
           ValueProperty("zip-code", Some("Zip Code"), s.zipCode.map(StringValue))
-        )
+        ) ++ s.labels.toList.sortBy(_._1).map{ case (k, v) => ListProperty(k, None, v.map(StringValue)) }
       } else {
-        Nil
+        (s.labels - "tags").toList.sortBy(_._1).map{ case (k, v) => ListProperty(k, None, v.map(StringValue)) }
       }
 
       val base = builder.segments("events", eventId, "sessions", sessionId, "speakers", s.id.get)
@@ -212,10 +188,14 @@ object converters {
     val format = template.getPropertyValue("format").map(x => Format(x.value.toString))
     val level = template.getPropertyValue("level").map(x => Level(x.value.toString))
     val language = template.getPropertyValue("lang").map(x => new Locale(x.value.toString))
-    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString))
-    val keywords = template.getPropertyAsSeq("keywords").map(k => Keyword(k.value.toString))
+    val tags = template.getPropertyAsSeq("tags").map(t => t.value.toString).distinct.toList
+    val keywords = template.getPropertyAsSeq("keywords").map(k => k.value.toString).distinct.toList
 
-    Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), keywords.toSet[Keyword], tags.toSet[Tag])
+    val map: Map[String, List[String]] = Map(
+      "tags" -> tags,
+      "keywords" -> keywords
+    )
+    Abstract(title, summary, body, audience, outline, equipment, language.getOrElse(new Locale("no")), level.getOrElse(Level.Beginner), format.getOrElse(Format.Presentation), map)
   }
 
   def toSession(eventId: UUID, id: Option[UUID], template: Template): Session = {
@@ -231,38 +211,16 @@ object converters {
     val email = template.getPropertyValue("email").get.value.toString
     val bio = template.getPropertyValue("bio").map(_.value.toString)
     val zipCode = template.getPropertyValue("zip-code").map(_.value.toString)
-    val tags = template.getPropertyAsSeq("tags").map(t => Tag(t.value.toString)).toSet[Tag]
-    Speaker(id, name, email, zipCode, bio, tags)
+    val tags = template.getPropertyAsSeq("tags").map(t => t.value.toString).toList.distinct
+    Speaker(id, name, email, zipCode, bio, Map("tags" -> tags))
   }
 
-  def toAttachment(template: Template, id: Option[UUID] = None): URIAttachment = {
-    val href = template.getPropertyValue("href").map(x => URI.create(x.value.toString)).get
-    val name = template.getPropertyValue("name").get.value.toString
-    val sizeFilter: PartialFunction[Value[_], Long] = {
-      case NumberValue(x) => x.toLong
-    }
-    val size = template.getPropertyValue("size").map(sizeFilter)
-    val mediaType = template.getPropertyValue("type").flatMap(x => MIMEType(x.value.toString))
-    URIAttachment(id, href, name, size, mediaType)
-  }
 
   private[ems] def toProperty: PartialFunction[(String, Option[Any]), Property] = {
     case (a, Some(x: Seq[_])) => ListProperty(a, Some(a.capitalize), x.map(toValue))
     case (a, Some(x: Map[_, _])) => ObjectProperty(a, Some(a.capitalize), x.map{case (k: Any, v: Any) => k.toString -> toValue(v)}.toMap)
     case (a, b) => ValueProperty(a, Some(a.capitalize), b.map(toValue))
   }
-
-  private def getRel(a: URIAttachment) = {
-    val VideoSites = Set("player.vimeo.com", "vimeo.com", "www.vimeo.com", "youtube.com", "www.youtube.com")
-    val mime = MIMEType.fromFilename(a.name).getOrElse(MIMEType.OctetStream)
-    if (MIMEType.VideoAll.includes(mime) || VideoSites.contains(a.href.getHost)) { //TODO: Hack to allow for broken file names.
-      "alternate video"
-    }
-    else {
-      "enclosure presentation"
-    }
-  }
-
 
   private def toValue(any: Any): Value[_] = any match {
     case x: String => StringValue(x)

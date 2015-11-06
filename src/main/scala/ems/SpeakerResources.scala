@@ -1,5 +1,7 @@
 package ems
 
+import java.net.URI
+
 import model.Speaker
 import ems.converters._
 import security.User
@@ -89,7 +91,7 @@ trait SpeakerResources extends ResourceHelper {
     } yield {
       speaker.photo.foreach(ph => storage.binary.removeAttachment(ph.id.get))
       val binary = storage.binary.saveAttachment(StreamingAttachment(cd.filename.orElse(cd.filenameSTAR.map(_.filename)).get, None, MIMEType(ct), is))
-      storage.updateSpeakerWithPhoto(sessionId, speakerId, binary).fold(
+      storage.updateSpeakerWithPhoto(sessionId, speakerId, URI.create(binary.id.get)).fold(
         ex => InternalServerError ~> ResponseString(ex.getMessage),
         _ => Created ~> Location(base.segments("binary", binary.id.get).toString())
       )

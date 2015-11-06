@@ -17,23 +17,10 @@ object Codecs {
   implicit val uuidCodec: CodecJson[UUID] = CodecJson.derived[String].xmap(UUIDFromString)(UUIDToString)
   implicit val dateTimeCodec: CodecJson[DateTime] = CodecJson.derived[String].xmap(DateTime.parse)(_.toString())
   implicit val levelCodec: CodecJson[Level] = CodecJson.derived[String].xmap(Level(_))(_.name)
-  implicit val uriCodec: CodecJson[URI] = CodecJson.derived[String].xmap(URI.create)(_.toString)
-  implicit val mimeCodec: CodecJson[MIMEType] = CodecJson.derived[String].xmap(s => MIMEType(s).getOrElse(MIMEType
-  .OctetStream))(_.toString)
   implicit val formatCodec: CodecJson[Format]  = CodecJson.derived[String].xmap(Format(_))(_.name)
-  implicit val keywordCodec: CodecJson[Keyword]  = CodecJson.derived[String].xmap(Keyword)(_.name)
-  implicit val tagCodec: CodecJson[ems.model.Tag]  = CodecJson.derived[String].xmap(ems.model.Tag)(_.name)
   implicit val localeCodec: CodecJson[Locale]  = CodecJson.derived[String].xmap(new Locale(_))(_.getLanguage)
-  implicit val attachmentCodec: CodecJson[URIAttachment] = casecodec6(URIAttachment.apply, URIAttachment.unapply)(
-    "id",
-    "href",
-    "name",
-    "size",
-    "media-type",
-    "last-modified"
-  )
 
-  implicit val abstractCodec = casecodec11(Abstract.apply, Abstract.unapply)(
+  implicit val abstractCodec = casecodec10(Abstract.apply, Abstract.unapply)(
     "title",
     "summary",
     "body",
@@ -43,8 +30,7 @@ object Codecs {
     "language",
     "level",
     "format",
-    "tags",
-    "keywords"
+    "labels"
   )
 }
 
@@ -145,14 +131,14 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
   override def getSessionsEnriched(eventId: UUID)(implicit user: User): Vector[EnrichedSession] = {
     val query = sessionByEventAndUser(eventId, user)
     db.run(query.to[Vector].result).map(_.map{ s =>
-      EnrichedSession(toSession(s), s.roomid.flatMap(id => getRoom(eventId, id)), s.slotid.flatMap(id => getSlot(eventId, id)), getSpeakers(s.id), getAttachments(s.id))
+      EnrichedSession(toSession(s), s.roomid.flatMap(id => getRoom(eventId, id)), s.slotid.flatMap(id => getSlot(eventId, id)), getSpeakers(s.id))
     }).await()
   }
 
   override def getSessionEnriched(eventId: UUID, id: UUID)(implicit user: User): Option[EnrichedSession] = {
     val query = sessionByEventAndUser(eventId, user)
     db.run(query.result.headOption).map(_.map{ s =>
-      EnrichedSession(toSession(s), s.roomid.flatMap(id => getRoom(eventId, id)), s.slotid.flatMap(id => getSlot(eventId, id)), getSpeakers(s.id), getAttachments(s.id))
+      EnrichedSession(toSession(s), s.roomid.flatMap(id => getRoom(eventId, id)), s.slotid.flatMap(id => getSlot(eventId, id)), getSpeakers(s.id))
     }).await()
   }
 
@@ -210,52 +196,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     allCatch.either(db.run(query.delete).await())
   }
 
-  override def saveAttachment(sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit] = {
-    val id = attachment.id.getOrElse(randomUUID)
-    val data = Tables.SessionAttachmentRow(
-      id,
-      sessionId,
-      attachment.name,
-      attachment.href.toString,
-      attachment.size,
-      attachment.mediaType.map(_.toString)
-    )
-
-    val action = if (attachment.id.isDefined) {
-      val query = for { a <- Tables.Session_Attachments if a.sessionid === sessionId && a.id === id } yield a
-      query.update(data)
-    }
-    else {
-      Tables.Session_Attachments += data
-    }
-    allCatch.either(db.run(action).await())
-  }
-
   override def status(): String = "OK"
-
-  override def getAttachments(sessionId: UUID): Vector[URIAttachment] = {
-    getAttachmentsF(sessionId).await()
-  }
-
-  def getAttachmentsF(sessionId: UUID): Future[Vector[URIAttachment]] = {
-    val q = for {
-      a <- Tables.Session_Attachments if a.sessionid === sessionId
-    } yield a
-
-    db.run(q.to[Vector].result).map(_.map(toURIAttachment))
-  }
-
-  override def getAttachment(sessionId: UUID, id: UUID): Option[URIAttachment] = {
-    val q = for {
-      a <- Tables.Session_Attachments if a.sessionid === sessionId && a.id === id
-    } yield a
-
-    db.run(q.result.headOption).map(_.map(toURIAttachment)).await()
-  }
-
-  override def removeAttachment(sessionId: UUID, id: UUID): Either[Throwable, Unit] = {
-    ???
-  }
 
   override def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit] = {
     ???
@@ -277,12 +218,17 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
 
   override def getSpeaker(sessionId: UUID, speakerId: UUID): Option[Speaker] = {
     val q = for {
-      s <- Tables.Speakers if s.sessionid === sessionId
+      s <- Tables.Speakers if s.sessionid === sessionId && s.id === speakerId
     } yield s
     db.run(q.result.headOption).map(_.map(toSpeaker)).await()
   }
 
-  override def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: Attachment with Entity[Attachment]): Either[Throwable, Unit] = ???
+  override def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: URI): Either[Throwable, Unit] = {
+    val q = for {
+      s <- Tables.Speakers if s.sessionid === sessionId && s.id === speakerId
+    } yield s.photo
+    allCatch.either(db.run(q.update(Some(photo.toString))).await())
+  }
 
   private def sessionByEventAndUser(eventId: UUID, user: User): Query[Tables.Sessions, Tables.SessionRow, Seq] = {
     sessionByEventAndUser(eventId.asColumnOf[UUID], user)
@@ -301,24 +247,33 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
   private def toRoom(row: Tables.RoomRow): Room = Room(Some(row.id), row.eventid, row.name, row.lastmodified)
   private def toSlot(row: Tables.SlotRow): Slot = Slot(Some(row.id), row.eventid, row.start, Minutes.minutes(row.duration).toStandardDuration, row.parentid, row.lastmodified)
   private def toSpeaker(row: Tables.SpeakerRow): Speaker = {
-    val props = row.attributes.jdecode[SpeakerProperties].fold((e, _) => sys.error(e), identity)
+    val props = row.attributes.jdecode[SpeakerProperties].fold((e, history) => sys.error("Fail decoding: " + (e, history)), identity)
     val photo = row.photo.flatMap(UUIDFromStringOpt).flatMap(p => binaryStorage.getAttachment(p))
-    Speaker(Some(row.id), props.name, row.email, props.zipCode, props.bio, Set.empty, photo, row.lastmodified)
+    Speaker(Some(row.id), props.name, row.email, props.zipCode, props.bio, props.labels, photo, row.lastmodified)
   }
   private def toSession(row: Tables.SessionRow): ems.model.Session = {
     val decodedabs = row.abs.jdecode[Abstract].fold((e, history) => sys.error("Fail decoding: " + (e, history)), identity)
-    Session(Some(row.id), row.eventid, row.slug, row.roomid, row.slotid, decodedabs, State(row.state), row.published, row.lastmodified)
+    Session(Some(row.id), row.eventid, row.slug, row.roomid, row.slotid, decodedabs, row.video.map(URI.create), State(row.state), row.published, row.lastmodified)
   }
 
-  private def toURIAttachment(row: Tables.SessionAttachmentRow): URIAttachment = {
-    URIAttachment(Some(row.id), URI.create(row.href), row.name, row.size, row.mimetype.flatMap(MIMEType.apply), row.lastmodified)
-  }
-
-  case class SpeakerProperties(name: String, bio: Option[String], zipCode: Option[String])
+  case class SpeakerProperties(name: String, bio: Option[String], zipCode: Option[String], labels: Map[String, List[String]] = Map.empty)
 
   object SpeakerProperties {
-    implicit val tagcodec = CodecJson.derived[String].xmap(ems.model.Tag.apply)(_.name)
-    implicit val codec: CodecJson[SpeakerProperties] =
-      casecodec3(SpeakerProperties.apply, SpeakerProperties.unapply)("name", "bio", "zipcode")
+    implicit val codec: CodecJson[SpeakerProperties] = CodecJson(
+      props => Json.obj(
+         "name"     :=  props.name,
+         "bio"      :=  props.bio,
+         "zipcode"  :=  props.zipCode,
+         "labels"   :=  Json.obj(
+            props.labels.map{case (k,v) => k := v}.toList : _*
+         )
+      ),
+      c => for {
+        name    <- (c --\ "name").as[String]
+        bio     <- (c --\ "bio").as[Option[String]]
+        zipcode <- (c --\ "zipcode").as[Option[String]]
+        labels  <- (c --\ "labels").as[Map[String, List[String]]] ||| DecodeResult.ok(Map.empty[String, List[String]])
+      } yield SpeakerProperties(name, bio, zipcode, labels)
+    )
   }
 }
