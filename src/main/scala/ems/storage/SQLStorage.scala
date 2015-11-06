@@ -2,16 +2,16 @@ package ems
 package storage
 
 import java.net.URI
-import java.util.Locale
+import java.util.{UUID, Locale}
 
 import ems.model._
 import ems.security.User
-import org.joda.time.{Minutes, Duration, DateTime}
+import org.joda.time.{Minutes, DateTime}
 import scala.concurrent.{Future, Await}
-import scala.concurrent.duration._
 import argonaut._, Argonaut._
 import slick.driver.PostgresDriver.api._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.Exception.allCatch
 
 object Codecs {
   implicit val uuidCodec: CodecJson[UUID] = CodecJson.derived[String].xmap(UUIDFromString)(UUIDToString)
@@ -175,17 +175,61 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     db.run(query.result.headOption).map(_.map(toSession)).await()
   }
 
-  override def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit] = ???
+  override def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit] = {
+    def updatePublished(id: UUID) =
+      (for { s <- Tables.Sessions if s.eventid === eventId && s.id === id } yield s.published).update(true)
 
-  //override def saveSlotInSession(eventId: UUID, sessionId: UUID, slot: Slot): Either[Throwable, ems.model.Session] = ???
+    allCatch.either(db.run(DBIO.seq(sessions.map(updatePublished) : _*)).await())
+  }
 
-  //override def saveRoomInSession(eventId: UUID, sessionId: UUID, room: Room): Either[Throwable, ems.model.Session] = ???
+  override def saveSession(session: ems.model.Session): Either[Throwable, ems.model.Session] = {
+    val id: UUID = session.id.getOrElse(UUID.randomUUID())
+    val row = Tables.SessionRow(
+      id = id,
+      eventid = session.eventId,
+      slug = session.slug,
+      abs = session.abs.asJson,
+      state = session.state.name,
+      published = session.published,
+      roomid = session.room,
+      slotid = session.slot,
+      lastmodified = DateTime.now()
+    )
+    val action = if (session.id.isDefined) {
+      val query = for { s <- Tables.Sessions if s.id === session.id.get } yield s
+      query.update(row)
+    } else {
+      Tables.Sessions += row
+    }
 
-  override def saveSession(session: ems.model.Session): Either[Throwable, ems.model.Session] = ???
+    allCatch.either(db.run(action).map(_ => session.withId(id)).await())
+  }
 
-  override def removeSession(sessionId: UUID): Either[Throwable, Unit] = ???
+  override def removeSession(sessionId: UUID): Either[Throwable, Unit] = {
+    val query = for { s <- Tables.Sessions if s.id === sessionId } yield s
+    allCatch.either(db.run(query.delete).await())
+  }
 
-  override def saveAttachment(sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit] = ???
+  override def saveAttachment(sessionId: UUID, attachment: URIAttachment): Either[Throwable, Unit] = {
+    val id = attachment.id.getOrElse(randomUUID)
+    val data = Tables.SessionAttachmentRow(
+      id,
+      sessionId,
+      attachment.name,
+      attachment.href.toString,
+      attachment.size,
+      attachment.mediaType.map(_.toString)
+    )
+
+    val action = if (attachment.id.isDefined) {
+      val query = for { a <- Tables.Session_Attachments if a.sessionid === sessionId && a.id === id } yield a
+      query.update(data)
+    }
+    else {
+      Tables.Session_Attachments += data
+    }
+    allCatch.either(db.run(action).await())
+  }
 
   override def status(): String = "OK"
 
@@ -203,17 +247,23 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
 
   override def getAttachment(sessionId: UUID, id: UUID): Option[URIAttachment] = {
     val q = for {
-      a <- Tables.Session_Attachments if a.sessionid === sessionId
+      a <- Tables.Session_Attachments if a.sessionid === sessionId && a.id === id
     } yield a
 
     db.run(q.result.headOption).map(_.map(toURIAttachment)).await()
   }
 
-  override def removeAttachment(sessionId: UUID, id: UUID): Either[Throwable, Unit] = ???
+  override def removeAttachment(sessionId: UUID, id: UUID): Either[Throwable, Unit] = {
+    ???
+  }
 
-  override def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit] = ???
+  override def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit] = {
+    ???
+  }
 
-  override def saveSpeaker(sessionId: UUID,speaker: Speaker): Either[Throwable, Speaker] = ???
+  override def saveSpeaker(sessionId: UUID,speaker: Speaker): Either[Throwable, Speaker] = {
+    ???
+  }
 
   override def getSpeakers(sessionId: UUID): Vector[Speaker] = getSpeakersF(sessionId).await()
 
