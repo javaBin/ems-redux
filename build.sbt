@@ -27,7 +27,8 @@ val unfiltered = Seq(
 val sql = Seq(
   "org.flywaydb"          %  "flyway-core"              % "3.2.1",
   "org.postgresql"        %  "postgresql"               % "9.4-1202-jdbc42",
-  "com.typesafe.slick"    %% "slick"                    % "3.0.3",
+  "com.typesafe.slick"    %% "slick"                    % "3.1.0",
+  "com.zaxxer"            %  "HikariCP"                 % "2.4.1",
   "com.github.tototoshi"  %% "slick-joda-mapper"        % "2.0.0"
 )
 

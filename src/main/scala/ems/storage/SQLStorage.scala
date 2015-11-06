@@ -35,7 +35,7 @@ object Codecs {
 }
 
 class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DBStorage {
-  val db = Database.forURL(config.url, config.username, config.password, driver = config.driver)
+  val db = Database.forDataSource(config.dataSource())
   import Codecs._
 
   implicit class FutureAwaiter[A](f: Future[A]) {
