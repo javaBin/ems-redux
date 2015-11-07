@@ -5,7 +5,6 @@ import java.net.URI
 
 import ems.security.User
 import model._
-import org.joda.time.DateTime
 
 trait DBStorage {
   def binary: BinaryStorage
@@ -26,7 +25,7 @@ trait DBStorage {
 
   def saveSlot(slot: Slot): Either[Throwable, Slot]
 
-  def removeSlot(eventId: UUID, id: UUID): Either[Throwable, String]
+  def removeSlot(eventId: UUID, id: UUID): Either[Throwable, Unit]
 
   def getRooms(eventId: UUID): Vector[Room]
 
@@ -34,7 +33,7 @@ trait DBStorage {
 
   def saveRoom(eventId: UUID, room: Room): Either[Throwable, Room]
 
-  def removeRoom(eventId: UUID, id: UUID): Either[Throwable, String]
+  def removeRoom(eventId: UUID, id: UUID): Either[Throwable, Unit]
 
   def getSessions(eventId: UUID)(implicit user: User) : Vector[Session]
 
