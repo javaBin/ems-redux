@@ -26,3 +26,4 @@ target
 repl-port
 mongo/
 binary
+etc

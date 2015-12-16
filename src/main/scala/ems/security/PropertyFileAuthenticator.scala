@@ -8,10 +8,12 @@ import collection.JavaConverters._
 
 import unfiltered.util.IO
 
+import scalaz.\/
+
 class PropertyFileAuthenticator[A, B] private(properties: Map[String, String]) extends Authenticator[A, B]{
-  override def authenticate(username: String, password: String): Either[Exception, User] = {
-    if (properties.get(username).exists(p => BCrypt.checkpw(password, p))) Right(AuthenticatedUser(username))
-    else Right(Anonymous)
+  override def authenticate(username: String, password: String): Exception \/ User = {
+    if (properties.get(username).exists(p => BCrypt.checkpw(password, p))) \/.right(AuthenticatedUser(username))
+    else \/.right(Anonymous)
   }
 }
 

@@ -1,17 +1,14 @@
 package ems
 
+import d2.Async
 import ems.storage.DBStorage
-import ems.security.{JAASAuthenticator, User, Authenticator}
+import ems.security.{User, Authenticator}
 import ems.Links._
 
-import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
 import org.joda.time.DateTime
 
-import unfiltered.directives._
-import unfiltered.directives.Directives._
-
-import unfiltered.filter.Plan
+import unfiltered.filter.async.Plan
 import unfiltered.filter.request.ContextPath
 import unfiltered.request._
 import unfiltered.response._
@@ -19,18 +16,13 @@ import unfiltered.response._
 import linx._
 
 import org.json4s.native.JsonMethods._
+import concurrent.ExecutionContext.Implicits.global
 
-class Resources(override val storage: DBStorage, auth: Authenticator[HttpServletRequest, HttpServletResponse]) extends Plan with EventResources with AttachmentHandler {
+class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]) extends Plan with EventResources with AttachmentHandler {
+  import Directives._
+  import ops._
 
-  case class Mapping[X](from: HttpRequest[HttpServletRequest] => X) {
-    def apply(intent: PartialFunction[X, Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]]): unfiltered.Cycle.Intent[HttpServletRequest, Any] =
-      Directive.Intent {
-        case req if intent.isDefinedAt(from(req)) => intent(from(req))
-      }
-  }
-
-
-  val Intent = Mapping[String]{ case ContextPath(_, path) => path }
+  val Intent = Async.Mapping[Any, String]{ case ContextPath(_, path) => path }
 
   import auth._
 
@@ -48,14 +40,14 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     case Rooms(eventId) => handleRooms(eventId)
     case Sessions(eventId) => handleSessionList(eventId)
     case SessionsTags(eventId) => handleAllTags(eventId)
-    case Session(eventId, id) => handleSessionAndForms(eventId, id)
+    //case Session(eventId, id) => handleSessionAndForms(eventId, id)
     case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
     case SessionAttachments(eventId, sessionId) => failure(NotFound)
     case Speakers(eventId, sessionId) => handleSpeakers(eventId, sessionId)
     case Speaker(eventId, sessionId, speakerId) => handleSpeaker(eventId, sessionId, speakerId)
     case SpeakerPhoto(eventId, sessionId, speakerId) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Binary(id) => handleAttachment(id)
-    case Seg("redirect" :: Nil) => handleRedirect
+    //case Seg("redirect" :: Nil) => handleRedirect
     case Seg("app-info" :: Nil) => {
       for {
         _ <- GET
@@ -67,7 +59,7 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
     case _ => failure(NotFound)
   }
 
-  def handleRedirect(implicit user: User) = for {
+  /*def handleRedirect(implicit user: User) = for {
     _ <- GET
     base <- baseURIBuilder
     params <- QueryParams
@@ -93,7 +85,7 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
       case _ => None
     }
     result.getOrElse(BadRequest)
-  }
+  }*/
 
   def handleRoot = for {
     base <- baseURIBuilder
@@ -136,6 +128,6 @@ class Resources(override val storage: DBStorage, auth: Authenticator[HttpServlet
 }
 
 object Resources {
-  def apply(storage: DBStorage, authenticator: Authenticator[HttpServletRequest, HttpServletResponse]) = new Resources(storage, authenticator)
+  def apply[A, B](storage: DBStorage, authenticator: Authenticator[A, B]) = new Resources(storage, authenticator)
 
 }

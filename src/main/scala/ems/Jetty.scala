@@ -15,7 +15,7 @@ object Jetty extends App {
   val home = new File(Properties.propOrElse("app.home", Properties.envOrElse("APP_HOME", ".")))
   val auth = authStrategy match {
     case "file" => PropertyFileAuthenticator[HttpServletRequest, HttpServletResponse](new File(home, "passwords.properties"))
-    case _ => JAASAuthenticator
+    case _ => new JAASAuthenticator[HttpServletRequest, HttpServletResponse]
   }
 
   private val server = unfiltered.jetty.Server.http(port).context(contextPath) {

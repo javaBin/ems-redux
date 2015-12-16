@@ -47,11 +47,8 @@ object BaseURIBuilder {
 }
 
 object BaseURI {
-  def unapply(req: HttpRequest[HttpServletRequest]): Option[URI] = {
-    Some(apply(req))
-  }
-
-  def apply(req: HttpRequest[HttpServletRequest]) = BaseURIBuilder(req).build()
+  def unapply[A](req: HttpRequest[A]): Option[URI] = Some(apply(req))
+  def apply[A](req: HttpRequest[A]) = BaseURIBuilder(req).build()
 }
 
 object RequestContentDisposition {

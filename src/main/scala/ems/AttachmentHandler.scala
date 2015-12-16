@@ -2,15 +2,15 @@ package ems
 
 import unfiltered.response._
 import unfiltered.request._
-import unfiltered.directives._
-import Directives._
 import ems.security.User
-import com.sksamuel.scrimage.Image
 import unfilteredx._
+import concurrent.ExecutionContext.Implicits.global
 
 trait AttachmentHandler extends ResourceHelper {
+  import Directives._
+  import ops._
 
-  def handleAttachment(id: UUID)(implicit user: User) = {
+  def handleAttachment(id: UUID)(implicit user: User): ResponseDirective = {
     def stream(att: Attachment, params: Map[String, Seq[String]]) = {
       DateResponseHeader("Last-Modified", att.lastModified) ~> AttachmentStreamer(att, storage.binary, params("size").headOption)
     }

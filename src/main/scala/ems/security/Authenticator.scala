@@ -2,19 +2,21 @@ package ems.security
 
 import unfiltered.request.{QueryParams, BasicAuth, HttpRequest}
 import unfiltered.response._
-import unfiltered.Cycle
+import unfiltered.Async
+
+import scalaz.\/
 
 trait Authenticator[A,B] {
-  type UserFunction = (User) => Cycle.Intent[A, B]
+  type UserFunction = (User) => Async.Intent[A, B]
 
   object Authenticated {
-    def apply(req: HttpRequest[A])(f: UserFunction): ResponseFunction[B] = {
+    def apply(req: HttpRequest[A] with Async.Responder[B])(f: UserFunction): Any = {
       req match {
         case BasicAuth(u, p) => authenticate(u, p).fold(
           err => Unauthorized ~> WWWAuthenticate("Basic realm=\"ems\"") ~> ResponseString(err.getMessage),
           u => {
-            val intent: Cycle.Intent[A, B] = f(u)
-            if (intent.isDefinedAt(req)) intent(req) else Pass
+            val intent: Async.Intent[A, B] = f(u)
+            if (intent.isDefinedAt(req)) intent(req) else req.respond(Pass)
           }
         )
         case QueryParams(p) => {
@@ -25,10 +27,10 @@ trait Authenticator[A,B] {
       }
     }
 
-    def unapply(req: HttpRequest[A]): Option[(UserFunction) => ResponseFunction[B]] = Some(apply(req))
+    def unapply(req: HttpRequest[A] with Async.Responder[B]): Option[(UserFunction) => Any] = Some(apply(req))
   }
 
-  def authenticate(username: String, password: String): Either[Exception, User]
+  def authenticate(username: String, password: String): Exception \/ User
 }
 
 sealed trait User {

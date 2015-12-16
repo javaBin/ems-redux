@@ -7,26 +7,27 @@ import unfiltered.response._
 import unfiltered.request._
 import unfilteredx._
 import net.hamnaberg.json.collection._
-import unfiltered.directives._
-import Directives._
-import javax.servlet.http.HttpServletRequest
+import scala.concurrent.Future
 import scala.language.implicitConversions
+import scalaz.\/
 
 trait ResourceHelper extends EmsDirectives {
 
   def storage: DBStorage
+  import Directives._
+  import ops._
 
-  private [ems] def handleObject[T <: Entity[T]](obj: Option[T],
+  private [ems] def handleObject[T <: Entity[T]](obj: Future[Option[T]],
                                                  fromTemplate: (Template) => T,
-                                                 saveEntity: (T) => Either[Throwable, T],
+                                                 saveEntity: (T) => Future[T],
                                                  toItem: (T) => Item,
-                                                 removeEntity: Option[(T) => Either[Throwable, Unit]] = None)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): ResponseDirective = {
+                                                 removeEntity: Option[(T) => Future[Unit]] = None)(enrich: JsonCollection => JsonCollection = identity)(implicit user: User): ResponseDirective = {
 
     val resp = (i: T) => DateResponseHeader("Last-Modified", i.lastModified) ~> CollectionJsonResponse(enrich(JsonCollection(toItem(i))))
 
     val get = for {
       _ <- GET | HEAD
-      a <- getOrElse(obj, NotFound)
+      a <- getOrElseF(obj, NotFound)
       res <- ifModifiedSince(a.lastModified, resp(a))
     } yield res
 
@@ -34,7 +35,7 @@ trait ResourceHelper extends EmsDirectives {
       _ <- PUT
       _ <- authenticated(user)
       _ <- contentType(CollectionJsonResponse.contentType)
-      a <- getOrElse(obj, NotFound)
+      a <- getOrElseF(obj, NotFound)
       _ <- ifUnmodifiedSince(a.lastModified)
       res <- saveFromTemplate(fromTemplate, saveEntity)
     } yield res
@@ -42,30 +43,33 @@ trait ResourceHelper extends EmsDirectives {
     val delete = for {
       _ <- DELETE
       _ <- authenticated(user)
-      a <- getOrElse(obj, NotFound)
+      a <- getOrElseF(obj, NotFound)
       _ <- ifUnmodifiedSince(a.lastModified)
       f <- getOrElse(removeEntity, Forbidden)
-      _ <- fromEither(f(a))
+      _ <- f(a).successValue
     } yield NoContent
 
     get | put | delete
   }
 
-  private def saveFromTemplate[T <: Entity[T]](fromTemplate: (Template) => T, saveEntity: (T) => Either[Throwable, T]): ResponseDirective = {
+  private def saveFromTemplate[T <: Entity[T]](fromTemplate: (Template) => T, saveEntity: (T) => Future[T]): ResponseDirective = {
     for {
       parsed <- withTemplate(fromTemplate)
-      extract <- parsed
-      e <- saveEntity(extract)
+      extract <- fromEither(parsed)
+      e <- saveEntity(extract).successValue
     } yield NoContent
   }
 
-  private [ems] def withTemplate[T](fromTemplate: (Template) => T): Directive[HttpServletRequest, ResponseFunction[Any], Either[Throwable, T]] = {
+  private [ems] def withTemplate[T](fromTemplate: (Template) => T): Directive[Any, ResponseFunction[Any], Throwable \/ T] = {
     for {
-      template <- inputStream.map(is => NativeJsonCollectionParser.parseTemplate(is))
-    } yield template.right.map(fromTemplate)
+      req <- request
+      template <- success(\/.fromEither(NativeJsonCollectionParser.parseTemplate(req.inputStream)))
+    } yield {
+      template.map(fromTemplate)
+    }
   }
 
-  implicit def fromEither[T](either: Either[Throwable, T]): Directive[HttpServletRequest, ResponseFunction[Any], T] = {
+  implicit def fromEither[T](either: Throwable \/ T): Directive[Any, ResponseFunction[Any], T] = {
     either.fold(
       ex => failure(InternalServerError ~> ResponseString(ex.getMessage)),
       a => success(a)
@@ -74,18 +78,18 @@ trait ResourceHelper extends EmsDirectives {
 
 
   private [ems] def createObject[A <: Entity[A]](fromTemplate: (Template) => A,
-                                                 saveObject: (A) => Either[Throwable, A],
+                                                 saveObject: (A) => Future[A],
                                                  segments: (A) => Seq[String],
                                                  links: (A) => Seq[LinkHeader])
-                                                (implicit user: User): ResponseDirective = {
+                                                (implicit user: User): ResponseDirective  = {
     for {
       _ <- POST
       _ <- authenticated(user)
       _ <- contentType(CollectionJsonResponse.contentType)
       rb <- baseURIBuilder
       parsed <- withTemplate(fromTemplate)
-      extract <- parsed
-      e <- saveObject(extract)
+      extract <- fromEither(parsed)
+      e <- saveObject(extract).successValue
     } yield {
       val l = links(e)
       Created ~> Location(rb.segments(segments(e) : _*).build().toString) ~> new Responder[Any] {

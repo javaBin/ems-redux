@@ -2,11 +2,10 @@ package ems.security
 
 import javax.security.auth.login.{LoginException, LoginContext}
 import javax.security.auth.callback._
-import scala.Left
-import scala.Right
-import javax.servlet.http.{HttpServletResponse, HttpServletRequest}
 
-object JAASAuthenticator extends Authenticator[HttpServletRequest, HttpServletResponse] {
+import scalaz.\/
+
+class JAASAuthenticator[A, B] extends Authenticator[A, B] {
   def authenticate(username: String, password: String) = {
     val context = new LoginContext("ems", new CallbackHandler {
       def handle(callbacks: Array[Callback]) {
@@ -19,11 +18,11 @@ object JAASAuthenticator extends Authenticator[HttpServletRequest, HttpServletRe
     })
     try {
       context.login()
-      Right(AuthenticatedUser(username))
+      \/.right(AuthenticatedUser(username))
     }
     catch {
-      case e: LoginException => Left(e)
-      case e: UnsupportedCallbackException => Left(e)
+      case e: LoginException => \/.left(e)
+      case e: UnsupportedCallbackException => \/.left(e)
     }
   }
 

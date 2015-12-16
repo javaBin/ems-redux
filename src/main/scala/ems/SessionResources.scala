@@ -9,26 +9,25 @@ import io.Source
 import unfiltered.response._
 import unfilteredx._
 import unfiltered.request._
-import unfiltered.directives._
-import Directives._
 import net.hamnaberg.json.collection._
 import ems.cj.{ValueOptions, ValueOption}
 import java.io.OutputStream
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait SessionResources extends ResourceHelper {
+  import Directives._
+  import ops._
 
-  def handleSessionList(eventId: UUID)(implicit u: User): ResponseDirective = {
-    val get = for {
-      _ <- GET
-      params <- queryParams
-      rb <- baseURIBuilder
-    } yield {
-      val href = rb.segments("events", eventId, "sessions").build()
-      params("slug").headOption match {
-        case Some(s) => storage.getSessionBySlug(eventId, s).map(sessId => SeeOther ~> Location(URIBuilder(href).segments(sessId).toString)).getOrElse(NotFound)
-        case None => {
-          val sessions = storage.getSessionsEnriched(eventId)(u)
-          val items = sessions.map(enrichedSessionToItem(rb))
+  def handleSlug(base: URIBuilder, eventId: UUID, slug: Option[String])(implicit user: User): ResponseDirective = {
+    val href = base.segments("events", eventId, "sessions").build()
+    (slug match {
+      case Some(s) => {
+        storage.getSessionBySlug(eventId, s).map(_.map(sessId => SeeOther ~> Location(URIBuilder(href).segments(sessId).toString)).getOrElse(NotFound))
+      }
+      case None => {
+        storage.getSessionsEnriched(eventId).map{ sessions =>
+          val items = sessions.map(enrichedSessionToItem(base))
           val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "tags", "keywords", "published").
             addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
             addProperty(ValueProperty("format").apply(ValueOptions, Format.values.map(f => ValueOption(f.name)))).
@@ -39,6 +38,18 @@ trait SessionResources extends ResourceHelper {
           CollectionJsonResponse(coll)
         }
       }
+    }).successValue
+  }
+
+
+  def handleSessionList(eventId: UUID)(implicit u: User): ResponseDirective = {
+    val get = for {
+      _ <- GET
+      params <- queryParams
+      base <- baseURIBuilder
+      list <- handleSlug(base, eventId, params("slug").headOption)
+    } yield {
+      list
     }
     val newSession = for {
       base <- baseURIBuilder
@@ -64,8 +75,8 @@ trait SessionResources extends ResourceHelper {
   def handleAllTags(eventId: UUID)(implicit u: User) = for {
     _ <- GET
     _ <- authenticated(u)
+    tags <- storage.getSessions(eventId).map(_.flatMap(_.abs.labels.getOrElse("tags", Nil)).toSet[String]).successValue
   } yield {
-    val tags = storage.getSessions(eventId)(u).flatMap(_.abs.labels.getOrElse("tags", Nil)).toSet[String]
     JsonContent ~> new ResponseStreamer {
       import org.json4s._
       import org.json4s.native.JsonMethods._
@@ -75,7 +86,7 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  def handleSessionAndForms(eventId: UUID, sessionId: UUID)(implicit u: User) = {
+  /*def handleSessionAndForms(eventId: UUID, sessionId: UUID)(implicit u: User) = {
     val form = for {
       _ <- POST
       _ <- authenticated(u)
@@ -84,7 +95,7 @@ trait SessionResources extends ResourceHelper {
         case Params(p) => p
       }.orElse(BadRequest)
       _ <- commit
-      session <- getOrElse(storage.getSession(eventId, sessionId), NotFound)
+      session <- getOrElseF(storage.getSession(eventId, sessionId), NotFound)
       _ <- ifUnmodifiedSince(session.lastModified)
     } yield {
       val tags = params.get("tag").filterNot(_.isEmpty)
@@ -110,10 +121,7 @@ trait SessionResources extends ResourceHelper {
       if (updated == session) {
         NoContent
       } else {
-        storage.saveSession(updated).fold(
-          ex => InternalServerError ~> ResponseString(ex.getMessage),
-          s => NoContent
-        )
+        storage.saveSession(updated)
       }
     }
     val cj = for {
@@ -123,13 +131,18 @@ trait SessionResources extends ResourceHelper {
       res
     }
     form | cj
+  }*/
+
+  implicit class AwaitingFuture[A](val f: scala.concurrent.Future[A]) {
+    def await() = scala.concurrent.Await.result(f, scala.concurrent.duration.Duration.Inf)
   }
 
   private def handleSession(eventId: UUID, sessionId: UUID)(implicit u: User) = for {
     base <- baseURIBuilder
-    a <- handleObject(storage.getSession(eventId, sessionId), (t: Template) => {
+    enriched <- storage.getSessionEnriched(eventId, sessionId).successValue
+    a <- handleObject(Future.successful(enriched.map(_.session)), (t: Template) => {
       toSession(eventId, Some(sessionId), t)
-    }, storage.saveSession, (_: Session) => enrichedSessionToItem(base)(u)(storage.getSessionEnriched(eventId, sessionId).get), Some((_: Session) => storage.removeSession(sessionId))) {
+    }, storage.saveSession, (_: Session) => enriched.map(s => enrichedSessionToItem(base)(u)(s)).get, Some((_: Session) => storage.removeSession(sessionId))) {
       c =>
         val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords", "published").
           addProperty(ValueProperty("lang").apply(ValueOptions, List(ValueOption("no"), ValueOption("en")))).
@@ -145,7 +158,7 @@ trait SessionResources extends ResourceHelper {
   def handleSessionRoom(eventId: UUID, sessionId: UUID)(implicit u: User) = {
     for {
       _ <- GET
-      a <- commit(getOrElse(storage.getSession(eventId, sessionId), NotFound))
+      a <- commit(getOrElseF(storage.getSession(eventId, sessionId), NotFound))
       base <- baseURIBuilder
     } yield {
       HtmlContent ~> Html5(
@@ -155,9 +168,9 @@ trait SessionResources extends ResourceHelper {
             <form method="post" action={base.segments("events", eventId, "sessions", sessionId).toString}>
               <select name="room" id="room">
                 {
-                  storage.getRooms(eventId).map{r =>
+                  storage.getRooms(eventId).map(_.map{r =>
                      <option value={base.segments("events", eventId, "rooms", r.id.get).toString}>{r.name}</option>
-                  }
+                  }).await()
                 }
               </select>
             </form>
@@ -197,13 +210,10 @@ trait SessionResources extends ResourceHelper {
 
   private def publishNow(eventId: UUID, list: URIList) = {
     val sessions = list.list.flatMap(getValidURIForPublish(eventId, _))
-    storage.publishSessions(eventId, sessions).fold(
-      ex => BadRequest,
-      _ => NoContent
-    )
+    storage.publishSessions(eventId, sessions).map(_ => NoContent).successValue
   }
 
-  private def publish(eventId: UUID)(implicit user: User) = for {
+  private def publish(eventId: UUID)(implicit user: User): ResponseDirective = for {
     _ <- POST
     _ <- authenticated(user)
     _ <- contentType("text/uri-list")
@@ -212,7 +222,8 @@ trait SessionResources extends ResourceHelper {
       ex => failure(BadRequest),
       list => success(list)
     )
+    published <- publishNow(eventId, res)
   } yield {
-    publishNow(eventId, res)
+    published
   }
 }

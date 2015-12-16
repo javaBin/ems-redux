@@ -7,11 +7,10 @@ import java.util.{UUID, Locale}
 import ems.model._
 import ems.security.User
 import org.joda.time.{Minutes, DateTime}
-import scala.concurrent.{Future, Await}
+import scala.concurrent.Future
 import argonaut._, Argonaut._
 import slick.driver.PostgresDriver.api._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.control.Exception.allCatch
 
 object Codecs {
   implicit val uuidCodec: CodecJson[UUID] = CodecJson.derived[String].xmap(UUIDFromString)(UUIDToString)
@@ -38,16 +37,12 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
   val db = Database.forDataSource(config.dataSource())
   import Codecs._
 
-  implicit class FutureAwaiter[A](f: Future[A]) {
-    def await(duration: scala.concurrent.duration.Duration = scala.concurrent.duration.Duration.Inf): A = Await.result(f, duration)
-  }
-
   override def binary: BinaryStorage = binaryStorage
 
   override def shutdown(): Unit = db.close()
 
   override def getEvents() = {
-    db.run(Tables.Events.to[Vector].result).map(_.map(toEvent)).await()
+    db.run(Tables.Events.to[Vector].result).map(_.map(toEvent))
   }
 
   override def getEventsWithSessionCount(implicit user: User) = {
@@ -58,26 +53,26 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
 
     db.run(q.to[Vector].result).map(_.map{
       case (row, length) => EventWithSessionCount(toEvent(row), length)
-    }).await()
+    })
   }
 
-  override def getEventBySlug(name: String): Option[UUID] = {
+  override def getEventBySlug(name: String) = {
     val q = for {
       e <- Tables.Events if e.slug === name
     } yield e.id
 
-    db.run(q.result.headOption).await()
+    db.run(q.result.headOption)
   }
 
-  override def getEvent(id: UUID): Option[Event] = {
+  override def getEvent(id: UUID) = {
     val q = for {
       e <- Tables.Events if e.id === id
     } yield e
 
-    db.run(q.result.headOption).map(_.map(toEvent)).await()
+    db.run(q.result.headOption).map(_.map(toEvent))
   }
 
-  override def saveEvent(event: Event): Either[Throwable, Event] = {
+  override def saveEvent(event: Event) = {
     val id = event.id.getOrElse(randomUUID)
     val data = Tables.EventRow(id, event.name, event.venue, event.slug, DateTime.now())
     val action = if (event.id.isDefined) {
@@ -87,20 +82,18 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
       Tables.Events += data
     }
 
-    allCatch.either(db.run(action).map(_ => event.withId(id).copy(lastModified = data.lastmodified)).await())
+    db.run(action).map(_ => event.withId(id).copy(lastModified = data.lastmodified))
   }
 
-  override def getRooms(eventId: UUID): Vector[Room] = {
+  override def getRooms(eventId: UUID) = {
     val q = for {
       r <- Tables.Rooms if r.eventid === eventId
     } yield r
 
-    db.run(q.to[Vector].result).map(_.map(toRoom)).await()
+    db.run(q.to[Vector].result).map(_.map(toRoom))
   }
 
-  override def getRoom(eventId: UUID, id: UUID): Option[Room] = getRoomF(eventId, id).await()
-
-  def getRoomF(eventId: UUID, id: UUID): Future[Option[Room]] = {
+  override def getRoom(eventId: UUID, id: UUID) = {
     val q = for {
       r <- Tables.Rooms if r.eventid === eventId && r.id === id
     } yield r
@@ -108,7 +101,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     db.run(q.result.headOption).map(_.map(toRoom))
   }
 
-  override def saveRoom(eventId: UUID, room: Room): Either[Throwable, Room] = {
+  override def saveRoom(eventId: UUID, room: Room) = {
     val id = room.id.getOrElse(randomUUID)
     val data = Tables.RoomRow(id, eventId, room.name, DateTime.now())
     val action = if (room.id.isDefined) {
@@ -120,28 +113,26 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
       Tables.Rooms += data
     }
 
-    allCatch.either(db.run(action).map(_ => room.withId(id).copy(lastModified = data.lastmodified)).await())
+    db.run(action).map(_ => room.withId(id).copy(lastModified = data.lastmodified))
   }
 
-  override def removeRoom(eventId: UUID, id: UUID): Either[Throwable, Unit] = {
+  override def removeRoom(eventId: UUID, id: UUID) = {
     val query = for {
       r <- Tables.Rooms if r.eventid === eventId && r.id === id
     } yield r
 
-    allCatch.either(db.run(query.delete).map(_ => ()).await())
+    db.run(query.delete).map(_ => ())
   }
 
-  override def getSlots(eventId: UUID, parent: Option[UUID]): Vector[Slot] = {
+  override def getSlots(eventId: UUID, parent: Option[UUID]) = {
     val q = for {
       s <- Tables.Slots if s.eventid === eventId && s.parentid === parent
     } yield s
 
-    db.run(q.to[Vector].result).map(_.map(toSlot)).await()
+    db.run(q.to[Vector].result).map(_.map(toSlot))
   }
 
-  override def getSlot(eventId: UUID, id: UUID): Option[Slot] = getSlotF(eventId, id).await()
-
-  def getSlotF(eventId: UUID, id: UUID): Future[Option[Slot]] = {
+  override def getSlot(eventId: UUID, id: UUID) = {
     val q = for {
       s <- Tables.Slots if s.eventid === eventId && s.id === id
     } yield s
@@ -149,7 +140,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     db.run(q.result.headOption).map(_.map(toSlot))
   }
 
-  override def saveSlot(slot: Slot): Either[Throwable, Slot] = {
+  override def saveSlot(slot: Slot) = {
     val id = slot.id.getOrElse(randomUUID)
     val data = Tables.SlotRow(id, slot.eventId, slot.parentId, slot.start, slot.duration.getStandardMinutes.toInt, DateTime.now())
     val action = if (slot.id.isDefined) {
@@ -160,62 +151,79 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     } else {
       Tables.Slots += data
     }
-    allCatch.either(db.run(action).map(_ => slot.withId(id).copy(lastModified = data.lastmodified)).await())
+    db.run(action).map(_ => slot.withId(id).copy(lastModified = data.lastmodified))
   }
 
-  override def removeSlot(eventId: UUID, id: UUID): Either[Throwable, Unit] = {
+  override def removeSlot(eventId: UUID, id: UUID) = {
     val q = for {
       s <- Tables.Slots if s.eventid === eventId && s.id === id
     } yield s
-    allCatch.either(db.run(q.delete).map(_ => ()).await())
+    db.run(q.delete).map(_ => ())
   }
 
-  override def getSessions(eventId: UUID)(implicit user: User): Vector[ems.model.Session] = {
+  override def getSessions(eventId: UUID)(implicit user: User) = {
     val query = sessionByEventAndUser(eventId, user)
-    db.run(query.to[Vector].result).map(_.map(toSession)).await()
+    db.run(query.to[Vector].result).map(_.map(toSession))
   }
 
-  override def getSessionsEnriched(eventId: UUID)(implicit user: User): Vector[EnrichedSession] = {
+  override def getSessionsEnriched(eventId: UUID)(implicit user: User) = {
     val query = sessionByEventAndUser(eventId, user)
-    db.run(query.to[Vector].result).map(_.map{ s =>
-      EnrichedSession(toSession(s), s.roomid.flatMap(id => getRoom(eventId, id)), s.slotid.flatMap(id => getSlot(eventId, id)), getSpeakers(s.id))
-    }).await()
+    db.run(query.to[Vector].result).flatMap(sessions => Future.sequence(sessions.map{ s =>
+      enrich(eventId, s.id, s.roomid, s.roomid).map{
+        case (room, slot, speakers) => {
+          EnrichedSession(toSession(s), room, slot, speakers)
+        }
+      }
+    }))
   }
 
-  override def getSessionEnriched(eventId: UUID, id: UUID)(implicit user: User): Option[EnrichedSession] = {
-    val query = sessionByEventAndUser(eventId, user)
-    db.run(query.result.headOption).map(_.map{ s =>
-      EnrichedSession(toSession(s), s.roomid.flatMap(id => getRoom(eventId, id)), s.slotid.flatMap(id => getSlot(eventId, id)), getSpeakers(s.id))
-    }).await()
+  override def getSessionEnriched(eventId: UUID, id: UUID)(implicit user: User) = {
+    val query = for {
+      s <- sessionByEventAndUser(eventId, user) if s.id === id
+    } yield s
+
+    for {
+      res <- db.run(query.result.headOption)
+      opt <- res.map( s =>
+        enrich(eventId, id, s.roomid, s.roomid).map{
+          case (room, slot, speakers) => {
+            Some(EnrichedSession(toSession(s), room, slot, speakers))
+          }
+          case _ => None
+        }
+      ).getOrElse(Future.successful(None))
+    } yield opt
   }
 
-  override def getSessionBySlug(eventId: UUID, slug: String)(implicit user: User): Option[UUID] = {
+
+
+  override def getSessionBySlug(eventId: UUID, slug: String)(implicit user: User) = {
     val allSessions = for {
       s <- Tables.Sessions if s.eventid === eventId && s.slug === slug
     } yield (s.id, s.published)
 
     val query = if (!user.authenticated) allSessions.filter(_._2 === true) else allSessions
 
-    db.run(query.result.headOption).map(_.map(_._1)).await()
+    db.run(query.result.headOption).map(_.map(_._1))
   }
 
-  override def getSession(eventId: UUID, id: UUID)(implicit user: User): Option[ems.model.Session] = {
+  override def getSession(eventId: UUID, id: UUID)(implicit user: User) = {
     val allSessions = for {
       s <- Tables.Sessions if s.eventid === eventId && s.id === id
     } yield s
 
     val query = if (!user.authenticated) allSessions.filter(_.published === true) else allSessions
-    db.run(query.result.headOption).map(_.map(toSession)).await()
+    db.run(query.result.headOption).map(_.map(toSession))
   }
 
-  override def publishSessions(eventId: UUID, sessions: Seq[UUID]): Either[Throwable, Unit] = {
+  override def publishSessions(eventId: UUID, sessions: Seq[UUID]) = {
     def updatePublished(id: UUID) =
       (for { s <- Tables.Sessions if s.eventid === eventId && s.id === id } yield s.published).update(true)
 
-    allCatch.either(db.run(DBIO.seq(sessions.map(updatePublished) : _*)).await())
+    db.run(DBIO.seq(sessions.map(updatePublished) : _*))
   }
 
-  override def saveSession(session: ems.model.Session): Either[Throwable, ems.model.Session] = {
+  override def saveSession(session: ems.model.Session) = {
     val id: UUID = session.id.getOrElse(UUID.randomUUID())
     val row = Tables.SessionRow(
       id = id,
@@ -235,24 +243,24 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
       Tables.Sessions += row
     }
 
-    allCatch.either(db.run(action).map(_ => session.withId(id)).await())
+    db.run(action).map(_ => session.withId(id))
   }
 
-  override def removeSession(sessionId: UUID): Either[Throwable, Unit] = {
+  override def removeSession(sessionId: UUID) = {
     val query = for { s <- Tables.Sessions if s.id === sessionId } yield s
-    allCatch.either(db.run(query.delete).await())
+    db.run(query.delete).map(_ => ())
   }
 
   override def status(): String = "OK"
 
-  override def removeSpeaker(sessionId: UUID, speakerId: UUID): Either[Throwable, Unit] = {
+  override def removeSpeaker(sessionId: UUID, speakerId: UUID) = {
     val q = for {
       s <- Tables.Speakers if s.sessionid === sessionId && s.id === speakerId
     } yield s
-    allCatch.either(db.run(q.delete).map(_ => ()).await())
+    db.run(q.delete).map(_ => ())
   }
 
-  override def saveSpeaker(sessionId: UUID, speaker: Speaker): Either[Throwable, Speaker] = {
+  override def saveSpeaker(sessionId: UUID, speaker: Speaker) = {
     val id = speaker.id.getOrElse(randomUUID)
     val attributes = SpeakerProperties(speaker.name, speaker.bio, speaker.zipCode, speaker.labels)
     val data = Tables.SpeakerRow(
@@ -274,12 +282,10 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
       Tables.Speakers += data
     }
 
-    allCatch.either(db.run(action).map(_ => speaker.withId(id).copy(lastModified = data.lastmodified)).await())
+    db.run(action).map(_ => speaker.withId(id).copy(lastModified = data.lastmodified))
   }
 
-  override def getSpeakers(sessionId: UUID): Vector[Speaker] = getSpeakersF(sessionId).await()
-
-  def getSpeakersF(sessionId: UUID): Future[Vector[Speaker]] = {
+  override def getSpeakers(sessionId: UUID) = {
     val q = for {
       s <- Tables.Speakers if s.sessionid === sessionId
     } yield s
@@ -287,19 +293,28 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     db.run(q.to[Vector].result).map(_.map(toSpeaker))
   }
 
-  override def getSpeaker(sessionId: UUID, speakerId: UUID): Option[Speaker] = {
+  override def getSpeaker(sessionId: UUID, speakerId: UUID) = {
     val q = for {
       s <- Tables.Speakers if s.sessionid === sessionId && s.id === speakerId
     } yield s
-    db.run(q.result.headOption).map(_.map(toSpeaker)).await()
+    db.run(q.result.headOption).map(_.map(toSpeaker))
   }
 
-  override def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: URI): Either[Throwable, Unit] = {
+  override def updateSpeakerWithPhoto(sessionId: UUID, speakerId: UUID, photo: URI) = {
     val q = for {
       s <- Tables.Speakers if s.sessionid === sessionId && s.id === speakerId
     } yield s.photo
-    allCatch.either(db.run(q.update(Some(photo.toString))).await())
+    db.run(q.update(Some(photo.toString))).map(_ => ())
   }
+
+  private def enrich(eventId: UUID, sessionId: UUID, roomId: Option[UUID], slotId: Option[UUID]) = {
+    for {
+      r <- roomId.map(id => getRoom(eventId, id)).getOrElse(Future.successful(None))
+      s <- slotId.map(id => getSlot(eventId, id)).getOrElse(Future.successful(None))
+      speakers <- getSpeakers(sessionId)
+    } yield (r, s, speakers)
+  }
+
 
   private def sessionByEventAndUser(eventId: UUID, user: User): Query[Tables.Sessions, Tables.SessionRow, Seq] = {
     sessionByEventAndUser(eventId.asColumnOf[UUID], user)

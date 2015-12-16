@@ -1,37 +1,38 @@
 package ems
 
-import javax.servlet.http.HttpServletRequest
 import org.joda.time.{DateTimeZone, DateTime}
-import unfiltered.directives._
-import unfiltered.directives.Result._
-import Directives._
 import unfiltered.request._
 import unfiltered.response._
 import unfilteredx._
 import net.hamnaberg.json.collection.{Error, JsonCollection}
-
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scalaz.std.scalaFuture._
 trait EmsDirectives {
-  type ResponseDirective = Directive[HttpServletRequest, ResponseFunction[Any], ResponseFunction[Any]]
+  val Directives = d2.Directives[Future]
+  import Directives._
 
-  def baseURIBuilder = request[HttpServletRequest].map(r => BaseURIBuilder(r))
+  type ResponseDirective = Directive[Any, ResponseFunction[Any], ResponseFunction[Any]]
 
-  def baseURI = request[HttpServletRequest].map(r => BaseURI(r))
+  def baseURIBuilder = request.map(r => BaseURIBuilder(r))
 
-  def requestURIBuilder = request[Any].map(r => RequestURIBuilder(r))
+  def baseURI = request.map(r => BaseURI(r))
 
-  def requestURI = request[Any].map(r => RequestURI(r))
+  def requestURIBuilder = request.map(r => RequestURIBuilder(r))
 
-  def ifModifiedSince(dt: DateTime, res: ResponseFunction[Any]) = Directive[Any, ResponseFunction[Any], ResponseFunction[Any]]{
-    case IfModifiedSinceString("*") => Result.Error(NotModified)
-    case IfModifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => Result.Error(NotModified)
-    case _ => Success(res)
+  def requestURI = request.map(r => RequestURI(r))
+
+  def ifModifiedSince[A](dt: DateTime, res: ResponseFunction[Any]) = request.flatMap{
+    case IfModifiedSinceString("*") => error(NotModified)
+    case IfModifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => error(NotModified)
+    case _ => success(res)
   }
 
-  def ifUnmodifiedSince(dt: DateTime) = Directive[Any, ResponseFunction[Any], Unit]{
-    case IfUnmodifiedSinceString("*") => Success(())
-    case IfUnmodifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => Success(())
-    case IfUnmodifiedSince(date) => Result.Error(PreconditionFailed ~> ResponseString(s"${dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate} is not equal to $date"))
-    case RequestURI(href) => Result.Error(PreconditionRequired ~> CollectionJsonResponse(JsonCollection(href, Error("Wrong response", None, Some("Missing If-Unmodified-Since header")))))
+  def ifUnmodifiedSince(dt: DateTime) = request.flatMap{
+    case IfUnmodifiedSinceString("*") => success(())
+    case IfUnmodifiedSince(date) if dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate == date => success(())
+    case IfUnmodifiedSince(date) => error(PreconditionFailed ~> ResponseString(s"${dt.withMillisOfSecond(0).withZone(DateTimeZone.UTC).toDate} is not equal to $date"))
+    case RequestURI(href) => error(PreconditionRequired ~> CollectionJsonResponse(JsonCollection(href, Error("Wrong response", None, Some("Missing If-Unmodified-Since header")))))
   }
 
   def contentType(ct: String) = commit(when {
@@ -47,4 +48,7 @@ trait EmsDirectives {
     } yield res
   )
 
+  def inputStream = request.map(_.inputStream)
+
+  def queryParams = request.map{case QueryParams(qp) => qp}
 }
