@@ -40,7 +40,7 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
     case Rooms(eventId) => handleRooms(eventId)
     case Sessions(eventId) => handleSessionList(eventId)
     case SessionsTags(eventId) => handleAllTags(eventId)
-    //case Session(eventId, id) => handleSessionAndForms(eventId, id)
+    case Session(eventId, id) => handleSessionAndForms(eventId, id)
     case SessionRoom(eventId, sessionId) => handleSessionRoom(eventId, sessionId)
     case SessionAttachments(eventId, sessionId) => failure(NotFound)
     case Speakers(eventId, sessionId) => handleSpeakers(eventId, sessionId)

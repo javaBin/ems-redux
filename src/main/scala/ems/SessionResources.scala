@@ -86,7 +86,7 @@ trait SessionResources extends ResourceHelper {
     }
   }
 
-  /*def handleSessionAndForms(eventId: UUID, sessionId: UUID)(implicit u: User) = {
+  def handleSessionAndForms(eventId: UUID, sessionId: UUID)(implicit u: User) = {
     val form = for {
       _ <- POST
       _ <- authenticated(u)
@@ -99,13 +99,15 @@ trait SessionResources extends ResourceHelper {
       _ <- ifUnmodifiedSince(session.lastModified)
     } yield {
       val tags = params.get("tag").filterNot(_.isEmpty)
+      //TODO: Replace with OptionT
       val slot = params.get("slot").flatMap(_.headOption).flatMap{ slot =>
         val id = UUIDFromString(URIBuilder(slot).path.last.seg)
-        storage.getSlot(eventId, id)
+        storage.getSlot(eventId, id).await()
       }
+      //TODO: Replace with OptionT
       val room = params.get("room").flatMap(_.headOption).flatMap{ room =>
         val id = UUIDFromString(URIBuilder(room).path.last.seg)
-        storage.getRoom(eventId, id)
+        storage.getRoom(eventId, id).await()
       }
       //TODO: improve this.
       var updated = session
@@ -121,7 +123,8 @@ trait SessionResources extends ResourceHelper {
       if (updated == session) {
         NoContent
       } else {
-        storage.saveSession(updated)
+        storage.saveSession(updated).await()
+        NoContent
       }
     }
     val cj = for {
@@ -131,7 +134,7 @@ trait SessionResources extends ResourceHelper {
       res
     }
     form | cj
-  }*/
+  }
 
   implicit class AwaitingFuture[A](val f: scala.concurrent.Future[A]) {
     def await() = scala.concurrent.Await.result(f, scala.concurrent.duration.Duration.Inf)
