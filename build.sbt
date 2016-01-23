@@ -20,20 +20,19 @@ val unfiltered = Seq(
   "net.databinder"  %% "unfiltered-directives"        % unfilteredVersion,
   "net.databinder"  %% "unfiltered-jetty"             % unfilteredVersion,
   "no.shiplog"      %% "directives2"                  % "0.9.2",
-  "com.jteigen"     %% "linx"                         % "0.2",
-  "org.slf4j"       %  "slf4j-api"                    % "1.7.7",
-  "org.slf4j"       %  "slf4j-simple"                 % "1.7.7"
+  "com.jteigen"     %% "linx"                         % "0.2"
 )
 
 val sql = Seq(
   "org.flywaydb"          %  "flyway-core"              % "3.2.1",
-  "org.postgresql"        %  "postgresql"               % "9.4-1202-jdbc42",
+  "org.postgresql"        %  "postgresql"               % "9.4-1206-jdbc42",
   "com.typesafe.slick"    %% "slick"                    % "3.1.0",
   "com.zaxxer"            %  "HikariCP"                 % "2.4.1",
   "com.github.tototoshi"  %% "slick-joda-mapper"        % "2.0.0"
 )
 
 libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
+  "org.constretto"        %% "constretto-scala"       % "1.1",
   "net.hamnaberg.rest"    %% "scala-json-collection"  % "2.3",
   "com.andersen-gott"     %% "scravatar"              % "1.0.3",
   "com.sksamuel.scrimage" %% "scrimage-core"          % "1.4.2",
@@ -43,7 +42,9 @@ libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
   "de.svenkubiak"         %  "jBCrypt"                % "0.4",
   "org.scalaz.stream"     %% "scalaz-stream"          % "0.7.2a",
   "io.argonaut"           %% "argonaut"               % "6.1",
-  "no.arktekk"            %% "uri-template"           % "1.0.2"
+  "no.arktekk"            %% "uri-template"           % "1.0.2",
+  "org.slf4j"             %  "slf4j-api"              % "1.7.7",
+  "org.slf4j"             %  "slf4j-simple"           % "1.7.7"
 )
 
 enablePlugins(BuildInfoPlugin)
