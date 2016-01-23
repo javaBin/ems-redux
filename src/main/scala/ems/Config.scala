@@ -37,7 +37,7 @@ object Config {
   def load(home: File): Config = {
     val env = propOrElse("CONSTRETTO_TAGS", envOrElse("CONSTRETTO_TAGS", "dev"))
     if (env == "dev") {
-      println("WARNING: This is in development mode")
+      println("[ EMS ] WARNING: running in development mode")
       System.setProperty("CONSTRETTO_TAGS", "dev")
     }
     println("[ EMS ] environment '%s'".format(env))
