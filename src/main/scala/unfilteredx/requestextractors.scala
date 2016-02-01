@@ -32,7 +32,7 @@ object BaseURIBuilder {
 
   def apply(req: HttpRequest[Any]) = {
     val path = req.underlying match {
-      case r: HttpServletRequest => Option(r.getContextPath).getOrElse(System.getProperty("contextPath", "/"))
+      case r: HttpServletRequest => Option(r.getContextPath).getOrElse(System.getProperty("contextPath", "/server"))
       case _ => "/"
     }
     RequestURIBuilder(req).emptyParams().replacePath(path)
