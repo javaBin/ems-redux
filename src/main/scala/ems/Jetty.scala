@@ -28,7 +28,7 @@ object Jetty extends App {
   server.underlying.setSendDateHeader(true)
   server.run( _ => {
       Migration.runMigration(config.sql)
-      println("[ EMS ] Running server at " + port)
+      println("[ EMS ] Running server at " + port + " using context path " + contextPath)
     }
   )
 }

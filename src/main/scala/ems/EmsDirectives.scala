@@ -8,6 +8,7 @@ import net.hamnaberg.json.collection.{Error, JsonCollection}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalaz.std.scalaFuture._
+
 trait EmsDirectives {
   val Directives = d2.Directives[Future]
   import Directives._

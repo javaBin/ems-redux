@@ -24,10 +24,7 @@ object RequestURIBuilder {
 }
 
 object RequestURI {
-  def unapply[A](req: HttpRequest[A]) : Option[URI] = {
-    Some(apply(req))
-  }
-
+  def unapply[A](req: HttpRequest[A]) : Option[URI] = Some(apply(req))
   def apply[A](req: HttpRequest[A]) = RequestURIBuilder(req).build()
 }
 
@@ -35,15 +32,20 @@ object BaseURIBuilder {
 
   def apply(req: HttpRequest[Any]) = {
     val path = req.underlying match {
-      case r: HttpServletRequest => r.getContextPath
+      case r: HttpServletRequest => {
+        if (r.getContextPath == null) {
+          System.getProperty("contextPath", "/")
+        }
+        else {
+          r.getContextPath
+        }
+      }
       case _ => "/"
     }
     RequestURIBuilder(req).emptyParams().replacePath(path)
   }
 
-  def unapply(req: HttpRequest[Any]): Option[URIBuilder] = {
-    Some(apply(req))
-  }
+  def unapply(req: HttpRequest[Any]): Option[URIBuilder] = Some(apply(req))
 }
 
 object BaseURI {
