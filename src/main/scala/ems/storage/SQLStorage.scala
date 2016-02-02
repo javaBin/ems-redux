@@ -329,7 +329,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
   }
 
 
-  private def toEvent(row: Tables.EventRow): Event = Event(Some(row.id), row.name, row.venue, row.slug, row.lastmodified)
+  private def toEvent(row: Tables.EventRow): Event = Event(Some(row.id), row.name, row.slug, row.venue, row.lastmodified)
   private def toRoom(row: Tables.RoomRow): Room = Room(Some(row.id), row.eventid, row.name, row.lastmodified)
   private def toSlot(row: Tables.SlotRow): Slot = Slot(Some(row.id), row.eventid, row.start, Minutes.minutes(row.duration).toStandardDuration, row.parentid, row.lastmodified)
   private def toSpeaker(row: Tables.SpeakerRow): Speaker = {
