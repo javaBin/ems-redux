@@ -1,11 +1,10 @@
 package ems.util
 
 import java.net.{URLDecoder, URI, URLEncoder}
-import scala.Option
 
 case class URIBuilder(scheme: Option[String], host: Option[String], port: Option[Int], path: List[Segment], params: Map[String, Seq[String]], pathEndsWithSlash: Boolean = false) {
   def withScheme(scheme: String) = copy(scheme = Some(scheme))
-  
+
   def withHost(host: String) = copy(host = Some(host))
   def withPort(port: Int) = copy(port = Some(port))
 
@@ -20,7 +19,7 @@ case class URIBuilder(scheme: Option[String], host: Option[String], port: Option
     val (segments, endsWithSlash) = URIBuilder.decodePath(path)
     copy(path = segments, pathEndsWithSlash = endsWithSlash)
   }
-  
+
   def emptyPath() = copy(path = Nil)
 
   def emptyParams() = copy(params = Map.empty)
@@ -29,15 +28,17 @@ case class URIBuilder(scheme: Option[String], host: Option[String], port: Option
 
   def queryParam(name: String, value: Option[String]): URIBuilder = {
     //TODO: Maybe the None case should remove all values?
-    val values = params.get(name).getOrElse(Nil) ++ value.toList
+    val values = params.getOrElse(name, Nil) ++ value.toList
 
     if (value.isEmpty) this else copy(params = params + (name -> values))
   }
 
+  def removeQueryParam(name: String): URIBuilder = copy(params = params - name)
+
   def replaceSegments(segments: Segment*) = copy(path = segments.toList)
 
   def replaceQueryParam(name: String, value:String) = copy(params = params + (name -> List(value)))
-  
+
   def build() = {
     def mkParamString() = {
       params.map{case (k, v) => v.map(i => "%s=%s".format(k, i)).mkString("&")}.mkString("&")
@@ -45,12 +46,12 @@ case class URIBuilder(scheme: Option[String], host: Option[String], port: Option
 
     val par = if (params.isEmpty) None else Some(mkParamString()).filterNot(_.isEmpty)
     new URI(
-      scheme.getOrElse(null),
+      scheme.orNull,
       null,
-      host.getOrElse(null),
+      host.orNull,
       port.getOrElse(-1),
       if (path.isEmpty) null else path.map(_.encoded).mkString("/", "/", if (pathEndsWithSlash) "/" else ""),
-      par.getOrElse(null),
+      par.orNull,
       null
     )
   }
@@ -76,7 +77,7 @@ object URIBuilder {
     val params = Option(uri.getQuery).map(buildMap).getOrElse(Map[String, Seq[String]]())
     new URIBuilder(Option(uri.getScheme), Option(uri.getHost), Option(uri.getPort).filterNot(_ == -1), path, params, endsWithSlash)
   }
-  
+
   def fromPath(path: String): URIBuilder = {
     empty.path(path)
   }

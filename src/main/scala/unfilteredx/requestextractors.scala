@@ -13,13 +13,15 @@ object RequestURIBuilder {
 
   def apply[A](req: HttpRequest[A]) = {
     val (scheme, host, port) = req match {
+      case XForwardedProto(proto) & HostPort(h, _) => (proto, h, None)
       case HostPort(h, 80) => ("http", h, None)
       case HostPort(h, 443) => ("https", h, None)
       case HostPort(h, p) => (if (req.isSecure) "https" else "http", h, Some(p))
       case _ => sys.error("No Host header!!!!")
     }
+    val path = Path.apply(req)
 
-    URIBuilder(Some(scheme), Some(host), port, Nil, Map()).path(req.uri).copy(params = QueryParams.unapply(req).getOrElse(Map.empty))
+    URIBuilder(Some(scheme), Some(host), port, Nil, QueryParams.unapply(req).getOrElse(Map.empty)).path(path)
   }
 }
 
