@@ -32,7 +32,7 @@ trait Tables {
 
     def pgObject(v: Json): PGobject = {
       val pgObject = new PGobject()
-      pgObject.setType("json")
+      pgObject.setType("jsonb")
       pgObject.setValue(v.nospaces)
       pgObject
     }
