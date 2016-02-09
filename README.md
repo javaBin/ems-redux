@@ -79,3 +79,28 @@ Example file:
         authIdentity="uid={USERNAME},ou=People,dc=java,dc=no"
         useSSL=false;
     };
+
+# Creating new events
+
+To create a new event you need to create a file called `event.json` with the follwoing content: 
+
+    {
+      "template": {
+        "data": [
+          {
+            "name": "name",
+            "value": "JavaZone 20XX"
+          },
+          {
+            "name": "venue",
+            "value": "Oslo Spektrum"
+          }
+        ]
+      }
+    }
+
+Add the basic auth token and run the following curl:
+
+    curl -XPOST -H 'Content-Type: application/vnd.collection+json' -d@event.json -n https://javazone.no/ems/server/events -H 'Authorization: Basic <auth>'  -v
+
+
