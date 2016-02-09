@@ -22,7 +22,7 @@ object Jetty extends App {
   val config = Config.load(home)
 
   private val server = unfiltered.jetty.Server.http(port).context(contextPath) {
-    _.plan(Resources(new SQLStorage(config.sql,  new FilesystemBinaryStorage(new File(home, "binary"))),auth))
+    _.plan(Resources(new SQLStorage(config.sql, new FilesystemBinaryStorage(config.binary)), auth))
   }
 
   server.underlying.setSendDateHeader(true)
