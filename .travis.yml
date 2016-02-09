@@ -11,3 +11,8 @@ after_success:
 notifications:
   slack:
     secure: KDzP3BaLAx4UjTqO/ozVPWaVMnrqIbYOKtBe0QQBa5GU28p8DVzyfM+tBxFW7d89KxJk3wIUIvIfy7z7ngOWSPSDIMkg9FswlPcfwXXZfoTJKzwEmlu7Z2Q/hpWBDAuFOxxy4IQ79Ot7hs2n1GyaY8jCcrSYZNoWIUFEtiFgh9A=
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
+
