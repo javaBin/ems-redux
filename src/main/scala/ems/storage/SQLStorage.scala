@@ -2,15 +2,17 @@ package ems
 package storage
 
 import java.net.URI
-import java.util.{UUID, Locale}
+import java.util.{Locale, UUID}
 
+import argonaut.Argonaut._
+import argonaut._
 import ems.model._
 import ems.security.User
-import org.joda.time.{Minutes, DateTime}
-import scala.concurrent.Future
-import argonaut._, Argonaut._
+import org.joda.time.{DateTime, Minutes}
 import slick.driver.PostgresDriver.api._
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object Codecs {
   implicit val uuidCodec: CodecJson[UUID] = CodecJson.derived[String].xmap(UUIDFromString)(UUIDToString)
@@ -126,7 +128,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
 
   override def getSlots(eventId: UUID, parent: Option[UUID]) = {
     val q = for {
-      s <- Tables.Slots if s.eventid === eventId && s.parentid === parent
+      s <- Tables.Slots if s.eventid === eventId && ((s.parentid.isEmpty && parent.isEmpty) || s.parentid === parent)
     } yield s
 
     db.run(q.to[Vector].result).map(_.map(toSlot))
