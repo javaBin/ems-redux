@@ -171,7 +171,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
   override def getSessionsEnriched(eventId: UUID)(implicit user: User) = {
     val query = sessionByEventAndUser(eventId, user)
     db.run(query.to[Vector].result).flatMap(sessions => Future.sequence(sessions.map{ s =>
-      enrich(eventId, s.id, s.roomid, s.roomid).map{
+      enrich(eventId, s.id, s.roomid, s.slotid).map{
         case (room, slot, speakers) => {
           EnrichedSession(toSession(s), room, slot, speakers)
         }
@@ -187,7 +187,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     for {
       res <- db.run(query.result.headOption)
       opt <- res.map( s =>
-        enrich(eventId, id, s.roomid, s.roomid).map{
+        enrich(eventId, id, s.roomid, s.slotid).map{
           case (room, slot, speakers) => {
             Some(EnrichedSession(toSession(s), room, slot, speakers))
           }
