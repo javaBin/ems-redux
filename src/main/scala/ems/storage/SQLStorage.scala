@@ -10,6 +10,7 @@ import ems.model._
 import ems.security.User
 import org.joda.time.{DateTime, Minutes}
 import slick.driver.PostgresDriver.api._
+import slick.profile.SqlStreamingAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -253,7 +254,10 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     db.run(query.delete).map(_ => ())
   }
 
-  override def status(): String = "OK"
+  override def status(): Future[String] = {
+    val action = sql"""select 'ok'""".as[String].head
+    db.run(action)
+  }
 
   override def removeSpeaker(sessionId: UUID, speakerId: UUID) = {
     val q = for {

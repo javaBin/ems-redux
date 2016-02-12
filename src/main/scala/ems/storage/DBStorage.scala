@@ -63,7 +63,7 @@ trait DBStorage {
 
   def removeSpeaker(sessionId: UUID, speakerId: UUID): Future[Unit]
 
-  def status(): String
+  def status(): Future[String]
 
   def shutdown()
 }

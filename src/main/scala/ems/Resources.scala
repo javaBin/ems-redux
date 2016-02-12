@@ -17,6 +17,9 @@ import linx._
 
 import org.json4s.native.JsonMethods._
 import concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.concurrent.{TimeoutException, duration, Await, Future}
+import scala.util.Try
 
 class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]) extends Plan with EventResources with AttachmentHandler {
   import Directives._
@@ -51,7 +54,7 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
     case Seg("app-info" :: Nil) => {
       for {
         _ <- GET
-        res <- getOrElse(handleAppInfo, NotFound)
+        res <- handleAppInfo
       } yield {
         res
       }
@@ -107,10 +110,14 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
     )))
   }
 
-  private def handleAppInfo = scala.util.Try {
+  private def handleAppInfo: ResponseDirective = {
     import org.json4s._
 
-    val dbStatus = storage.status()
+    val triedString: Try[String] = Try(Await.result(storage.status(), Duration(1, duration.SECONDS)))
+    val status: String = triedString.recover{
+      case x: TimeoutException => "Could not get connection within 1 second"
+      case x: Throwable => x.getMessage
+    }.getOrElse("unknown status")
 
     val json = JObject(
      "build-info" -> JObject(
@@ -118,13 +125,13 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
        "version" -> JString(ems.BuildInfo.version),
        ("build-time", JString(new DateTime(ems.BuildInfo.buildTime).toString()))
      ),
-     "db-connection" -> JString(dbStatus)
+     "db-connection" -> JString(status)
     )
 
-    val returnCode = if (dbStatus == "ok") Ok else InternalServerError
-    returnCode ~> ContentType("application/json") ~> ResponseString(compact(render(json)) + "\n")
+    val returnCode = if (status == "ok") Ok else InternalServerError
+    success(returnCode ~> ContentType("application/json") ~> ResponseString(compact(render(json)) + "\n"))
+  }
 
-  }.toOption
 }
 
 object Resources {
