@@ -198,8 +198,6 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     } yield opt
   }
 
-
-
   override def getSessionBySlug(eventId: UUID, slug: String)(implicit user: User) = {
     val allSessions = for {
       s <- Tables.Sessions if s.eventid === eventId && s.slug === slug
@@ -250,8 +248,11 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
   }
 
   override def removeSession(sessionId: UUID) = {
-    val query = for { s <- Tables.Sessions if s.id === sessionId } yield s
-    db.run(query.delete).map(_ => ())
+    val removeSessionQuery = for { s <- Tables.Sessions if s.id === sessionId } yield s
+    db.run(DBIO.seq(
+      removeSpeakers(sessionId).delete,
+      removeSessionQuery.delete
+    ).transactionally).map(_ => ())
   }
 
   override def status(): Future[String] = {
@@ -334,6 +335,11 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
     if (!user.authenticated) allSessions.filter(_.published === true) else allSessions
   }
 
+  private def removeSpeakers(sessionId: UUID) = {
+    for {
+      s <- Tables.Speakers if s.sessionid === sessionId
+    } yield s
+  }
 
   private def toEvent(row: Tables.EventRow): Event = Event(Some(row.id), row.name, row.slug, row.venue, row.lastmodified)
   private def toRoom(row: Tables.RoomRow): Room = Room(Some(row.id), row.eventid, row.name, row.lastmodified)

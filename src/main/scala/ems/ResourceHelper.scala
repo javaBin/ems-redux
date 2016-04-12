@@ -26,8 +26,9 @@ trait ResourceHelper extends EmsDirectives {
     val resp = (i: T) => DateResponseHeader("Last-Modified", i.lastModified) ~> CollectionJsonResponse(enrich(JsonCollection(toItem(i))))
 
     val get = for {
-      _ <- GET | HEAD
+      _ <- GET
       a <- getOrElseF(obj, NotFound)
+      _ <- commit
       res <- ifModifiedSince(a.lastModified, resp(a))
     } yield res
 
@@ -36,6 +37,7 @@ trait ResourceHelper extends EmsDirectives {
       _ <- authenticated(user)
       _ <- contentType(CollectionJsonResponse.contentType)
       a <- getOrElseF(obj, NotFound)
+      _ <- commit
       _ <- ifUnmodifiedSince(a.lastModified)
       res <- saveFromTemplate(fromTemplate, saveEntity)
     } yield res
@@ -44,6 +46,7 @@ trait ResourceHelper extends EmsDirectives {
       _ <- DELETE
       _ <- authenticated(user)
       a <- getOrElseF(obj, NotFound)
+      _ <- commit
       _ <- ifUnmodifiedSince(a.lastModified)
       f <- getOrElse(removeEntity, Forbidden)
       _ <- f(a).successValue

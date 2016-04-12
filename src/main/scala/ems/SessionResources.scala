@@ -91,11 +91,9 @@ trait SessionResources extends ResourceHelper {
       _ <- POST
       _ <- authenticated(u)
       ct <- contentType("application/x-www-form-urlencoded")
-      params <- when {
-        case Params(p) => p
-      }.orElse(BadRequest)
-      _ <- commit
+      params <- request.map{case Params(p) => p}
       session <- getOrElseF(storage.getSession(eventId, sessionId), NotFound)
+      _ <- commit
       _ <- ifUnmodifiedSince(session.lastModified)
     } yield {
       val tags = params.get("tag").filterNot(_.isEmpty)
@@ -127,13 +125,7 @@ trait SessionResources extends ResourceHelper {
         NoContent
       }
     }
-    val cj = for {
-      _ <- PUT | GET
-      res <- handleSession(eventId, sessionId)
-    } yield {
-      res
-    }
-    form | cj
+    form | handleSession(eventId, sessionId)
   }
 
   implicit class AwaitingFuture[A](val f: scala.concurrent.Future[A]) {
@@ -143,6 +135,7 @@ trait SessionResources extends ResourceHelper {
   private def handleSession(eventId: UUID, sessionId: UUID)(implicit u: User) = for {
     base <- baseURIBuilder
     enriched <- storage.getSessionEnriched(eventId, sessionId).successValue
+    _ <- commit(getOrElse(enriched, NotFound))
     a <- handleObject(Future.successful(enriched.map(_.session)), (t: Template) => {
       toSession(eventId, Some(sessionId), t)
     }, storage.saveSession, (_: Session) => enriched.map(s => enrichedSessionToItem(base)(u)(s)).get, Some((_: Session) => storage.removeSession(sessionId))) {
