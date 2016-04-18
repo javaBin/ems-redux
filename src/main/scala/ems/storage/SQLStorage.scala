@@ -10,7 +10,6 @@ import ems.model._
 import ems.security.User
 import org.joda.time.{DateTime, Minutes}
 import slick.driver.PostgresDriver.api._
-import slick.profile.SqlStreamingAction
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

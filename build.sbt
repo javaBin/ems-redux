@@ -28,7 +28,7 @@ val sql = Seq(
   "org.postgresql"        %  "postgresql"               % "9.4-1206-jdbc42",
   "com.typesafe.slick"    %% "slick"                    % "3.1.0",
   "com.zaxxer"            %  "HikariCP"                 % "2.4.1",
-  "com.github.tototoshi"  %% "slick-joda-mapper"        % "2.0.0"
+  "com.github.tototoshi"  %% "slick-joda-mapper"        % "2.1.0"
 )
 
 libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(

@@ -10,6 +10,8 @@ import net.hamnaberg.json.collection._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 import scalaz.\/
+import java.net.URI
+import java.sql.SQLException
 
 trait ResourceHelper extends EmsDirectives {
 
@@ -72,13 +74,26 @@ trait ResourceHelper extends EmsDirectives {
     }
   }
 
-  implicit def fromEither[T](either: Throwable \/ T): Directive[Any, ResponseFunction[Any], T] = {
-    either.fold(
-      ex => failure(InternalServerError ~> ResponseString(ex.getMessage)),
-      a => success(a)
-    )
+  def fromEither[T](either: Throwable \/ T): Directive[Any, ResponseFunction[Any], T] = {
+    for {
+      href <- requestURI
+      res <- either.fold(
+        ex => error(handleThrowable(href, ex)),
+        a => success(a)
+      )
+    } yield {
+      res
+    }
   }
 
+  private def handleThrowable(href: URI, throwable: Throwable): ResponseFunction[Any] = {
+    throwable match {
+      case ex: SQLException if (ex.getErrorCode == 23505) => {
+        Conflict ~> CollectionJsonResponse(JsonCollection(href, Error(ex.getMessage, None, None)))
+      }
+      case ex => InternalServerError ~> ResponseString(ex.getMessage)
+    }
+  }
 
   private [ems] def createObject[A <: Entity[A]](fromTemplate: (Template) => A,
                                                  saveObject: (A) => Future[A],
