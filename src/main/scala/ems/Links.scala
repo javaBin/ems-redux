@@ -25,6 +25,8 @@ object Links {
 
   val Binary = Root / "binary" / 'id
 
+  val GraphQl = Root / "graphql"
+
 
   def resolve(base: URI, path: String) = {
     URIBuilder(base).path(path).build()
