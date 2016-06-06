@@ -2,26 +2,28 @@ package ems
 
 import d2.Async
 import ems.storage.DBStorage
-import ems.security.{User, Authenticator}
+import ems.security.{Authenticator, User}
 import ems.Links._
-
-import net.hamnaberg.json.collection.{ValueProperty, Query, Link, JsonCollection}
+import net.hamnaberg.json.collection.{JsonCollection, Link, Query, ValueProperty}
 import org.joda.time.DateTime
-
 import unfiltered.filter.async.Plan
 import unfiltered.filter.request.ContextPath
 import unfiltered.request._
 import unfiltered.response._
-
 import linx._
-
 import org.json4s.native.JsonMethods._
-import concurrent.ExecutionContext.Implicits.global
+import sangria.schema.Schema
+
 import scala.concurrent.duration.Duration
-import scala.concurrent.{TimeoutException, duration, Await, Future}
+import scala.concurrent._
 import scala.util.Try
 
-class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]) extends Plan with EventResources with AttachmentHandler {
+class Resources[A, B](
+    override val storage: DBStorage,
+    override val emsSchema: Schema[Unit, Unit],
+    auth: Authenticator[A, B],
+    override val ec: ExecutionContext)
+    extends Plan with EventResources with AttachmentHandler with GraphQlResource {
   import Directives._
   import ops._
 
@@ -50,6 +52,7 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
     case Speaker(eventId, sessionId, speakerId) => handleSpeaker(eventId, sessionId, speakerId)
     case SpeakerPhoto(eventId, sessionId, speakerId) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Binary(id) => handleAttachment(id)
+    case GraphQl() => handleGraphQl
     //case Seg("redirect" :: Nil) => handleRedirect
     case Seg("app-info" :: Nil) => {
       for {
@@ -135,6 +138,7 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
 }
 
 object Resources {
-  def apply[A, B](storage: DBStorage, authenticator: Authenticator[A, B]) = new Resources(storage, authenticator)
+  def apply[A, B](storage: DBStorage, schema: Schema[Unit, Unit], authenticator: Authenticator[A, B])(implicit ec: ExecutionContext) =
+    new Resources(storage, schema, authenticator, ec)
 
 }

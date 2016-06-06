@@ -4,6 +4,7 @@ import java.io.File
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 
 import com.typesafe.scalalogging.LazyLogging
+import ems.graphql.EmsSchema
 import ems.security.{JAASAuthenticator, PropertyFileAuthenticator}
 import ems.storage.{FilesystemBinaryStorage, Migration, SQLStorage}
 
@@ -23,7 +24,12 @@ object Jetty extends App with LazyLogging {
   val config = Config.load(home)
 
   private val server = unfiltered.jetty.Server.http(port).context(contextPath) {
-    _.plan(Resources(new SQLStorage(config.sql, new FilesystemBinaryStorage(config.binary)), auth))
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val storage: SQLStorage = new SQLStorage(config.sql, new FilesystemBinaryStorage(config.binary))
+    _.plan(Resources(
+      storage,
+      new EmsSchema(storage).schema,
+      auth))
   }
 
   server.underlying.setSendDateHeader(true)
