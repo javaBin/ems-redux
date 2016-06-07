@@ -2,7 +2,7 @@ package ems
 
 import ems.storage.DBStorage
 import org.json4s.native.JsonMethods._
-import sangria.execution.Executor
+import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
 import sangria.marshalling.json4s.native.Json4sNativeResultMarshaller.Node
 import sangria.parser.QueryParser
 import sangria.schema.Schema
@@ -12,7 +12,7 @@ import unfiltered.response._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 import scala.io.Source
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 trait GraphQlResource extends ResourceHelper {
 
@@ -28,19 +28,35 @@ trait GraphQlResource extends ResourceHelper {
 
   def handleGraphQl(): ResponseDirective = {
     for {
-      _ <- POST
+      _ <- GET
       queryString <- request.map(r => Source.fromInputStream(r.inputStream).mkString)
-      qRes = parseQuery(queryString)
-      _ <- commit
-      res <- getOrElse(qRes, InternalServerError)
-    } yield  JsonContent ~> ResponseString(compact(render(res)))
+      result <- parseQuery(queryString)
+    } yield creaseResponse(Ok, result)
   }
 
-  private def parseQuery(queryString: String): Option[Node] = {
+  private def creaseResponse(status: Status, qae: Node): ResponseFunction[Any] = {
+    status ~> JsonContent ~> ResponseString(compact(render(qae)))
+  }
+
+  private def parseQuery(queryString: String) = {
     implicit val e: ExecutionContext = ec
+    def handleException(ex: Throwable) = {
+      ex match {
+        case qae: QueryAnalysisError => failure(creaseResponse(BadRequest, qae.resolveError))
+        case ewr: ErrorWithResolver => failure(creaseResponse(InternalServerError, ewr.resolveError))
+        case unhandled => failure(InternalServerError ~> ResponseString(
+            s"Unable to execute query: ${unhandled.getClass.getSimpleName} :: ${unhandled.getMessage}"))
+      }
+    }
+
     QueryParser.parse(queryString) match {
-      case Success(qDsl) => Some(Await.result(Executor.execute(emsSchema, qDsl), 10 seconds))
-      case Failure(t) => None
+      case Success(qDsl) => {
+        Try(Await.result(Executor.execute(emsSchema, qDsl), 10 seconds)) match {
+          case Success(node) => success(node)
+          case Failure(ex) => handleException(ex)
+        }
+      }
+      case Failure(t) => handleException(t)
     }
   }
 

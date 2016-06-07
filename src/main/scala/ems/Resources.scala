@@ -26,6 +26,7 @@ class Resources[A, B](
     extends Plan with EventResources with AttachmentHandler with GraphQlResource {
   import Directives._
   import ops._
+  implicit val ecc = ec
 
   val Intent = Async.Mapping[Any, String]{ case ContextPath(_, path) => path }
 
