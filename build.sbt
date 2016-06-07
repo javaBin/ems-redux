@@ -44,7 +44,8 @@ libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
   "io.argonaut"           %% "argonaut"               % "6.1",
   "no.arktekk"            %% "uri-template"           % "1.0.2",
   "org.slf4j"             %  "slf4j-api"              % "1.7.7",
-  "org.slf4j"             %  "slf4j-simple"           % "1.7.7"
+  "org.slf4j"             %  "slf4j-simple"           % "1.7.7",
+  "com.typesafe.scala-logging" %% "scala-logging"     % "3.1.0"
 )
 
 enablePlugins(BuildInfoPlugin)
