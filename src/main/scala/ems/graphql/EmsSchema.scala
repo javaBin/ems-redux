@@ -2,6 +2,7 @@ package ems.graphql
 
 import java.util.UUID
 
+import ems.graphql.DataTypes.UUIDType
 import ems.model.Event
 import ems.storage.DBStorage
 import sangria.schema._
@@ -13,7 +14,7 @@ class EmsSchema(store: DBStorage)(implicit executionContext: ExecutionContext) {
   private val eventType = ObjectType(
     "Event",
     fields[Unit, Event](
-      Field("id", StringType, resolve = _.value.id.map(_.toString).getOrElse("")),
+      Field("id", UUIDType, resolve = _.value.id.get),
       Field("name", StringType, resolve = _.value.name),
       Field("venue", StringType, resolve = _.value.venue)
     ))
