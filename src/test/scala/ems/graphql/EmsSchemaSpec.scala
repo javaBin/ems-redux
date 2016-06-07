@@ -3,13 +3,13 @@ package ems.graphql
 import org.json4s.native.JsonMethods._
 import org.specs2.matcher.JsonMatchers
 import org.specs2.mutable.Specification
-import sangria.execution.Executor
+import sangria.execution.{Executor, ValidationError}
 import sangria.marshalling.json4s.native.Json4sNativeResultMarshaller.Node
 import sangria.parser.QueryParser
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.util.Success
+import scala.util.{Success, Try}
 
 class EmsSchemaSpec extends Specification with JsonMatchers {
 
@@ -47,6 +47,18 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
       pretty(render(node)) must not / ("data") / ("event") */ ("name" -> "Event 2")
     }
 
+    "fail on none existing node " in {
+      val node = Try(executeQuery(
+        """
+          | {
+          |   does_not_exists {
+          |     name
+          |   }
+          | }
+        """.stripMargin))
+
+      node must beFailedTry.withThrowable[ValidationError]
+    }
   }
 
   def executeQuery(query: String): Node = {
