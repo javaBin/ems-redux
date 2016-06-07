@@ -1,10 +1,11 @@
 package ems.storage
 
+import com.typesafe.scalalogging.LazyLogging
 import ems.SqlConfig
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.internal.util.jdbc.DriverDataSource
 
-object Migration {
+object Migration extends LazyLogging{
 
   def runMigration(cfg: SqlConfig) = {
     val fw = new Flyway()
@@ -17,7 +18,7 @@ object Migration {
     )
     fw.setDataSource(ds)
     val numMigrationExecuted: Int = fw.migrate()
-    println(s"Migration scripts executed: $numMigrationExecuted")
+    logger.info(s"Migration scripts executed: $numMigrationExecuted")
   }
 
 }
