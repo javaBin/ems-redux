@@ -2,9 +2,9 @@ organization := "no.java.ems"
 
 name := "ems"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.8"
 
-crossScalaVersions := Seq("2.11.7")
+crossScalaVersions := Seq("2.11.8")
 
 scalacOptions := Seq("-deprecation", "-feature")
 
