@@ -3,14 +3,17 @@ package ems
 import java.io.File
 import java.util.Properties
 import javax.sql.DataSource
-import scala.util.Properties._
 
-import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
-import org.constretto._, Constretto._, Converter._
+import scala.util.Properties._
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.constretto._
+import Constretto._
+import Converter._
+import com.typesafe.scalalogging.LazyLogging
 
 case class Config(binary: File, sql: SqlConfig, cache: CacheConfig)
 
-object Config {
+object Config extends LazyLogging {
 
   private implicit val cacheConfigConverter = fromObject(obj => {
     CacheConfig(obj[Int]("events"), obj[Int]("sessions"))
@@ -37,13 +40,13 @@ object Config {
   def load(home: File): Config = {
     val env = propOrElse("CONSTRETTO_TAGS", envOrElse("CONSTRETTO_TAGS", "dev"))
     if (env == "dev") {
-      println("[ EMS ] WARNING: running in development mode")
+      logger.warn("EMS running in development mode")
       System.setProperty("CONSTRETTO_TAGS", "dev")
     }
-    println("[ EMS ] environment '%s'".format(env))
+    logger.info("EMS environment '%s'".format(env))
     val path = new File(home, "etc/ems-%s.conf".format(env))
     if (!path.exists()) {
-      println("[ EMS ] No config file for %s; aborting".format(path.getAbsolutePath))
+      logger.info("No config file for %s; aborting".format(path.getAbsolutePath))
       sys.exit(1)
     }
     val constretto = Constretto(
