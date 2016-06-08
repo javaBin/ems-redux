@@ -23,28 +23,28 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
       val node: Node = executeQuery(
         """
           | {
-          |   event {
+          |   events {
           |     name
           |   }
           | }
         """.stripMargin)
 
-      pretty(render(node)) must /("data") / ("event") */ ("name" -> "Event 1")
-      pretty(render(node)) must /("data") / ("event") */ ("name" -> "Event 2")
+      pretty(render(node)) must /("data") / ("events") */ ("name" -> "Event 1")
+      pretty(render(node)) must /("data") / ("events  ") */ ("name" -> "Event 2")
     }
 
     "find one event by id" in {
       val node: Node = executeQuery(
         """
           | {
-          |   event(id : "d7af21bd-e040-4e1f-9b45-71918b5e46cd") {
+          |   events(id : "d7af21bd-e040-4e1f-9b45-71918b5e46cd") {
           |     name
           |   }
           | }
         """.stripMargin)
 
-      pretty(render(node)) must /("data") / ("event") */ ("name" -> "Event 1")
-      pretty(render(node)) must not / ("data") / ("event") */ ("name" -> "Event 2")
+      pretty(render(node)) must /("data") / ("events") */ ("name" -> "Event 1")
+      pretty(render(node)) must not / ("data") / ("events") */ ("name" -> "Event 2")
     }
 
     "fail on none existing node " in {

@@ -30,7 +30,7 @@ class EmsSchema(store: DBStorage)(implicit executionContext: ExecutionContext) {
       "Query",
       fields[Unit, Unit](
         Field(
-          "event",
+          "events",
           ListType(eventType),
           arguments = argEventId :: Nil,
           resolve = args => getEvents(args.argOpt[Seq[String]]("id"))
