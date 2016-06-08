@@ -12,6 +12,7 @@ import unfiltered.response._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext}
 import scala.io.Source
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 trait GraphQlResource extends ResourceHelper {
