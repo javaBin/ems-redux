@@ -7,8 +7,7 @@ import ems.model.Event
 import ems.storage.DBStorage
 import sangria.schema._
 
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 class EmsSchema(store: DBStorage)(implicit executionContext: ExecutionContext) {
   private val eventType = ObjectType(
@@ -39,8 +38,8 @@ class EmsSchema(store: DBStorage)(implicit executionContext: ExecutionContext) {
     )
   )
 
-  def getEvents(ids: Option[Seq[String]]): List[Event] = {
-    val value: Future[List[Event]] = ids.getOrElse(List()) match {
+  def getEvents(ids: Option[Seq[String]]): Future[List[Event]] = {
+    ids.getOrElse(List()) match {
       case Nil => store.getEvents().map(_.toList)
       case idsAsString => {
         val queryIds: Seq[UUID] = idsAsString.map(UUID.fromString)
@@ -48,7 +47,6 @@ class EmsSchema(store: DBStorage)(implicit executionContext: ExecutionContext) {
             .map(optEvent => optEvent.flatMap(_.toList))
       }
     }
-    Await.result(value, 10 seconds)
   }
 
 }
