@@ -1,5 +1,6 @@
 package ems.graphql
 
+import ems.graphql.DummyDbIds.{eventIdOne, sessionIdOne}
 import org.json4s.native.JsonMethods._
 import org.specs2.matcher.JsonMatchers
 import org.specs2.mutable.Specification
@@ -17,23 +18,25 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  "Schema" should {
+  "Schema -> Event" should {
 
-    "find all events" in {
+    "find all" in {
       val node: Node = executeQuery(
         """
           | {
           |   events {
+          |     id
           |     name
+          |     lastModified
           |   }
           | }
         """.stripMargin)
 
       pretty(render(node)) must /("data") / ("events") */ ("name" -> "Event 1")
-      pretty(render(node)) must /("data") / ("events  ") */ ("name" -> "Event 2")
+      pretty(render(node)) must /("data") / ("events") */ ("name" -> "Event 2")
     }
 
-    "find one event by id" in {
+    "find one by id" in {
       val node: Node = executeQuery(
         """
           | {
@@ -47,7 +50,7 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
       pretty(render(node)) must not / ("data") / ("events") */ ("name" -> "Event 2")
     }
 
-    "fail on none existing node " in {
+    "fail on none existing node" in {
       val node = Try(executeQuery(
         """
           | {
@@ -61,6 +64,25 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
     }
   }
 
+  "Schema -> Session" should {
+    "find all in Event" in {
+      val node: Node = executeQuery(
+        """
+          | {
+          |   events(id : "d7af21bd-e040-4e1f-9b45-71918b5e46cd") {
+          |     id
+          |     sessions {
+          |       id
+          |       title
+          |     }
+          |   }
+          | }
+        """.stripMargin)
+
+      pretty(render(node)) must /("data") / ("events") */ ("id" -> eventIdOne.toString) /
+          ("sessions") /# (1) */("id" -> sessionIdOne.toString)
+    }
+  }
   def executeQuery(query: String): Node = {
     val schema: EmsSchema = new EmsSchema(new DummyDbStorage)
     QueryParser.parse(

@@ -3,13 +3,20 @@ package ems.graphql
 import java.net.URI
 import java.util.UUID
 
-import ems.model.{EnrichedSession, Event, EventWithSessionCount, Room, Session, Slot, Speaker}
+import ems.UUID
+import ems.graphql.DummyDbIds._
+import ems.model.{Abstract, EnrichedSession, Event, EventWithSessionCount, Room, Session, Slot, Speaker, State}
 import ems.security.User
 import ems.storage.{BinaryStorage, DBStorage}
 
 import scala.concurrent.{ExecutionContext, Future}
+object DummyDbIds {
+  val eventIdOne: UUID = UUID.fromString("d7af21bd-e040-4e1f-9b45-71918b5e46cd")
+  val sessionIdOne: UUID = UUID.fromString("1f642848-9cff-4139-b789-b94f9f4eafce")
 
+}
 class DummyDbStorage(implicit ec: ExecutionContext) extends DBStorage {
+
   override def binary: BinaryStorage = ???
 
   override def publishSessions(eventId: UUID, sessions: Seq[UUID]): Future[Unit] = ???
@@ -22,7 +29,16 @@ class DummyDbStorage(implicit ec: ExecutionContext) extends DBStorage {
 
   override def saveSpeaker(sessionId: UUID, speaker: Speaker): Future[Speaker] = ???
 
-  override def getSessions(eventId: UUID)(implicit user: User): Future[Vector[Session]] = ???
+  override def getSessions(eventId: UUID)(implicit user: User): Future[Vector[Session]] = {
+    if (eventId == eventIdOne) {
+      val abs = Abstract(
+        title = "my talk",
+        labels = Map())
+      Future(Vector(Session(Some(sessionIdOne), eventIdOne, "slug", None, None, abs, None, State("state"), true)))
+    } else {
+      return Future(Vector())
+    }
+  }
 
   override def shutdown(): Unit = ???
 
@@ -42,7 +58,7 @@ class DummyDbStorage(implicit ec: ExecutionContext) extends DBStorage {
 
   override def getEvents(): Future[Vector[Event]] = Future(Vector(
     Event(
-      id = Some(UUID.fromString("d7af21bd-e040-4e1f-9b45-71918b5e46cd")),
+      id = Some(eventIdOne),
       name = "Event 1",
       slug = "slug event 1",
       venue = "venue for event 1"
