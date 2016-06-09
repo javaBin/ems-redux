@@ -10,7 +10,7 @@ import sangria.parser.QueryParser
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 class EmsSchemaSpec extends Specification with JsonMatchers {
 
@@ -80,13 +80,13 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
         """.stripMargin)
 
       pretty(render(node)) must /("data") / ("events") */ ("id" -> eventIdOne.toString) /
-          ("sessions") /# (1) */("id" -> sessionIdOne.toString)
+          ("sessions") /# (1) */ ("id" -> sessionIdOne.toString)
     }
   }
+
   def executeQuery(query: String): Node = {
     val schema: EmsSchema = new EmsSchema(new DummyDbStorage)
-    QueryParser.parse(
-      query) match {
+    QueryParser.parse(query) match {
       case Success(dsl) =>
         Await.result(
           Executor.execute(
@@ -94,6 +94,7 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
             dsl
           ),
           10 seconds)
+      case Failure(t) => throw new IllegalStateException(t)
     }
   }
 
