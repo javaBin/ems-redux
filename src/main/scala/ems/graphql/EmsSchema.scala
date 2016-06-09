@@ -53,8 +53,9 @@ class EmsSchema(store: DBStorage)(implicit executionContext: ExecutionContext) {
   )
 
   val schema = Schema(
-    ObjectType(
-      "Query",
+    query = ObjectType(
+      name = "Query",
+      description = "Ems GraphQl Query",
       fields[Unit, Unit](
         Field(
           "events",
