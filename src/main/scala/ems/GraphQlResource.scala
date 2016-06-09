@@ -5,6 +5,7 @@ import org.json4s.native.JsonMethods._
 import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
 import sangria.marshalling.json4s.native.Json4sNativeResultMarshaller.Node
 import sangria.parser.QueryParser
+import sangria.renderer.SchemaRenderer
 import sangria.schema.Schema
 import unfiltered.request._
 import unfiltered.response._
@@ -27,12 +28,18 @@ trait GraphQlResource extends ResourceHelper {
   import ops._
   import sangria.marshalling.json4s.native._
 
-  def handleGraphQl(): ResponseDirective = {
+  def handleGraphQl: ResponseDirective = {
     for {
       _ <- GET
       queryString <- request.map(r => Source.fromInputStream(r.inputStream).mkString)
       result <- parseQuery(queryString)
     } yield creaseResponse(Ok, result)
+  }
+
+  def handleGraphQlSchema: ResponseDirective = {
+    for {
+      _ <- GET
+    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(emsSchema))
   }
 
   private def creaseResponse(status: Status, qae: Node): ResponseFunction[Any] = {

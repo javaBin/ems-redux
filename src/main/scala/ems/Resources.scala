@@ -54,6 +54,7 @@ class Resources[A, B](
     case SpeakerPhoto(eventId, sessionId, speakerId) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Binary(id) => handleAttachment(id)
     case GraphQl() => handleGraphQl
+    case GraphQlSchema() => handleGraphQlSchema
     //case Seg("redirect" :: Nil) => handleRedirect
     case Seg("app-info" :: Nil) => {
       for {

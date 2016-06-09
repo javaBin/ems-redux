@@ -26,6 +26,7 @@ object Links {
   val Binary = Root / "binary" / 'id
 
   val GraphQl = Root / "graphql"
+  val GraphQlSchema = Root / "graphql-schema"
 
 
   def resolve(base: URI, path: String) = {
