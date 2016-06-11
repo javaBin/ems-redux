@@ -4,6 +4,7 @@ import d2.Async
 import ems.storage.DBStorage
 import ems.security.{Authenticator, User}
 import ems.Links._
+import ems.graphql.GraphQlService
 import net.hamnaberg.json.collection.{JsonCollection, Link, Query, ValueProperty}
 import org.joda.time.DateTime
 import unfiltered.filter.async.Plan
@@ -12,7 +13,6 @@ import unfiltered.request._
 import unfiltered.response._
 import linx._
 import org.json4s.native.JsonMethods._
-import sangria.schema.Schema
 
 import scala.concurrent.duration.Duration
 import scala.concurrent._
@@ -20,7 +20,7 @@ import scala.util.Try
 
 class Resources[A, B](
     override val storage: DBStorage,
-    override val emsSchema: Schema[Unit, Unit],
+    override val graphQlService: GraphQlService,
     auth: Authenticator[A, B],
     override val ec: ExecutionContext)
     extends Plan with EventResources with AttachmentHandler with GraphQlResource {
@@ -140,7 +140,7 @@ class Resources[A, B](
 }
 
 object Resources {
-  def apply[A, B](storage: DBStorage, schema: Schema[Unit, Unit], authenticator: Authenticator[A, B])(implicit ec: ExecutionContext) =
-    new Resources(storage, schema, authenticator, ec)
+  def apply[A, B](storage: DBStorage, graphQlService: GraphQlService, authenticator: Authenticator[A, B])(implicit ec: ExecutionContext) =
+    new Resources(storage, graphQlService, authenticator, ec)
 
 }

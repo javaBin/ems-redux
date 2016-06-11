@@ -85,13 +85,13 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
   }
 
   def executeQuery(query: String): Node = {
-    val schema: EmsSchema = new EmsSchema(new GraphQlService(new DummyDbStorage))
     QueryParser.parse(query) match {
       case Success(dsl) =>
         Await.result(
           Executor.execute(
-            schema.schema,
-            dsl
+            schema = EmsSchema.schema,
+            queryAst = dsl,
+            userContext = new GraphQlService(new DummyDbStorage)
           ),
           10 seconds)
       case Failure(t) => throw new IllegalStateException(t)

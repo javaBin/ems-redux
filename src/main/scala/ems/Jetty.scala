@@ -4,7 +4,7 @@ import java.io.File
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
 
 import com.typesafe.scalalogging.LazyLogging
-import ems.graphql.{EmsSchema, GraphQlService}
+import ems.graphql.GraphQlService
 import ems.security.{JAASAuthenticator, PropertyFileAuthenticator}
 import ems.storage.{FilesystemBinaryStorage, Migration, SQLStorage}
 
@@ -28,7 +28,7 @@ object Jetty extends App with LazyLogging {
     val storage: SQLStorage = new SQLStorage(config.sql, new FilesystemBinaryStorage(config.binary))
     _.plan(Resources(
       storage,
-      new EmsSchema(new GraphQlService(storage)).schema,
+      new GraphQlService(storage),
       auth))
   }
 

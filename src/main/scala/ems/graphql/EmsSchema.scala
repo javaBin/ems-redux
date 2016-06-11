@@ -4,7 +4,7 @@ import ems.graphql.DataTypes.{DateTimeType, UUIDType}
 import ems.model.{Event, Session, Speaker}
 import sangria.schema._
 
-class EmsSchema(service: GraphQlService) {
+object EmsSchema {
 
   private val speakerType = ObjectType(
     "Speaker",
@@ -16,13 +16,13 @@ class EmsSchema(service: GraphQlService) {
 
   private val sessionType = ObjectType(
     "Session",
-    fields[Unit, Session](
+    fields[GraphQlService, Session](
       Field("id", UUIDType, resolve = _.value.id.get),
       Field("title", StringType, resolve = _.value.abs.title),
       Field("body", OptionType(StringType), resolve = _.value.abs.body),
       Field("summary", OptionType(StringType), resolve = _.value.abs.summary),
       Field("audience", OptionType(StringType), resolve = _.value.abs.audience),
-      Field("speakers", ListType(speakerType), resolve = args => service.getSpeakers(args.value.id.get)),
+      Field("speakers", ListType(speakerType), resolve = args => args.ctx.getSpeakers(args.value.id.get)),
       Field("level", StringType, resolve = _.value.abs.level.name),
       Field("format", StringType, resolve = _.value.abs.format.name),
       Field("language", StringType, resolve = _.value.abs.language.getLanguage),
@@ -31,12 +31,12 @@ class EmsSchema(service: GraphQlService) {
 
   private val eventType = ObjectType(
     "Event",
-    fields[Unit, Event](
+    fields[GraphQlService, Event](
       Field("id", UUIDType, resolve = _.value.id.get),
       Field("name", StringType, resolve = _.value.name),
       Field("venue", StringType, resolve = _.value.venue),
       Field("lastModified", DateTimeType, resolve = _.value.lastModified),
-      Field("sessions", ListType(sessionType), resolve = args => service.getSessions(args.value.id.get))
+      Field("sessions", ListType(sessionType), resolve = args => args.ctx.getSessions(args.value.id.get))
     ))
 
   private val argEventId: Argument[Option[Seq[String]]] = Argument(
@@ -49,12 +49,12 @@ class EmsSchema(service: GraphQlService) {
     query = ObjectType(
       name = "Query",
       description = "Ems GraphQl Query",
-      fields[Unit, Unit](
+      fields[GraphQlService, Unit](
         Field(
           "events",
           ListType(eventType),
           arguments = argEventId :: Nil,
-          resolve = args => service.getEvents(args.argOpt[Seq[String]]("id"))
+          resolve = args => args.ctx.getEvents(args.argOpt[Seq[String]]("id"))
         )
       )
     )

@@ -1,12 +1,11 @@
 package ems
 
-import ems.storage.DBStorage
+import ems.graphql.{EmsSchema, GraphQlService}
 import org.json4s.native.JsonMethods._
 import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
 import sangria.marshalling.json4s.native.Json4sNativeResultMarshaller.Node
 import sangria.parser.QueryParser
 import sangria.renderer.SchemaRenderer
-import sangria.schema.Schema
 import unfiltered.request._
 import unfiltered.response._
 
@@ -22,8 +21,7 @@ trait GraphQlResource extends EmsDirectives {
   import ops._
   import sangria.marshalling.json4s.native._
 
-  def storage: DBStorage
-  def emsSchema: Schema[Unit, Unit]
+  def graphQlService: GraphQlService
   def ec: ExecutionContext
 
   def handleGraphQl: ResponseDirective = {
@@ -48,7 +46,7 @@ trait GraphQlResource extends EmsDirectives {
   def handleGraphQlSchema: ResponseDirective = {
     for {
       _ <- GET
-    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(emsSchema))
+    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(EmsSchema.schema))
   }
 
   private def creaseResponse(status: Status, qae: Node): ResponseFunction[Any] = {
@@ -68,7 +66,7 @@ trait GraphQlResource extends EmsDirectives {
 
     QueryParser.parse(queryString) match {
       case Success(qDsl) => {
-        Try(Await.result(Executor.execute(emsSchema, qDsl), 10 seconds)) match {
+        Try(Await.result(Executor.execute(EmsSchema.schema, qDsl, graphQlService), 10 seconds)) match {
           case Success(node) => success(node)
           case Failure(ex) => handleException(ex)
         }
