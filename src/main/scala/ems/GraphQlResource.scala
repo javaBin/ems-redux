@@ -16,24 +16,33 @@ import scala.io.Source
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
-trait GraphQlResource extends ResourceHelper {
-
-  def storage: DBStorage
-
-  def emsSchema: Schema[Unit, Unit]
-
-  def ec: ExecutionContext
+trait GraphQlResource extends EmsDirectives {
 
   import Directives._
   import ops._
   import sangria.marshalling.json4s.native._
 
+  def storage: DBStorage
+  def emsSchema: Schema[Unit, Unit]
+  def ec: ExecutionContext
+
   def handleGraphQl: ResponseDirective = {
     for {
       _ <- GET
-      queryString <- request.map(r => Source.fromInputStream(r.inputStream).mkString)
-      result <- parseQuery(queryString)
+      queryParam <- queryParam("query")
+      queryBody <- bodyContent
+      query <- getOrElse(queryParam.orElse(queryBody), BadRequest ~> ResponseString(s"Missing query!"))
+      result <- parseQuery(query)
     } yield creaseResponse(Ok, result)
+  }
+
+  def queryParam(name: String) = {
+    queryParams.map(_.get(name).flatMap(_.headOption))
+  }
+
+  def bodyContent = {
+    request.map(r => Source.fromInputStream(r.inputStream).mkString.trim)
+        .map(s => if (s.nonEmpty) Some(s) else None)
   }
 
   def handleGraphQlSchema: ResponseDirective = {
