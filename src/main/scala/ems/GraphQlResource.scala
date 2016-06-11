@@ -46,7 +46,7 @@ trait GraphQlResource extends EmsDirectives {
   def handleGraphQlSchema: ResponseDirective = {
     for {
       _ <- GET
-    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(EmsSchema.schema))
+    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(EmsSchema.EmsSchema))
   }
 
   private def creaseResponse(status: Status, qae: Node): ResponseFunction[Any] = {
@@ -66,7 +66,7 @@ trait GraphQlResource extends EmsDirectives {
 
     QueryParser.parse(queryString) match {
       case Success(qDsl) => {
-        Try(Await.result(Executor.execute(EmsSchema.schema, qDsl, graphQlService), 10 seconds)) match {
+        Try(Await.result(Executor.execute(EmsSchema.EmsSchema, qDsl, graphQlService), 10 seconds)) match {
           case Success(node) => success(node)
           case Failure(ex) => handleException(ex)
         }

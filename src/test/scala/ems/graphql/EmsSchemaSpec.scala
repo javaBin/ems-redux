@@ -89,7 +89,7 @@ class EmsSchemaSpec extends Specification with JsonMatchers {
       case Success(dsl) =>
         Await.result(
           Executor.execute(
-            schema = EmsSchema.schema,
+            schema = EmsSchema.EmsSchema,
             queryAst = dsl,
             userContext = new GraphQlService(new DummyDbStorage)
           ),
