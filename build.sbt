@@ -35,7 +35,7 @@ libraryDependencies ++= joda ++ unfiltered ++ sql ++ Seq(
   "org.sangria-graphql"        %% "sangria"               % "0.6.3",
   "org.sangria-graphql"        %% "sangria-json4s-native" % "0.2.1",
   "org.constretto"             %% "constretto-scala"      % "1.1",
-  "net.hamnaberg.rest"         %% "scala-json-collection" % "2.3",
+  "net.hamnaberg.rest"         %% "scala-json-collection" % "2.4",
   "com.andersen-gott"          %% "scravatar"             % "1.0.3",
   "com.sksamuel.scrimage"      %% "scrimage-core"         % "1.4.2",
   "org.jsoup"                  %  "jsoup"                 % "1.8.2",
