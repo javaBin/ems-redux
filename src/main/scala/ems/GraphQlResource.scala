@@ -30,7 +30,7 @@ trait GraphQlResource extends EmsDirectives {
       queryParam <- queryParam("query")
       queryBody <- bodyContent
       query <- getOrElse(queryParam.orElse(queryBody), BadRequest ~> ResponseString(s"Missing query!"))
-      result <- parseQuery(query)
+      result <- executeQuery(query)
     } yield creaseResponse(Ok, result)
   }
 
@@ -53,7 +53,7 @@ trait GraphQlResource extends EmsDirectives {
     status ~> JsonContent ~> ResponseString(compact(render(qae)))
   }
 
-  private def parseQuery(queryString: String) = {
+  private def executeQuery(queryString: String) = {
     implicit val e: ExecutionContext = ec
     def handleException(ex: Throwable) = {
       ex match {
@@ -63,16 +63,16 @@ trait GraphQlResource extends EmsDirectives {
             s"Unable to execute query: ${unhandled.getClass.getSimpleName} :: ${unhandled.getMessage}"))
       }
     }
-
-    QueryParser.parse(queryString) match {
-      case Success(qDsl) => {
-        Try(Await.result(Executor.execute(EmsSchema.EmsSchema, qDsl, graphQlService), 10 seconds)) match {
-          case Success(node) => success(node)
-          case Failure(ex) => handleException(ex)
-        }
+    for {
+      qDsl <- QueryParser.parse(queryString) match {
+        case Success(qDsl) => success(qDsl)
+        case Failure(t) => handleException(t)
       }
-      case Failure(t) => handleException(t)
-    }
+      result <- Try(Await.result(Executor.execute(EmsSchema.EmsSchema, qDsl, graphQlService), 10 seconds)) match {
+        case Success(node) => success(node)
+        case Failure(ex) => handleException(ex)
+      }
+    } yield result
   }
 
 }
