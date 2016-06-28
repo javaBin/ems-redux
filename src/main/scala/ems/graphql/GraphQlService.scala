@@ -18,11 +18,10 @@ class GraphQlService(store: DBStorage)(implicit executionContext: ExecutionConte
     store.getSessions(eventId)(Anonymous).map(_.toList)
   }
 
-  def getEvents(ids: Option[Seq[String]]): Future[List[Event]] = {
+  def getEvents(ids: Option[Seq[UUID]]): Future[List[Event]] = {
     ids.getOrElse(List()) match {
       case Nil => store.getEvents().map(_.toList)
-      case idsAsString => {
-        val queryIds: Seq[UUID] = idsAsString.map(UUID.fromString)
+      case queryIds => {
         Future.sequence(queryIds.map(store.getEvent).toList)
             .map(optEvent => optEvent.flatMap(_.toList))
       }

@@ -1,5 +1,6 @@
 package ems.graphql
 
+import ems.UUID
 import ems.graphql.DataTypes.{DateTimeType, UUIDType}
 import ems.model.{Event, Session, Speaker}
 import sangria.schema._
@@ -39,9 +40,9 @@ object EmsSchema {
       Field("sessions", ListType(SessionType), resolve = args => args.ctx.getSessions(args.value.id.get))
     ))
 
-  private val EventIdArgument: Argument[Option[Seq[String]]] = Argument(
+  private val EventIdArgument: Argument[Option[Seq[UUID]]] = Argument(
     name = "id",
-    argumentType = OptionInputType(ListInputType(IDType)),
+    argumentType = OptionInputType(ListInputType(UUIDType)),
     description = "The event ids"
   )
 
@@ -54,7 +55,7 @@ object EmsSchema {
           "events",
           ListType(EventType),
           arguments = EventIdArgument :: Nil,
-          resolve = args => args.ctx.getEvents(args.argOpt[Seq[String]]("id"))
+          resolve = args => args.ctx.getEvents(args.argOpt[Seq[UUID]]("id"))
         )
       )
     )
