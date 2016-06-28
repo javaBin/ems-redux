@@ -1,6 +1,7 @@
 package ems
 
 import ems.graphql.{EmsSchema, GraphQlService}
+import org.json4s
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
@@ -25,15 +26,45 @@ trait GraphQlResource extends EmsDirectives {
   def graphQlService: GraphQlService
   def ec: ExecutionContext
 
-  def handleGraphQl: ResponseDirective = {
+  def handleGraphQlSchema: ResponseDirective = {
     for {
       _ <- GET
+    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(EmsSchema.EmsSchema))
+  }
+
+  def handleGraphQl: ResponseDirective = {
+    val get = for {
+      _ <- GET
       graphQlQuery <- queryParam("query")
-      graphQlQueryBody <- bodyContent
       graphQlVariables <- queryParam("variables")
-      query <- getOrElse(graphQlQuery.orElse(graphQlQueryBody), BadRequest ~> ResponseString(s"Missing query!"))
+      query <- getOrElse(graphQlQuery, BadRequest ~> ResponseString(s"Missing query!"))
       result <- executeQuery(query, graphQlVariables.map(parseVariables))
     } yield creaseResponse(Ok, result)
+
+    val post = for {
+      _ <- POST
+      body <- bodyContent
+      content <- getOrElse(Try(body.map(c => parse(c))).toOption.flatten, BadRequest ~> ResponseString("Missing body content"))
+      query <- graphQlQueryFromBody(content)
+      variables = graphQlVariablesFromBody(content)
+      result <- executeQuery(query, variables)
+    } yield creaseResponse(Ok, result)
+
+    get | post
+  }
+
+  private def graphQlVariablesFromBody(content: JValue): Option[json4s.JObject] = {
+    content.findField {
+      case JField("variables", JObject(_)) => true
+      case _ => false
+    }.map { case (n: String, v: JObject) => v }
+  }
+
+  private def graphQlQueryFromBody(content: JValue) = {
+    getOrElse(content.findField {
+      case JField("query", JString(_)) => true
+      case _ => false
+    }.map { case (n: String, v: JString) => v.values }, BadRequest ~> ResponseString("Missing query content"))
   }
 
   def parseVariables(variable: String): JObject = {
@@ -52,12 +83,6 @@ trait GraphQlResource extends EmsDirectives {
   def bodyContent = {
     request.map(r => Source.fromInputStream(r.inputStream).mkString.trim)
         .map(s => if (s.nonEmpty) Some(s) else None)
-  }
-
-  def handleGraphQlSchema: ResponseDirective = {
-    for {
-      _ <- GET
-    } yield Ok ~> ResponseString(SchemaRenderer.renderSchema(EmsSchema.EmsSchema))
   }
 
   private def creaseResponse(status: Status, qae: Node): ResponseFunction[Any] = {
