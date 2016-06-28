@@ -1,6 +1,7 @@
 package ems
 
 import ems.graphql.{EmsSchema, GraphQlService}
+import org.json4s._
 import org.json4s.native.JsonMethods._
 import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
 import sangria.marshalling.json4s.native.Json4sNativeResultMarshaller.Node
@@ -27,11 +28,21 @@ trait GraphQlResource extends EmsDirectives {
   def handleGraphQl: ResponseDirective = {
     for {
       _ <- GET
-      queryParam <- queryParam("query")
-      queryBody <- bodyContent
-      query <- getOrElse(queryParam.orElse(queryBody), BadRequest ~> ResponseString(s"Missing query!"))
-      result <- executeQuery(query)
+      graphQlQuery <- queryParam("query")
+      graphQlQueryBody <- bodyContent
+      graphQlVariables <- queryParam("variables")
+      query <- getOrElse(graphQlQuery.orElse(graphQlQueryBody), BadRequest ~> ResponseString(s"Missing query!"))
+      result <- executeQuery(query, graphQlVariables.map(parseVariables))
     } yield creaseResponse(Ok, result)
+  }
+
+  def parseVariables(variable: String): JObject = {
+    if (variable.trim.nonEmpty)
+      Try(parse(variable) ) match {
+        case Success(JObject(v)) => JObject(v)
+        case _ => JObject()
+      }
+    else JObject()
   }
 
   def queryParam(name: String) = {
@@ -53,7 +64,7 @@ trait GraphQlResource extends EmsDirectives {
     status ~> JsonContent ~> ResponseString(compact(render(qae)))
   }
 
-  private def executeQuery(queryString: String) = {
+  private def executeQuery(queryString: String, variables: Option[JObject]) = {
     implicit val e: ExecutionContext = ec
     def handleException(ex: Throwable) = {
       ex match {
@@ -68,7 +79,12 @@ trait GraphQlResource extends EmsDirectives {
         case Success(qDsl) => success(qDsl)
         case Failure(t) => handleException(t)
       }
-      result <- Try(Await.result(Executor.execute(EmsSchema.EmsSchema, qDsl, graphQlService), 10 seconds)) match {
+      result <- Try(Await.result(Executor.execute(
+          schema = EmsSchema.EmsSchema,
+          queryAst = qDsl,
+          userContext = graphQlService,
+          variables = variables.getOrElse(JObject())
+      ), 10 seconds)) match {
         case Success(node) => success(node)
         case Failure(ex) => handleException(ex)
       }
