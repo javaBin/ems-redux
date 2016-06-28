@@ -57,14 +57,20 @@ trait GraphQlResource extends EmsDirectives {
     content.findField {
       case JField("variables", JObject(_)) => true
       case _ => false
-    }.map { case (n: String, v: JObject) => v }
+    }.flatMap {
+      case (n: String, v: JObject) => Some(v)
+      case _ => None
+    }
   }
 
   private def graphQlQueryFromBody(content: JValue) = {
     getOrElse(content.findField {
       case JField("query", JString(_)) => true
       case _ => false
-    }.map { case (n: String, v: JString) => v.values }, BadRequest ~> ResponseString("Missing query content"))
+    }.flatMap {
+      case (n: String, v: JString) => Some(v.values)
+      case _ => None
+    }, BadRequest ~> ResponseString("Missing query content"))
   }
 
   def parseVariables(variable: String): JObject = {
