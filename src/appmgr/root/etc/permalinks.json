@@ -8,7 +8,7 @@
       "variable" : "href",
       "template" : "http://test.2014.javazone.no/presentation.html?id={href}"
     },
-    "e213acd2-ad9e-4bba-a5aa-87d47fed5d08": {
+    "0e6d98e9-5b06-42e7-b275-6abadb498c81": {
       "variable" : "href",
       "template" : "http://test.2015.javazone.no/details.html?talk={href}"
     },
