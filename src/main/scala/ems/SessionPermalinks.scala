@@ -19,7 +19,6 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
   def expand(session: Session, href: URI): Option[URI] = {
     map.get(session.eventId.toString).flatMap(
       exp => {
-        println(exp.variable)
         exp.variable match {
           case "title" => Some(exp.expand(escapeTitle(session.abs.title)))
           case "href" => Some(exp.expand(hash(href)))
@@ -104,5 +103,10 @@ object SessionPermalinks extends LazyLogging {
     parseOpt(f).collect{ case j: JObject => j}.map(parseIt).getOrElse(Map.empty)
   }
 
-  def fromEnvironment(name: String): SessionPermalinks = links.getOrElse(name, SessionPermalinks(Map.empty))
+  def fromEnvironment(name: String): SessionPermalinks = {
+    val fromEnv = links.getOrElse(name, SessionPermalinks(Map.empty))
+    logger.info("Env " + name)
+    logger.info("permalinks " + fromEnv)
+    fromEnv
+  }
 }
