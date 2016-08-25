@@ -3,6 +3,7 @@ package ems
 import java.io.File
 import java.net.URI
 
+import com.typesafe.scalalogging.LazyLogging
 import ems.model.Session
 import org.apache.commons.codec.digest._
 import uritemplate.Syntax._
@@ -48,7 +49,7 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
   def hash(href: URI): String = DigestUtils.sha256Hex(href.toString).trim
 }
 
-object SessionPermalinks {
+object SessionPermalinks extends LazyLogging {
   import org.json4s._
   import org.json4s.native.JsonMethods._
 
@@ -60,8 +61,12 @@ object SessionPermalinks {
       }
       f
     }
+    logger.info("Loading Permalinks from " + f)
 
-    parse(f)
+    val loaded = parse(f)
+
+    logger.info("Loaded " + loaded)
+    loaded
   }
 
   private def parse(f: File): Map[String, SessionPermalinks] = {
