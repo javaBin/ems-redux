@@ -41,7 +41,7 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
       replaceAll(" +", "-").
       replace("æ", "ae").
       replace("ø", "o").
-      replace("aa", "å").
+      replace("å", "a").
       replaceAll("[^a-z0-9-]", "")
   }
 
