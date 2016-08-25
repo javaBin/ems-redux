@@ -40,7 +40,7 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
     title.trim.toLowerCase.
       replaceAll(" +", "-").
       replace("æ", "ae").
-      replace("ø", "oe").
+      replace("ø", "o").
       replace("aa", "å").
       replaceAll("[^a-z0-9-]", "")
   }
