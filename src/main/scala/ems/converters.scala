@@ -133,7 +133,7 @@ object converters {
     links ++= s.room.map(r => Link(baseURIBuilder.segments("events", s.session.eventId, "rooms", r.id.get.toString).build(), "room item", Some(r.name))).toSeq
     links ++= s.slot.map(slot => Link(baseURIBuilder.segments("events", s.session.eventId, "slots", slot.id.get.toString).build(), "slot item", Some(formatSlot(slot)))).toSeq
     links ++= s.speakers.map(speaker => Link(URIBuilder(href).segments("speakers", speaker.id.get).build(), "speaker item", Some(speaker.name)))
-    links ++= permalinks.expand(s.session.eventId, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
+    links ++= permalinks.expand(s.session.eventId, s.session, href).map(h => Link(h, "alternate", Some("Permalink"))).toSeq
     links.result()
   }
 

@@ -1,14 +1,41 @@
 package ems
 
-import uritemplate._, Syntax._
-import scala.util.Properties
-import org.apache.commons.codec.digest._
 import java.io.File
 import java.net.URI
 
-case class SessionPermalinks(map: Map[String, URITemplate]) {
-  def expand(eventId: String, href: URI): Option[URI] = {
-    map.get(eventId).map(_.expand("href" := hash(href))).map(URI.create)
+import ems.model.Session
+import org.apache.commons.codec.digest._
+import uritemplate.Syntax._
+import uritemplate._
+
+case class Expansion(variable: String, template: URITemplate)
+
+case class SessionPermalinks(map: Map[String, Expansion]) {
+  def expand(eventId: String, session: Session, href: URI): Option[URI] = {
+    map.get(eventId).flatMap(
+      exp => exp.variable match {
+        case "title" => expandTitle(eventId, session.abs.title)
+        case "href" => expandHref(eventId, href)
+        case _ => None
+      }
+    )
+  }
+
+  private[ems] def expandHref(eventId: String, href: URI): Option[URI] = {
+    map.get(eventId).map(exp => exp.template.expand(exp.variable := hash(href))).map(URI.create)
+  }
+
+  private[ems] def expandTitle(eventId: String, title: String): Option[URI] = {
+    map.get(eventId).map(exp => exp.template.expand(exp.variable := escapeTitle(title))).map(URI.create)
+  }
+
+  def escapeTitle(title: String) = {
+    title.trim.toLowerCase.
+      replaceAll(" +", "-").
+      replace("æ", "ae").
+      replace("ø", "oe").
+      replace("aa", "å").
+      replaceAll("[^a-z0-9-]", "")
   }
 
   def hash(href: URI): String = DigestUtils.sha256Hex(href.toString).trim
@@ -26,13 +53,36 @@ object SessionPermalinks {
       }
       f
     }
-    def toMap(jO: JObject) = jO.values.foldLeft(Map.empty[String, Map[String, URITemplate]]){case (m, (k,v)) => m.updated(k, (v match {
-      case j: Map[_, _] => j.map{case (k,v) => k.toString -> URITemplate(v.toString)}.toMap
-      case n => Map.empty[String, URITemplate]
-    })) }
-    val map : Map[String, Map[String, URITemplate]] = parseOpt(new java.io.FileReader(f)).
-      collect{case j : JObject => toMap(j)}.getOrElse(Map.empty)
-    map.mapValues(m => SessionPermalinks(m))
+
+    parse(f)
+  }
+
+  private def parse(f: File): Map[String, SessionPermalinks] = {
+    def parseExpansion(v: JValue): Expansion = {
+      v match {
+        case obj@JObject(_) => Expansion(
+          (obj \ "variable").toString,
+          URITemplate((obj \ "template").toString)
+        )
+        case j => sys.error("Failed" + j)
+      }
+    }
+
+    def parsePermaLinks(v: JObject): SessionPermalinks = {
+      SessionPermalinks(v.obj.foldLeft(Map.empty[String, Expansion]){ case (map, (key, value)) =>
+        map + (key -> parseExpansion(value))
+      })
+    }
+
+
+    def parseIt(obj: JObject): Map[String, SessionPermalinks] = {
+      obj.obj.foldLeft(Map.empty[String, SessionPermalinks]){case (map, (key, value)) =>
+        map + (key -> parsePermaLinks(value.asInstanceOf[JObject]))
+      }
+    }
+
+
+    parseOpt(f).collect{ case j: JObject => j}.map(parseIt).getOrElse(Map.empty)
   }
 
   def fromEnvironment(name: String): SessionPermalinks = links.getOrElse(name, SessionPermalinks(Map.empty))
