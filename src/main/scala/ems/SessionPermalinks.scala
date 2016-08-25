@@ -9,9 +9,9 @@ import org.apache.commons.codec.digest._
 import uritemplate.Syntax._
 import uritemplate._
 
-case class Expansion(variable: String, template: URITemplate) {
+case class Expansion(variable: String, template: String) {
   def expand(value: String): URI = {
-    URI.create(template.expand(variable := value))
+    URI.create(URITemplate(template).expand(variable := value))
   }
 }
 
@@ -79,7 +79,7 @@ object SessionPermalinks extends LazyLogging {
         case obj@JObject(_) => {
           Expansion(
             stringOrEmpty(obj \ "variable"),
-            URITemplate(stringOrEmpty(obj \ "template"))
+            stringOrEmpty(obj \ "template")
           )
         }
         case j => sys.error("Failed" + j)
