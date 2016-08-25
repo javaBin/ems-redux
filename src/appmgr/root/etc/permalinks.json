@@ -34,5 +34,11 @@
       "variable" : "title",
       "template" : "https://2016.javazone.no/program/{title}"
     }
+  },
+  "dev": {
+    "0e6d98e9-5b06-42e7-b275-6abadb498c81": {
+      "variable": "href",
+      "template" : "http://2015.javazone.no/details.html?talk={href}"
+    }
   }
 }

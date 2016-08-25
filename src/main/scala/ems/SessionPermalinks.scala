@@ -8,25 +8,32 @@ import org.apache.commons.codec.digest._
 import uritemplate.Syntax._
 import uritemplate._
 
-case class Expansion(variable: String, template: URITemplate)
+case class Expansion(variable: String, template: URITemplate) {
+  def expand(value: String): URI = {
+    URI.create(template.expand(variable := value))
+  }
+}
 
 case class SessionPermalinks(map: Map[String, Expansion]) {
-  def expand(eventId: String, session: Session, href: URI): Option[URI] = {
-    map.get(eventId).flatMap(
-      exp => exp.variable match {
-        case "title" => expandTitle(eventId, session.abs.title)
-        case "href" => expandHref(eventId, href)
-        case _ => None
+  def expand(session: Session, href: URI): Option[URI] = {
+    map.get(session.eventId.toString).flatMap(
+      exp => {
+        println(exp.variable)
+        exp.variable match {
+          case "title" => Some(exp.expand(escapeTitle(session.abs.title)))
+          case "href" => Some(exp.expand(hash(href)))
+          case _ => None
+        }
       }
     )
   }
 
   private[ems] def expandHref(eventId: String, href: URI): Option[URI] = {
-    map.get(eventId).map(exp => exp.template.expand(exp.variable := hash(href))).map(URI.create)
+    map.get(eventId).map(exp => exp.expand(hash(href)))
   }
 
   private[ems] def expandTitle(eventId: String, title: String): Option[URI] = {
-    map.get(eventId).map(exp => exp.template.expand(exp.variable := escapeTitle(title))).map(URI.create)
+    map.get(eventId).map(exp => exp.expand(escapeTitle(title)))
   }
 
   def escapeTitle(title: String) = {
@@ -45,7 +52,7 @@ object SessionPermalinks {
   import org.json4s._
   import org.json4s.native.JsonMethods._
 
-  private lazy val links: Map[String, SessionPermalinks] = {
+  private val links: Map[String, SessionPermalinks] = {
     val f = {
       var f = new File(Jetty.home, "etc/permalinks.json")
       if (!f.exists) {
@@ -58,12 +65,19 @@ object SessionPermalinks {
   }
 
   private def parse(f: File): Map[String, SessionPermalinks] = {
+    def stringOrEmpty(jv: JValue) = jv match {
+      case JString(s) => s
+      case _ => ""
+    }
+
     def parseExpansion(v: JValue): Expansion = {
       v match {
-        case obj@JObject(_) => Expansion(
-          (obj \ "variable").toString,
-          URITemplate((obj \ "template").toString)
-        )
+        case obj@JObject(_) => {
+          Expansion(
+            stringOrEmpty(obj \ "variable"),
+            URITemplate(stringOrEmpty(obj \ "template"))
+          )
+        }
         case j => sys.error("Failed" + j)
       }
     }
