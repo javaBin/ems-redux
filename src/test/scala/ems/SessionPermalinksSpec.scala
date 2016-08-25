@@ -7,7 +7,6 @@ import uritemplate._
 class SessionPermalinksSpec extends Specification {
   "SessionPermalinks" should {
     "generate correctly in 2015" in {
-      SessionPermalinks.fromEnvironment("meh")
       val eventId = "0e6d98e9-5b06-42e7-b275-6abadb498c81"
       val expected = URI.create("http://test.2015.javazone.no/details.html?talk=fd09fba268aa5329705298f5f456bb01673edb85ab4a5c6233b3a8d8658ab3cb")
       val permalinks = SessionPermalinks(Map(eventId -> Expansion("href", URITemplate("http://test.2015.javazone.no/details.html?talk={href}"))))
