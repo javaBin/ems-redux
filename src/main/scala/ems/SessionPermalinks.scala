@@ -1,7 +1,8 @@
 package ems
 
-import java.io.File
+import java.io.{File, InputStreamReader}
 import java.net.URI
+import javax.script.{Invocable, ScriptEngineManager}
 
 import com.typesafe.scalalogging.LazyLogging
 import ems.model.Session
@@ -20,7 +21,7 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
     map.get(session.eventId.toString).flatMap(
       exp => {
         exp.variable match {
-          case "title" => Some(exp.expand(escapeTitle(session.abs.title)))
+          case "title" => Some(exp.expand(hereBeLotsOfDragons(session.abs.title)))
           case "href" => Some(exp.expand(hash(href)))
           case _ => None
         }
@@ -33,18 +34,14 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
   }
 
   private[ems] def expandTitle(eventId: String, title: String): Option[URI] = {
-    map.get(eventId).map(exp => exp.expand(escapeTitle(title)))
+    map.get(eventId).map(exp => exp.expand(hereBeLotsOfDragons(title)))
   }
 
-  def escapeTitle(title: String) = {
-    title.trim.toLowerCase.
-      replaceAll(" +", "-").
-      replace('.', '-').
-      replace("æ", "ae").
-      replace("ø", "o").
-      replace("å", "a").
-      replaceAll("[^a-z0-9-]", "").
-      replaceAll("\\-+", "-")
+  def hereBeLotsOfDragons(title: String) = {
+    val engine = new ScriptEngineManager().getEngineByName("nashorn")
+    engine.eval(new InputStreamReader(getClass.getResourceAsStream("/js/kebabcase.js")))
+    val invoker = engine.asInstanceOf[Invocable]
+    invoker.invokeFunction("kebabCase", title).toString
   }
 
   def hash(href: URI): String = DigestUtils.sha256Hex(href.toString).trim
