@@ -16,11 +16,14 @@ class SessionPermalinksSpec extends Specification {
       val eventId = "0e6d98e9-5b06-42e7-b275-6abadb498c81"
       val expected = URI.create("https://2016.javazone.no/program/hjelp-vi-skal-kode-funksjonelt-i-java")
       val expected2 = URI.create("https://2016.javazone.no/program/enterprise-programvare-vart-du-skraemt-no")
+      val expected3 = URI.create("https://2016.javazone.no/program/lets-build-a-scalable-async-vert-x-app-in-60-min")
       val permalinks = SessionPermalinks(Map(eventId -> Expansion("title", "https://2016.javazone.no/program/{title}")))
       val exp = permalinks.expandTitle(eventId, "Hjelp, vi skal kode funksjonelt i Java!")
       val exp2 = permalinks.expandTitle(eventId, "Enterprise programvare!   Vart du skræmt no?")
+      val exp3 = permalinks.expandTitle(eventId, "Let's build a scalable async Vert.x app in < 60 min")
       exp.get must be equalTo(expected)
       exp2.get must be equalTo(expected2)
+      exp3.get must be equalTo(expected3)
     }
   }
 }

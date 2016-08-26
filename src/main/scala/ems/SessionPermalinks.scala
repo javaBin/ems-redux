@@ -39,10 +39,12 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
   def escapeTitle(title: String) = {
     title.trim.toLowerCase.
       replaceAll(" +", "-").
+      replace('.', '-').
       replace("æ", "ae").
       replace("ø", "o").
       replace("å", "a").
-      replaceAll("[^a-z0-9-]", "")
+      replaceAll("[^a-z0-9-]", "").
+      replaceAll("\\-+", "-")
   }
 
   def hash(href: URI): String = DigestUtils.sha256Hex(href.toString).trim
