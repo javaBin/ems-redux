@@ -38,10 +38,13 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
   }
 
   def hereBeLotsOfDragons(title: String) = {
-    val engine = new ScriptEngineManager().getEngineByName("nashorn")
-    engine.eval(new InputStreamReader(getClass.getResourceAsStream("/js/kebabcase.js")))
-    val invoker = engine.asInstanceOf[Invocable]
-    invoker.invokeFunction("kebabCase", title).toString
+    val engine = new ScriptEngineManager(getClass.getClassLoader).getEngineByName("nashorn")
+    val resource = Option(getClass.getResourceAsStream("/js/kebabcase.js"))
+    resource.map{ is =>
+      engine.eval(new InputStreamReader(is))
+      val invoker = engine.asInstanceOf[Invocable]
+      invoker.invokeFunction("kebabCase", title).toString
+    }.getOrElse(title)
   }
 
   def hash(href: URI): String = DigestUtils.sha256Hex(href.toString).trim
