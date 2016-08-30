@@ -21,7 +21,7 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
     map.get(session.eventId.toString).flatMap(
       exp => {
         exp.variable match {
-          case "title" => Some(exp.expand(hereBeLotsOfDragons(session.abs.title)))
+          case "title" => Some(exp.expand(LotsOfDragons(session.abs.title)))
           case "href" => Some(exp.expand(hash(href)))
           case _ => None
         }
@@ -34,20 +34,21 @@ case class SessionPermalinks(map: Map[String, Expansion]) {
   }
 
   private[ems] def expandTitle(eventId: String, title: String): Option[URI] = {
-    map.get(eventId).map(exp => exp.expand(hereBeLotsOfDragons(title)))
-  }
-
-  def hereBeLotsOfDragons(title: String) = {
-    val engine = new ScriptEngineManager(getClass.getClassLoader).getEngineByName("nashorn")
-    val resource = Option(getClass.getResourceAsStream("/js/kebabcase.js"))
-    resource.map{ is =>
-      engine.eval(new InputStreamReader(is))
-      val invoker = engine.asInstanceOf[Invocable]
-      invoker.invokeFunction("kebabCase", title).toString
-    }.getOrElse(title)
+    map.get(eventId).map(exp => exp.expand(LotsOfDragons(title)))
   }
 
   def hash(href: URI): String = DigestUtils.sha256Hex(href.toString).trim
+
+  object LotsOfDragons {
+    val invoker: Invocable = {
+      val engine = new ScriptEngineManager(getClass.getClassLoader).getEngineByName("nashorn")
+      val resource = getClass.getResourceAsStream("/js/kebabcase.js")
+      engine.eval(new InputStreamReader(resource))
+      engine.asInstanceOf[Invocable]
+    }
+    def apply(title: String): String = invoker.invokeFunction("kebabCase", title).toString
+
+  }
 }
 
 object SessionPermalinks extends LazyLogging {
