@@ -107,8 +107,14 @@ trait SessionResources extends ResourceHelper {
         val id = UUIDFromString(URIBuilder(room).path.last.seg)
         storage.getRoom(eventId, id).await()
       }
+
+      val video = params.get("video").flatMap(_.headOption).map(URI.create).
+        filter(uri => List("vimeo.com", "youtube.com").exists(uri.getHost.contains))
       //TODO: improve this.
       var updated = session
+      if (video.isDefined) {
+        updated = updated.copy(video = video)
+      }
       if (tags.isDefined) {
         updated = updated.withTags(tags.get.toSet[String])
       }
