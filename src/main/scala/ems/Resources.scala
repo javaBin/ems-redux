@@ -62,33 +62,36 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
     case _ => failure(NotFound)
   }
 
-  /*def handleRedirect(implicit user: User) = for {
+  def handleRedirect(implicit user: User) = for {
     _ <- GET
     base <- baseURIBuilder
     params <- QueryParams
-  } yield {
-    val eventSlug = params("event-slug").headOption
-    val sessionSlug = params("session-slug").headOption
-    val result = (eventSlug, sessionSlug) match {
+    eventSlug = params("event-slug").headOption
+    sessionSlug = params("session-slug").headOption
+    res <- ((eventSlug, sessionSlug) match {
       case (Some(e), Some(s)) => {
         for {
           eventId <- storage.getEventBySlug(e)
-          sessionId <- storage.getSessionBySlug(eventId, s)
+          sessionId <- eventId.map(eid => storage.getSessionBySlug(eid, s)).getOrElse(Future.successful(None))
         } yield {
-          SeeOther ~> CacheControl("max-age=3600") ~> Location(base.segments("events", eventId, "sessions", sessionId).build().toString)
+          (eventId, sessionId) match {
+            case (Some(eid), Some(sid)) => SeeOther ~> Location(base.segments("events", eid.toString, "sessions", sid.toString).build().toString)
+            case _ => BadRequest
+          }
         }
       }
       case (Some(e), None) => {
         for {
           eventId <- storage.getEventBySlug(e)
         } yield {
-          SeeOther ~> CacheControl("max-age=3600") ~> Location(base.segments("events", eventId).build().toString)
+          eventId.map(eid => SeeOther ~> Location(base.segments("events", eid.toString).build().toString)).getOrElse(BadRequest)
         }
       }
-      case _ => None
-    }
-    result.getOrElse(BadRequest)
-  }*/
+      case _ => Future.successful(BadRequest)
+    }).successValue
+  } yield {
+    res
+  }
 
   def handleRoot = for {
     base <- baseURIBuilder
