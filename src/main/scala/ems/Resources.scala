@@ -50,7 +50,7 @@ class Resources[A, B](override val storage: DBStorage, auth: Authenticator[A, B]
     case Speaker(eventId, sessionId, speakerId) => handleSpeaker(eventId, sessionId, speakerId)
     case SpeakerPhoto(eventId, sessionId, speakerId) => handleSpeakerPhoto(eventId, sessionId, speakerId)
     case Binary(id) => handleAttachment(id)
-    //case Seg("redirect" :: Nil) => handleRedirect
+    case Seg("redirect" :: Nil) => handleRedirect
     case Seg("app-info" :: Nil) => {
       for {
         _ <- GET
