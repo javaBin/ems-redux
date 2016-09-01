@@ -234,6 +234,7 @@ class SQLStorage(config: ems.SqlConfig, binaryStorage: BinaryStorage) extends DB
       published = session.published,
       roomid = session.room,
       slotid = session.slot,
+      video = session.video.map(_.toString),
       lastmodified = DateTime.now()
     )
     val action = if (session.id.isDefined) {
