@@ -68,13 +68,10 @@ case class SqlConfig(host: String = "localhost",
   val driver = "org.postgresql.Driver"
 
   def dataSource(): DataSource = {
-    val props = new Properties()
-    props.setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource")
-    props.setProperty("dataSource.user", username)
-    props.setProperty("dataSource.password", password)
-    props.setProperty("dataSource.databaseName", database)
-
-    val config = new HikariConfig(props)
+    val config = new HikariConfig()
+    config.setJdbcUrl(url)
+    config.setUsername(username)
+    config.setPassword(password)
     new HikariDataSource(config)
   }
 
