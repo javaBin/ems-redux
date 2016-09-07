@@ -1,11 +1,12 @@
 package ems.security
 
-import java.io.{BufferedInputStream, FileInputStream, File}
+import java.io.{BufferedInputStream, File, FileInputStream}
 import java.util.Properties
+
+import com.typesafe.scalalogging.LazyLogging
 import org.mindrot.jbcrypt.BCrypt
 
 import collection.JavaConverters._
-
 import unfiltered.util.IO
 
 import scalaz.\/
@@ -17,13 +18,17 @@ class PropertyFileAuthenticator[A, B] private(properties: Map[String, String]) e
   }
 }
 
-object PropertyFileAuthenticator {
+object PropertyFileAuthenticator extends LazyLogging {
   def apply[A, B](file: File): PropertyFileAuthenticator[A, B] = {
+    logger.info("Loaded passwords from " + file)
     val props = new Properties()
     if (file.exists()) {
       IO.use(new BufferedInputStream(new FileInputStream(file))) { is => props.load(is) }
     }
-    new PropertyFileAuthenticator[A, B](props.asScala.toMap)
+
+    val map = props.asScala.toMap
+    logger.info("Found users {}", map.keys.mkString(", "))
+    new PropertyFileAuthenticator[A, B](map)
   }
 
 
