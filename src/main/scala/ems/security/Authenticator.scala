@@ -13,7 +13,7 @@ trait Authenticator[A,B] {
     def apply(req: HttpRequest[A] with Async.Responder[B])(f: UserFunction): Any = {
       req match {
         case BasicAuth(u, p) => authenticate(u, p).fold(
-          err => Unauthorized ~> WWWAuthenticate("Basic realm=\"ems\"") ~> ResponseString(err.getMessage),
+          err => req.respond(Unauthorized ~> WWWAuthenticate("Basic realm=\"ems\"") ~> ResponseString(err.getMessage)),
           u => {
             val intent: Async.Intent[A, B] = f(u)
             if (intent.isDefinedAt(req)) intent(req) else req.respond(Pass)
