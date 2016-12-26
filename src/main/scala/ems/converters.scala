@@ -14,7 +14,7 @@ import scravatar.Gravatar
 import scala.util.Properties
 
 object converters {
-  val permalinks: SessionPermalinks = SessionPermalinks.fromEnvironment(Properties.propOrElse("CONSTRETTO_TAGS", "dev"))
+  lazy val permalinks: SessionPermalinks = SessionPermalinks.fromEnvironment(Properties.propOrElse("CONSTRETTO_TAGS", "dev"))
 
   def eventToItem(baseBuilder: URIBuilder): (Event) => Item = {
     e => {
@@ -59,15 +59,15 @@ object converters {
   def toSlot(template: Template, eventId: UUID, parent: Option[UUID] = None, id: Option[UUID] = None): Slot = Slot(
     id,
     eventId,
-    template.getPropertyValue("start").map(v => RFC3339.parseDateTime(v.toString).right.get).get,
-    template.getPropertyValue("duration").map(v => Minutes.minutes(v.toString.toInt).toStandardDuration).get,
+    template.getPropertyValue("start").map(v => RFC3339.parseDateTime(v.value.toString).right.get).get,
+    template.getPropertyValue("duration").map(v => Minutes.minutes(v.value.toString.toInt).toStandardDuration).get,
     parent
   )
 
   def toRoom(template: Template, eventId: UUID, id: Option[UUID] = None): Room = Room(
     id,
     eventId,
-    template.getPropertyValue("name").map(_.toString).get
+    template.getPropertyValue("name").map(_.value.toString).get
   )
 
   def enrichedSessionToItem(baseBuilder: URIBuilder)(implicit u: User): (EnrichedSession) => Item = {
