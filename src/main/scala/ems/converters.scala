@@ -67,7 +67,7 @@ object converters {
   def toRoom(template: Template, eventId: UUID, id: Option[UUID] = None): Room = Room(
     id,
     eventId,
-    template.getPropertyValue("name").map(_.toString).get
+    template.getPropertyValue("name").map(_.value.toString).get
   )
 
   def enrichedSessionToItem(baseBuilder: URIBuilder)(implicit u: User): (EnrichedSession) => Item = {
