@@ -144,7 +144,7 @@ trait SessionResources extends ResourceHelper {
     previous <- commit(getOrElse(enriched, NotFound))
     a <- handleObject(Future.successful(enriched.map(_.session)), (t: Template) => {
       val updated = toSession(eventId, Some(sessionId), t)
-      updated.copy(room = previous.session.room, slot = previous.session.slot, published = false, video = previous.session.video)
+      updated.copy(room = previous.session.room, slot = previous.session.slot, video = previous.session.video)
     }, storage.saveSession, (_: Session) => enriched.map(s => enrichedSessionToItem(base)(u)(s)).get, Some((_: Session) => storage.removeSession(sessionId))) {
       c =>
         val template = makeTemplate("title", "summary", "body", "outline", "audience", "equipment", "keywords", "published").
